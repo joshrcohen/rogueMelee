@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_hooks.h>
 #include "ftCo_Damage.h"
 
 #include <Runtime/platform.h>
@@ -139,7 +140,7 @@ void ftCo_Damage_CalcKnockback(Fighter* fp)
         if (fp->is_metal) {
             armor += p_ftCommonData->metal_armor;
         }
-        fp->dmg.kb_applied -= armor;
+        fp->dmg.kb_applied -= Rogue_ModifyArmor(fp, armor);
         if (fp->dmg.kb_applied < p_ftCommonData->kb_min) {
             fp->dmg.kb_applied = p_ftCommonData->kb_min;
         }
@@ -283,7 +284,7 @@ void ftCo_8008DCE0(Fighter_GObj* gobj, int arg1, float facing_dir)
     fp->dmg.x18d8.kb_applied1 = kb_applied;
     pl_80040270(fp->player_id, fp->is_sub_fighter, kb_applied);
     scaled_kb_154 = kb_applied * p_ftCommonData->x154;
-    fp->mv.co.damage.x0 = (int) scaled_kb_154;
+    fp->mv.co.damage.x0 = (int) Rogue_ModifyHitstun(fp, scaled_kb_154);
     if (!fp->mv.co.damage.x0) {
         fp->mv.co.damage.x0 = 1;
     }

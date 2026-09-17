@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftzeldaspeciallw.h"
 
 #include <Runtime/platform.h>
@@ -31,7 +32,7 @@ void ftZd_SpecialLw_8013ADB4(HSD_GObj* gobj)
 
     fp = GET_FIGHTER(gobj);
     if (!fp->x2219_b0) {
-        efSync_Spawn(1276, gobj, fp->parts[104].joint);
+        efSync_Spawn(1276, gobj, fp->parts[Rogue_AbilityMapBone(fp, 104)].joint);
         fp->x2219_b0 = true;
     }
 
@@ -47,7 +48,7 @@ void ftZd_SpecialLw_8013AE30(HSD_GObj* gobj)
 
     fp = GET_FIGHTER(gobj);
     if (!fp->x2219_b0) {
-        efSync_Spawn(1277, gobj, fp->parts[FtPart_HipN].joint);
+        efSync_Spawn(1277, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_HipN)].joint);
         fp->x2219_b0 = true;
     }
 
@@ -84,7 +85,7 @@ static void ftZelda_SpecialLw_StartAction_Helper(HSD_GObj* gobj)
     fp->self_vel.y = fp->self_vel.y / attributes->x74;
     fp->gr_vel = fp->gr_vel / attributes->x70;
 
-    lb_8000B1CC(fp->parts[FtPart_TopN].joint, NULL, &sp20);
+    lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, FtPart_TopN)].joint, NULL, &sp20);
     lb_800119DC(&sp20, 120, 0.4, 0.003, MTXDegToRad(60));
 
     fp->accessory4_cb = &ftZd_SpecialLw_8013ADB4;
@@ -331,7 +332,7 @@ s32 ftZd_SpecialLw_8013B540(HSD_GObj* gobj)
     actionStateIndex = fp->motion_id;
 
     if (((actionStateIndex == 344) || (actionStateIndex == 347)) &&
-        (fp->u.zd.x222C != 0U))
+        (Rogue_AbilityVars(fp, Ft_Kind_Zelda)->zd.x222C != 0U))
     {
         return 1;
     }
@@ -345,7 +346,7 @@ bool ftZd_SpecialLw_8013B574(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
 
-    if (fp->u.zd.x222C != 0) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_Zelda)->zd.x222C != 0) {
         switch (fp->motion_id) {
         case 348:
         case 345:
@@ -367,8 +368,8 @@ void ftZd_SpecialLw_8013B5C4(HSD_GObj* gobj)
     Fighter* fp;
 
     fp = GET_FIGHTER(gobj);
-    if (fp->u.zd.x222C != 0) {
-        fp->u.zd.x222C = 0;
+    if (Rogue_AbilityVars(fp, Ft_Kind_Zelda)->zd.x222C != 0) {
+        Rogue_AbilityVars(fp, Ft_Kind_Zelda)->zd.x222C = 0;
     }
 
     fp->death2_cb = 0;
@@ -381,9 +382,9 @@ void ftZd_SpecialLw_8013B5EC(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
 
-    if (fp->u.zd.x222C != NULL) {
-        it_802C3D44(fp->u.zd.x222C);
-        fp->u.zd.x222C = NULL;
+    if (Rogue_AbilityVars(fp, Ft_Kind_Zelda)->zd.x222C != NULL) {
+        it_802C3D44(Rogue_AbilityVars(fp, Ft_Kind_Zelda)->zd.x222C);
+        Rogue_AbilityVars(fp, Ft_Kind_Zelda)->zd.x222C = NULL;
     }
 
     fp->death2_cb = 0;

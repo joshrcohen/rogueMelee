@@ -769,12 +769,29 @@ static void mn_80229A7C(MainMenuData* data, MenuKind menu_kind, int selection)
     }
     sis_idx = mn_803EB6B0[menu_kind].description_indices;
     if (sis_idx != 0) {
-        text = HSD_SisLib_803A5ACC(0, mn_804D6BB4, -9.5f, 9.1f, 17.0f,
-                                   364.68332f, 38.38772f);
+        if (menu_kind == MENU_KIND_REG && selection == SEL_REG_ADVENTURE) {
+            /* Dynamic strings need the SIS stream allocated by 6754.
+             * 5ACC is for archive-backed text and leaves that stream NULL. */
+            text = HSD_SisLib_803A6754(0, mn_804D6BB4);
+            text->pos_x = -9.5f;
+            text->pos_y = 9.1f;
+            text->pos_z = 17.0f;
+            text->box_size_x = 364.68332f;
+            text->box_size_y = 38.38772f;
+            text->default_kerning = 1;
+        } else {
+            text = HSD_SisLib_803A5ACC(0, mn_804D6BB4, -9.5f, 9.1f, 17.0f,
+                                       364.68332f, 38.38772f);
+        }
         data->description = text;
         text->font_size.x = 0.0521f;
         text->font_size.y = 0.0521f;
-        HSD_SisLib_803A6368(text, sis_idx[selection]);
+        if (menu_kind == MENU_KIND_REG && selection == SEL_REG_ADVENTURE) {
+            HSD_SisLib_803A6B98(text, 0, 0,
+                "Fight, upgrade, and steal specials.");
+        } else {
+            HSD_SisLib_803A6368(text, sis_idx[selection]);
+        }
     }
 }
 
@@ -1159,6 +1176,31 @@ void mn_8022ADD8(HSD_GObj* gp, bool selection_changed)
     }
 }
 
+/* Keep the replacement title attached to the original animated menu row. */
+static void updateRogueMenuLabel(MainMenuData* data)
+{
+    Vec3 position;
+    if (data->rogue_label == NULL) return;
+    HSD_JObjSetFlagsAll(data->rogue_label_anchor, JOBJ_HIDDEN);
+    lb_8000B1CC(data->rogue_label_anchor, NULL, &position);
+    data->rogue_label->pos_x = position.x;
+    data->rogue_label->pos_y = -position.y;
+    data->rogue_label->pos_z = 17.0f;
+    {
+        GXColor gold = {255, 200, 0, 255};
+        GXColor black = {15, 15, 15, 255};
+        GXColor color = mn_804A04F0.hovered_selection == SEL_REG_ADVENTURE ? black : gold;
+        HSD_SisLib_803A74F0(data->rogue_label, 0, &color);
+    }
+}
+
+static void freeRogueMenuData(void* ptr)
+{
+    MainMenuData* data = ptr;
+    if (data->rogue_label != NULL) HSD_SisLib_803A5CC4(data->rogue_label);
+    HSD_Free(data);
+}
+
 void fn_8022AF10(HSD_GObj* gp)
 {
     MainMenuData* data;
@@ -1184,6 +1226,7 @@ void fn_8022AF10(HSD_GObj* gp)
         }
     }
     HSD_JObjAnim(jobj);
+    updateRogueMenuLabel(data);
 }
 
 /// @brief main menu think func that handles the updating
@@ -1328,6 +1371,7 @@ void fn_8022AFEC(HSD_GObj* gp)
         mn_8022A5D0(gp, (u8) hovered_selection);
     }
     mn_8022ADD8(gp, selection_changed);
+    updateRogueMenuLabel(gp->user_data);
     final_data = gp->user_data;
     state = (u8) selection_changed;
     if ((s32) state != false) {
@@ -1428,11 +1472,13 @@ HSD_GObj* mn_8022B3A0(u8 state)
     HSD_JObjReqAnimAll(root_jobj, 0.0F);
     user_data = HSD_MemAlloc(sizeof(MainMenuData));
     HSD_ASSERTREPORT(0x65D, user_data, "Can't get user_data.\n");
-    GObj_InitUserData(gobj, 0, mn_8022EB04, user_data);
+    GObj_InitUserData(gobj, 0, freeRogueMenuData, user_data);
     user_data->menu_kind = mn_804A04F0.cur_menu;
     user_data->hovered_selection = mn_804A04F0.hovered_selection;
     user_data->state = state;
     user_data->description = NULL;
+    user_data->rogue_label = NULL;
+    user_data->rogue_label_anchor = NULL;
     for (idx = 0; idx < (int) ARRAY_SIZE(user_data->tree); idx++) {
         lb_80011E24(root_jobj, &user_data->tree[idx], idx, -1);
     }
@@ -1504,6 +1550,16 @@ HSD_GObj* mn_8022B3A0(u8 state)
                 HSD_JObjSetFlagsAll(cursor_parts[4], JOBJ_HIDDEN);
             }
             HSD_JObjAddChild(option_jobjs[unlocked_index], cursor_jobj);
+            if (menu_kind == MENU_KIND_REG && i == SEL_REG_ADVENTURE) {
+                HSD_Text* label = HSD_SisLib_803A6754(0, mn_804D6BB4);
+                user_data->rogue_label = label;
+                user_data->rogue_label_anchor = cursor_parts[1];
+                label->font_size.x = label->font_size.y = 0.035f;
+                label->default_alignment = 1;
+                label->default_kerning = 1;
+                HSD_SisLib_803A6B98(label, 0, -16, "Rogue Mode");
+                updateRogueMenuLabel(user_data);
+            }
         }
     }
     hover_jobj = user_data->tree[14];
@@ -2157,7 +2213,7 @@ void mn_8022CC28(HSD_GObj* gp)
         case SEL_REG_ADVENTURE:
             sfxForward();
             data = gm_GetCurrentSceneExitData();
-            data->pending_mode = GM_ADVENTURE;
+            data->pending_mode = GM_ROGUE;
             gm_801A4B60();
             return;
         case SEL_REG_ALLSTAR:

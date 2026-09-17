@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftseakspecialhi.h"
 
 #include <melee/ft/forward.h>
@@ -63,7 +64,7 @@ void ftSk_SpecialHi_80112F48(HSD_GObj* gobj)
     {
         Vec3 pos;
         u8 _[4];
-        lb_8000B1CC(fp->parts[FtPart_HipN].joint, NULL, &pos);
+        lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, FtPart_HipN)].joint, NULL, &pos);
         pos.z = 0;
         it_802B1C60(gobj, &pos, fp->facing_dir);
     }
@@ -73,7 +74,7 @@ void ftSk_SpecialHi_80112FA8(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
     Vec3 pos;
-    lb_8000B1CC(fp->parts[FtPart_HipN].joint, NULL, &pos);
+    lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, FtPart_HipN)].joint, NULL, &pos);
     if (!fp->x2219_b0) {
         efSync_Spawn(1284, gobj, &pos);
         fp->x2219_b0 = true;
@@ -86,7 +87,7 @@ void fn_80113038(HSD_GObj* gobj)
     Fighter* fp = GET_FIGHTER(gobj);
     Vec3 pos;
     if (!fp->x2219_b0) {
-        lb_8000B1CC(fp->parts[FtPart_HipN].joint, NULL, &pos);
+        lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, FtPart_HipN)].joint, NULL, &pos);
         efSync_Spawn(1285, gobj, &pos);
         fp->x2219_b0 = true;
     }

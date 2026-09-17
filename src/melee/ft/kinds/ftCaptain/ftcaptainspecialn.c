@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftcaptainspecialn.h"
 
 #include <Runtime/platform.h>
@@ -154,12 +155,12 @@ static inline void doPhys(HSD_GObj* gobj)
             FighterKind kind = ftLib_GetKind(gobj);
             switch (kind) {
             case Ft_Kind_Captain:
-                efSync_Spawn(1167, gobj, fp->parts[FtPart_TopN].joint,
-                             fp->parts[57].joint);
+                efSync_Spawn(1167, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_TopN)].joint,
+                             fp->parts[Rogue_AbilityMapBone(fp, 57)].joint);
                 break;
             case Ft_Kind_Ganon:
-                efSync_Spawn(1291, gobj, fp->parts[FtPart_TopN].joint,
-                             fp->parts[78].joint);
+                efSync_Spawn(1291, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_TopN)].joint,
+                             fp->parts[Rogue_AbilityMapBone(fp, 78)].joint);
                 break;
             default:
                 break;

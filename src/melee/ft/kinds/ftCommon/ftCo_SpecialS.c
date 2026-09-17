@@ -1,4 +1,5 @@
 #include "ftCo_SpecialS.h"
+#include <melee/rogue/rogue_ability.h>
 
 #include <Runtime/platform.h>
 
@@ -45,5 +46,6 @@ static void doEnter(Fighter_GObj* gobj)
     fp->gr_vel +=
         -(fp->gr_vel * (1 - fp->co_attrs.specials_ground_speed_retention)) *
         ft_GetGroundFrictionMultiplier(fp);
-    ftData_SpecialS[fp->kind](gobj);
+    if (!Rogue_TrySpecial(gobj, ROGUE_ABILITY_SIDE, false))
+        ftData_SpecialS[fp->kind](gobj);
 }

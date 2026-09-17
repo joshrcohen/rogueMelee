@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftsamusspecials.h"
 
 #include <melee/ft/forward.h>
@@ -168,5 +169,5 @@ void ftSs_SpecialS_8012A640(HSD_GObj* gobj)
     u8 _[8];
 
     efLib_DestroyAll(gobj);
-    fp->u.ss.x2244 = 0;
+    Rogue_AbilityVars(fp, Ft_Kind_Samus)->ss.x2244 = 0;
 }

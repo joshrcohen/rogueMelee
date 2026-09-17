@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftdonkeyspecialhi.h"
 
 #include <Runtime/platform.h>
@@ -46,7 +47,7 @@ void ftDk_SpecialHi_Enter(HSD_GObj* gobj)
     fp->self_vel.y = 0;
     fp->x1968_jumpsUsed = fp->co_attrs.max_jumps;
     ftAnim_8006EBA4(gobj);
-    efSync_Spawn(1226, gobj, fp->parts[FtPart_TopN].joint);
+    efSync_Spawn(1226, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_TopN)].joint);
 }
 
 void ftDk_SpecialAirHi_Enter(HSD_GObj* gobj)
@@ -62,7 +63,7 @@ void ftDk_SpecialAirHi_Enter(HSD_GObj* gobj)
     fp->self_vel.y = donkey_attr->SpecialHi.x4C_AERIAL_VERTICAL_VELOCITY;
     fp->x1968_jumpsUsed = fp->co_attrs.max_jumps;
     ftAnim_8006EBA4(gobj);
-    efSync_Spawn(1226, gobj, fp->parts[FtPart_TopN].joint);
+    efSync_Spawn(1226, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_TopN)].joint);
 }
 
 void ftDk_SpecialHi_Anim(HSD_GObj* gobj)

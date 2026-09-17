@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftseakspecials.h"
 
 #include <melee/ft/forward.h>
@@ -83,7 +84,7 @@ void ftSk_SpecialS_80110490(Fighter* fp)
 void ftSk_SpecialS_80110610(HSD_GObj* gobj, s32 arg1, float arg2)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    UNK_T* items = fp->ft_data->x48_items;
+    UNK_T* items = Rogue_AbilityData(fp)->x48_items;
 
     u8 _[4];
 
@@ -133,8 +134,8 @@ void ftSk_SpecialS_80110610(HSD_GObj* gobj, s32 arg1, float arg2)
 void ftSk_SpecialS_80110788(HSD_GObj* gobj)
 {
     Fighter* fp = gobj->user_data;
-    fp->u.sk.lstick_delta.x = fp->input.lstick[0].x - fp->input.lstick[1].x;
-    fp->u.sk.lstick_delta.y = fp->input.lstick[0].y - fp->input.lstick[1].y;
+    Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.lstick_delta.x = fp->input.lstick[0].x - fp->input.lstick[1].x;
+    Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.lstick_delta.y = fp->input.lstick[0].y - fp->input.lstick[1].y;
 
     {
         s32 stateVar3 = fp->mv.sk.specials.x8;
@@ -145,12 +146,12 @@ void ftSk_SpecialS_80110788(HSD_GObj* gobj)
             const enum_t flags = (1 << 3) | (1 << 6) | (1 << 8) | (1 << 9) |
                                  (1 << 10) | (1 << 11) | (1 << 12) | (1 << 18);
 
-            if ((fp->facing_dir == +1 && fp->u.sk.lstick_delta.x > +0.3F) ||
-                (fp->facing_dir == -1 && fp->u.sk.lstick_delta.x < -0.3F))
+            if ((fp->facing_dir == +1 && Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.lstick_delta.x > +0.3F) ||
+                (fp->facing_dir == -1 && Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.lstick_delta.x < -0.3F))
             {
                 ft_PlaySFX(fp, flags, 127, 64);
                 fp->mv.sk.specials.x8 = 6;
-            } else if (fp->u.sk.lstick_delta.y > 0.5F) {
+            } else if (Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.lstick_delta.y > 0.5F) {
                 ft_PlaySFX(fp, flags, 127, 64);
                 fp->mv.sk.specials.x8 = 12;
             }
@@ -166,9 +167,9 @@ void ftSk_SpecialS_80110788(HSD_GObj* gobj)
                                  (1 << 8) | (1 << 9) | (1 << 10) | (1 << 11) |
                                  (1 << 12) | (1 << 18);
 
-            if ((fp->facing_dir == +1 && fp->u.sk.lstick_delta.x < -0.3F &&
+            if ((fp->facing_dir == +1 && Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.lstick_delta.x < -0.3F &&
                  fp->input.lstick[0].x < 0) ||
-                (fp->facing_dir == -1 && fp->u.sk.lstick_delta.x > +0.3F &&
+                (fp->facing_dir == -1 && Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.lstick_delta.x > +0.3F &&
                  fp->input.lstick[0].x > 0))
             {
                 ft_PlaySFX(fp, flags, 127, 64);
@@ -178,7 +179,7 @@ void ftSk_SpecialS_80110788(HSD_GObj* gobj)
     }
 
     {
-        HSD_GObj* item_gobj = fp->u.sk.x8;
+        HSD_GObj* item_gobj = Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x8;
 
         if (item_gobj == NULL) {
             return;
@@ -203,8 +204,8 @@ void ftSk_SpecialS_80110788(HSD_GObj* gobj)
 
                 if (left_stick_y < chainSegment->x48) {
                     float mul = 0.5F;
-                    fp->u.sk.lstick_delta.x *= mul;
-                    fp->u.sk.lstick_delta.y *= mul;
+                    Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.lstick_delta.x *= mul;
+                    Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.lstick_delta.y *= mul;
                 }
             }
         }
@@ -229,7 +230,7 @@ void ftSk_SpecialS_UpdateHitboxes(HSD_GObj* gobj, Vec3* new_pos, s32 hitbox_id)
             return;
         }
 
-        fp->u.sk.xC[hitbox_id] = *new_pos;
+        Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.xC[hitbox_id] = *new_pos;
 
         if (new_pos->x != 0 || new_pos->y != 0) {
             ftColl_8007B8A8(&fp->x914[hitbox_id], new_pos);
@@ -328,7 +329,7 @@ static inline float sumOfSquares(float a, float b)
 void ftSk_SpecialS_80110BCC(HSD_GObj* gobj)
 {
     Fighter* fp = gobj->user_data;
-    HSD_GObj* item_gobj = fp->u.sk.x8;
+    HSD_GObj* item_gobj = Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x8;
     ftSeakAttributes* specialAttributes = fp->dat_attrs;
 
     if (item_gobj == NULL) {
@@ -344,13 +345,13 @@ void ftSk_SpecialS_80110BCC(HSD_GObj* gobj)
             float sums_of_squares[4];
             int i;
             for (i = 0; i < (ssize_t) ARRAY_SIZE(sums_of_squares); i++) {
-                float x = fp->u.sk.xC[i].x - fp->u.sk.x3C[i].x;
-                float y = fp->u.sk.xC[i].y - fp->u.sk.x3C[i].y;
+                float x = Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.xC[i].x - Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x3C[i].x;
+                float y = Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.xC[i].y - Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x3C[i].y;
 
                 sums_of_squares[i] = sumOfSquares(x, y);
 
-                fp->u.sk.x3C[i].x = fp->u.sk.xC[i].x;
-                fp->u.sk.x3C[i].y = fp->u.sk.xC[i].y;
+                Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x3C[i].x = Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.xC[i].x;
+                Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x3C[i].y = Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.xC[i].y;
             }
 
             if (fp->mv.sk.specials.x1C > 0) {
@@ -394,7 +395,7 @@ void ftSk_SpecialS_80110E4C(HSD_GObj* gobj)
 
     ftSk_SpecialS_ChainSomething(gobj);
 
-    fp->u.sk.x8 = NULL;
+    Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x8 = NULL;
     fp->death2_cb = NULL;
     fp->take_dmg_cb = NULL;
 }
@@ -405,17 +406,17 @@ void ftSk_SpecialS_CheckAndDestroyChain(HSD_GObj* gobj)
 
     u8 _[8];
 
-    if (fp->u.sk.x8 == NULL) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x8 == NULL) {
         return;
     }
 
-    it_802BB20C(fp->u.sk.x8);
+    it_802BB20C(Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x8);
 
     fp = gobj->user_data;
 
     ftSk_SpecialS_ChainSomething(gobj);
 
-    fp->u.sk.x8 = NULL;
+    Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x8 = NULL;
     fp->death2_cb = NULL;
     fp->take_dmg_cb = NULL;
 }
@@ -424,8 +425,8 @@ void ftSk_SpecialS_80110EE8(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
 
-    if (fp->u.sk.x8) {
-        it_802BAEEC(fp->u.sk.x8);
+    if (Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x8) {
+        it_802BAEEC(Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x8);
     }
 }
 
@@ -433,8 +434,8 @@ void ftSk_SpecialS_ChainSomething(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
 
-    if (fp->u.sk.x8) {
-        it_802BAF0C(fp->u.sk.x8);
+    if (Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x8) {
+        it_802BAF0C(Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x8);
         fp->mv.sk.specials.x20 = 2;
     }
 }
@@ -470,24 +471,24 @@ void ftSk_SpecialS_80110F70(HSD_GObj* gobj)
 
         fp->mv.sk.specials.x1C = 0;
         fp->mv.sk.specials.x20 = 0;
-        fp->u.sk.x8 = 0;
+        Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x8 = 0;
 
         {
             int i;
             for (i = 0; i < 4; i++) {
-                fp->u.sk.xC[i].z = var;
-                fp->u.sk.xC[i].y = var;
-                fp->u.sk.xC[i].x = var;
+                Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.xC[i].z = var;
+                Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.xC[i].y = var;
+                Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.xC[i].x = var;
 
-                fp->u.sk.x3C[i].z = var;
-                fp->u.sk.x3C[i].y = var;
-                fp->u.sk.x3C[i].x = var;
+                Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x3C[i].z = var;
+                Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x3C[i].y = var;
+                Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x3C[i].x = var;
             }
         }
 
-        fp->u.sk.lstick_delta.z = var;
-        fp->u.sk.lstick_delta.y = var;
-        fp->u.sk.lstick_delta.x = var;
+        Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.lstick_delta.z = var;
+        Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.lstick_delta.y = var;
+        Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.lstick_delta.x = var;
     }
 
     fp->x2222_b2 = true;
@@ -516,11 +517,11 @@ static inline void ftSk_SpecialS_SpawnChain(HSD_GObj* gobj)
     Fighter* fp = getFighterPlus(gobj);
     Vec3 pos;
 
-    lb_8000B1CC(fp->parts[FtPart_L3rdNa].joint, NULL, &pos);
-    fp->u.sk.x8 = itSeakChain_Spawn(gobj, &pos, fp->facing_dir);
-    fp->x1984_heldItemSpec = fp->u.sk.x8;
+    lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, FtPart_L3rdNa)].joint, NULL, &pos);
+    Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x8 = itSeakChain_Spawn(gobj, &pos, fp->facing_dir);
+    fp->x1984_heldItemSpec = Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x8;
 
-    if (fp->u.sk.x8 != NULL) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x8 != NULL) {
         fp->death2_cb = &ftSk_Init_80110198;
         fp->take_dmg_cb = &ftSk_Init_80110198;
     }
@@ -540,7 +541,7 @@ bool ftSk_SpecialS_CheckInitChain(HSD_GObj* gobj)
         ftSk_SpecialS_SpawnChain(gobj);
         fp->mv.sk.specials.x1C = da->x18;
 
-        if (fp->u.sk.x8 == NULL) {
+        if (Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x8 == NULL) {
             if (fp->ground_or_air == GA_Air) {
                 ftCo_Fall_Enter(gobj);
             } else {
@@ -551,7 +552,7 @@ bool ftSk_SpecialS_CheckInitChain(HSD_GObj* gobj)
 
     if (fp->mv.sk.specials.x0 == da->x1C + 1) {
         Vec3 vel = { 1.8f, 0.0f, 0.0f };
-        HSD_GObj* item_gobj = fp->u.sk.x8;
+        HSD_GObj* item_gobj = Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x8;
         Item* ip = item_gobj->user_data;
         itChainSegment* segment = ip->xC4_article_data->x4_specialAttributes;
 
@@ -643,7 +644,7 @@ void ftSk_SpecialS_80111440(HSD_GObj* gobj)
     {
         Fighter* fp2 = GET_FIGHTER(gobj);
 
-        if (fp2->u.sk.x8 != NULL) {
+        if (Rogue_AbilityVars(fp2, Ft_Kind_Seak)->sk.x8 != NULL) {
             fp2->death2_cb = &ftSk_Init_80110198;
             fp2->take_dmg_cb = &ftSk_Init_80110198;
         }
@@ -663,7 +664,7 @@ void ftSk_SpecialS_801114E4(HSD_GObj* gobj)
     {
         Fighter* fp2 = GET_FIGHTER(gobj);
 
-        if (fp2->u.sk.x8 != NULL) {
+        if (Rogue_AbilityVars(fp2, Ft_Kind_Seak)->sk.x8 != NULL) {
             fp2->death2_cb = &ftSk_Init_80110198;
             fp2->take_dmg_cb = &ftSk_Init_80110198;
         }
@@ -798,7 +799,7 @@ void ftSk_SpecialS_80111830(HSD_GObj* gobj)
 
     ftSk_SpecialS_80110AEC(gobj);
 
-    if (fp2->u.sk.x8 != NULL) {
+    if (Rogue_AbilityVars(fp2, Ft_Kind_Seak)->sk.x8 != NULL) {
         fp2->death2_cb = &ftSk_Init_80110198;
         fp2->take_dmg_cb = &ftSk_Init_80110198;
     }
@@ -820,7 +821,7 @@ void ftSk_SpecialS_80111830(HSD_GObj* gobj)
         vec0.y += fp->cur_pos.y;
         vec0.z += fp->cur_pos.z;
 
-        lb_8000B1CC(fp->parts[FtPart_L3rdNa].joint, NULL, &vec1);
+        lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, FtPart_L3rdNa)].joint, NULL, &vec1);
 
         {
             s32 flags =
@@ -844,7 +845,7 @@ void ftSk_SpecialS_80111988(HSD_GObj* gobj)
 
         ftSk_SpecialS_80110AEC(gobj);
 
-        if (fp->u.sk.x8 != NULL) {
+        if (Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x8 != NULL) {
             fp->death2_cb = &ftSk_Init_80110198;
             fp->take_dmg_cb = &ftSk_Init_80110198;
         }
@@ -871,7 +872,7 @@ void ftSk_SpecialSEnd_Anim(HSD_GObj* gobj)
         HSD_GObj* item_gobj;
 
         if (temp_r3 < temp_f1) {
-            item_gobj = fp->u.sk.x8;
+            item_gobj = Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x8;
 
             if (temp_r3 == specialAttributes->x24) {
                 it_802BCF84(item_gobj);
@@ -882,7 +883,7 @@ void ftSk_SpecialSEnd_Anim(HSD_GObj* gobj)
         }
 
         if (temp_r3 == temp_f1) {
-            item_gobj = fp->u.sk.x8;
+            item_gobj = Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x8;
             it_802BB20C(item_gobj);
         } else {
         inner_ret:
@@ -910,14 +911,14 @@ void ftSk_SpecialAirSEnd_Anim(HSD_GObj* gobj)
         HSD_GObj* item_gobj;
 
         if (stateVar1 < temp_f1) {
-            item_gobj = fp->u.sk.x8;
+            item_gobj = Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x8;
             if (stateVar1 == specialAttributes->x24) {
                 it_802BCF84(item_gobj);
             }
             goto inner_ret;
         }
         if (stateVar1 == temp_f1) {
-            item_gobj = fp->u.sk.x8;
+            item_gobj = Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x8;
             it_802BB20C(item_gobj);
         } else {
         inner_ret:
@@ -975,7 +976,7 @@ void ftSk_SpecialS_80111CB0(HSD_GObj* gobj)
     {
         Fighter* fp2 = gobj->user_data;
 
-        if (fp2->u.sk.x8 != NULL) {
+        if (Rogue_AbilityVars(fp2, Ft_Kind_Seak)->sk.x8 != NULL) {
             fp2->death2_cb = &ftSk_Init_80110198;
             fp2->take_dmg_cb = &ftSk_Init_80110198;
         }
@@ -995,7 +996,7 @@ void ftSk_SpecialS_80111D54(HSD_GObj* gobj)
     {
         Fighter* fp2 = GET_FIGHTER(gobj);
 
-        if (fp2->u.sk.x8 != NULL) {
+        if (Rogue_AbilityVars(fp2, Ft_Kind_Seak)->sk.x8 != NULL) {
             fp2->death2_cb = &ftSk_Init_80110198;
             fp2->take_dmg_cb = &ftSk_Init_80110198;
         }
@@ -1018,7 +1019,7 @@ void ftSk_SpecialS_80111DF8(HSD_GObj* gobj)
             ftSk_SpecialS_80110AEC(gobj);
         }
 
-        if (fp->u.sk.x8 != NULL) {
+        if (Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x8 != NULL) {
             fp->death2_cb = &ftSk_Init_80110198;
             fp->take_dmg_cb = &ftSk_Init_80110198;
         }
@@ -1042,7 +1043,7 @@ void ftSk_SpecialS_80111EB4(HSD_GObj* gobj)
             ftSk_SpecialS_80110AEC(gobj);
         }
 
-        if (fp->u.sk.x8 != NULL) {
+        if (Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x8 != NULL) {
             fp->death2_cb = &ftSk_Init_80110198;
             fp->take_dmg_cb = &ftSk_Init_80110198;
         }
@@ -1059,7 +1060,7 @@ bool ftSk_SpecialS_80111F70(HSD_GObj* gobj)
     Fighter* fp = GET_FIGHTER(gobj);
 
     if (gobj != NULL) {
-        if (fp->u.sk.x4 != 0) {
+        if (Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x4 != 0) {
             return false;
         }
 
@@ -1074,7 +1075,7 @@ int ftSk_SpecialS_80111FA0(HSD_GObj* gobj)
     Fighter* fp = gobj->user_data;
 
     if (gobj != NULL) {
-        return fp->u.sk.x0;
+        return Rogue_AbilityVars(fp, Ft_Kind_Seak)->sk.x0;
     }
 
     return 0;

@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftnessspecials.h"
 
 #include <Runtime/platform.h>
@@ -43,7 +44,7 @@ void ftNs_SpecialS_ItemPKFireSpawn(
     }
 
     if (FlagResult != false) {
-        lb_8000B1CC(fp->parts[FtPart_R2ndNa].joint, NULL, &ItemBonePos);
+        lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, FtPart_R2ndNa)].joint, NULL, &ItemBonePos);
 
         ItemBonePos.x += ness_attr->x30_PKFIRE_SPAWN_X * fp->facing_dir;
         ItemBonePos.y += ness_attr->x34_PKFIRE_SPAWN_Y;

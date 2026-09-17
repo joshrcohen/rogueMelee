@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftkirbyspecialhi.h"
 
 #include <melee/ft/forward.h>
@@ -43,7 +44,7 @@ void fn_800F21E8(Fighter_GObj* gobj)
         u8 _pad[12];
         fp->cmd_vars[2] = 0;
         fp->mv.kb.specialhi.xC = 1;
-        lb_8000B1CC(fp->parts[0].joint, NULL, &pos);
+        lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, 0)].joint, NULL, &pos);
         pos.x += (fp->facing_dir == 1.0F) ? da->specialhi_projectile_spawn_x
                                           : -da->specialhi_projectile_spawn_x;
         pos.y += da->specialhi_projectile_spawn_y;

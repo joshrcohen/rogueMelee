@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftnessspecialn.h"
 
 #include <Runtime/platform.h>
@@ -34,7 +35,7 @@ bool ftNs_SpecialN_CheckSpecialNHold(HSD_GObj* gobj)
 {
     if (gobj != NULL) {
         Fighter* fp = GET_FIGHTER(gobj);
-        if (fp != NULL && fp->u.ns.pkflash_gobj != NULL) {
+        if (fp != NULL && Rogue_AbilityVars(fp, Ft_Kind_Ness)->ns.pkflash_gobj != NULL) {
             enum_t msid = fp->motion_id;
             if (msid == ftNs_MS_SpecialNHold ||
                 msid == ftNs_MS_SpecialAirNHold)
@@ -61,8 +62,8 @@ void ftNs_SpecialN_SetNULL(HSD_GObj* gobj)
             return;
         }
 
-        if (fp->u.ns.pkflash_gobj != NULL) {
-            fp->u.ns.pkflash_gobj = NULL;
+        if (Rogue_AbilityVars(fp, Ft_Kind_Ness)->ns.pkflash_gobj != NULL) {
+            Rogue_AbilityVars(fp, Ft_Kind_Ness)->ns.pkflash_gobj = NULL;
         }
 
         fp->death2_cb = NULL;
@@ -84,9 +85,9 @@ void ftNs_SpecialN_ItemPKFlushSetNULL(HSD_GObj* gobj)
             return;
         }
 
-        if (fp->u.ns.pkflash_gobj != NULL) {
-            it_802AAA50(fp->u.ns.pkflash_gobj);
-            fp->u.ns.pkflash_gobj = NULL;
+        if (Rogue_AbilityVars(fp, Ft_Kind_Ness)->ns.pkflash_gobj != NULL) {
+            it_802AAA50(Rogue_AbilityVars(fp, Ft_Kind_Ness)->ns.pkflash_gobj);
+            Rogue_AbilityVars(fp, Ft_Kind_Ness)->ns.pkflash_gobj = NULL;
         }
 
         fp->death2_cb = NULL;
@@ -99,17 +100,17 @@ void ftNs_PKFlash_Init(HSD_GObj* gobj)
     Fighter* fighter_data2 = GET_FIGHTER(gobj);
     FORCE_PAD_STACK(0x14);
 
-    if (fighter_data2->u.ns.pkflash_gobj == NULL) {
+    if (Rogue_AbilityVars(fighter_data2, Ft_Kind_Ness)->ns.pkflash_gobj == NULL) {
         Vec3 vec;
 
-        lb_8000B1CC(fighter_data2->parts[FtPart_L2ndNa].joint, NULL, &vec);
+        lb_8000B1CC(fighter_data2->parts[Rogue_AbilityMapBone(fighter_data2, FtPart_L2ndNa)].joint, NULL, &vec);
         vec.z = 0.0f;
         vec.y += 3.0f * fighter_data2->x34_scale.y;
 
         {
             HSD_GObj* flash_GObj = it_802AA8C0(
                 gobj, &vec, It_Kind_Ness_PKFlush, fighter_data2->facing_dir);
-            fighter_data2->u.ns.pkflash_gobj = flash_GObj;
+                    Rogue_AbilityVars(fighter_data2, Ft_Kind_Ness)->ns.pkflash_gobj = flash_GObj;
             if (flash_GObj != NULL) {
                 fighter_data2->death2_cb = ftNs_Init_OnDamage;
                 fighter_data2->take_dmg_cb = ftNs_Init_OnDamage;
@@ -144,7 +145,7 @@ void ftNs_SpecialNStart_Enter(HSD_GObj* gobj)
         fp1->mv.ns.specialn.falling_acceleration_delay =
             sa->x8_PKFLASH_GRAVITY_DELAY;
 
-        fp1->u.ns.pkflash_gobj = NULL;
+        Rogue_AbilityVars(fp1, Ft_Kind_Ness)->ns.pkflash_gobj = NULL;
         fp1->mv.ns.specialn.charge_release_delay =
             sa->xC_PKFLASH_MINCHARGEFRAMES;
         fp1->death2_cb = NULL;
@@ -178,7 +179,7 @@ void ftNs_SpecialAirNStart_Enter(HSD_GObj* gobj)
         temp_fp->mv.ns.specialn.falling_acceleration_delay =
             ness_attr->x8_PKFLASH_GRAVITY_DELAY;
 
-        temp_fp->u.ns.pkflash_gobj = NULL;
+        Rogue_AbilityVars(temp_fp, Ft_Kind_Ness)->ns.pkflash_gobj = NULL;
 
         temp_fp->mv.ns.specialn.charge_release_delay =
             ness_attr->xC_PKFLASH_MINCHARGEFRAMES;
@@ -216,13 +217,13 @@ void ftNs_SpecialNRelease_Anim(HSD_GObj* gobj)
         fp->mv.ns.specialn.frames_to_loop_charge_ground--;
     }
 
-    if (fp->u.ns.pkflash_gobj == NULL &&
+    if (Rogue_AbilityVars(fp, Ft_Kind_Ness)->ns.pkflash_gobj == NULL &&
         fp->mv.ns.specialn.frames_to_loop_charge_air != 0)
     {
         fp->mv.ns.specialn.frames_to_loop_charge_air--;
     }
 
-    if (fp->u.ns.pkflash_gobj == NULL) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_Ness)->ns.pkflash_gobj == NULL) {
         if (fp->mv.ns.specialn.frames_to_loop_charge_ground <= 0 &&
             fp->mv.ns.specialn.frames_to_loop_charge_air <= 0)
         {
@@ -240,12 +241,12 @@ void ftNs_SpecialNRelease_Anim(HSD_GObj* gobj)
         return;
     }
 
-    if (it_802AA7E4(fp->u.ns.pkflash_gobj) != gobj) {
-        fp->u.ns.pkflash_gobj = NULL;
+    if (it_802AA7E4(Rogue_AbilityVars(fp, Ft_Kind_Ness)->ns.pkflash_gobj) != gobj) {
+        Rogue_AbilityVars(fp, Ft_Kind_Ness)->ns.pkflash_gobj = NULL;
         return;
     }
 
-    if (it_802AA7F0(fp->u.ns.pkflash_gobj) == true &&
+    if (it_802AA7F0(Rogue_AbilityVars(fp, Ft_Kind_Ness)->ns.pkflash_gobj) == true &&
         fp->motion_id != ftNs_MS_SpecialNRelease)
     {
         Fighter_ChangeMotionState(gobj, ftNs_MS_SpecialNRelease, 0,
@@ -265,7 +266,7 @@ static inline void SetPKFlashAttr(HSD_GObj* gobj)
         sa->x4_PKFLASH_TIMER2_LOOPFRAMES;
     fp->mv.ns.specialn.falling_acceleration_delay =
         sa->x8_PKFLASH_GRAVITY_DELAY;
-    fp->u.ns.pkflash_gobj = NULL;
+    Rogue_AbilityVars(fp, Ft_Kind_Ness)->ns.pkflash_gobj = NULL;
     fp->mv.ns.specialn.charge_release_delay = sa->xC_PKFLASH_MINCHARGEFRAMES;
     fp->death2_cb = NULL;
     fp->take_dmg_cb = NULL;
@@ -311,13 +312,13 @@ void ftNs_SpecialAirNRelease_Anim(HSD_GObj* gobj)
         fp->mv.ns.specialn.frames_to_loop_charge_ground--;
     }
 
-    if (fp->u.ns.pkflash_gobj == NULL &&
+    if (Rogue_AbilityVars(fp, Ft_Kind_Ness)->ns.pkflash_gobj == NULL &&
         fp->mv.ns.specialn.frames_to_loop_charge_air != 0)
     {
         fp->mv.ns.specialn.frames_to_loop_charge_air--;
     }
 
-    if (fp->u.ns.pkflash_gobj == NULL) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_Ness)->ns.pkflash_gobj == NULL) {
         if (fp->mv.ns.specialn.frames_to_loop_charge_ground <= 0 &&
             fp->mv.ns.specialn.frames_to_loop_charge_air <= 0)
         {
@@ -331,12 +332,12 @@ void ftNs_SpecialAirNRelease_Anim(HSD_GObj* gobj)
                                       fp->cur_anim_frame, 1.0f, 0.0f, NULL);
         }
     } else {
-        if (it_802AA7E4(fp->u.ns.pkflash_gobj) != gobj) {
-            fp->u.ns.pkflash_gobj = NULL;
+        if (it_802AA7E4(Rogue_AbilityVars(fp, Ft_Kind_Ness)->ns.pkflash_gobj) != gobj) {
+            Rogue_AbilityVars(fp, Ft_Kind_Ness)->ns.pkflash_gobj = NULL;
             return;
         }
 
-        if (it_802AA7F0(fp->u.ns.pkflash_gobj) == true &&
+        if (it_802AA7F0(Rogue_AbilityVars(fp, Ft_Kind_Ness)->ns.pkflash_gobj) == true &&
             fp->motion_id != ftNs_MS_SpecialAirNRelease)
         {
             Fighter_ChangeMotionState(gobj, ftNs_MS_SpecialAirNRelease, 0,
@@ -413,8 +414,8 @@ void ftNs_SpecialNRelease_IASA(HSD_GObj* gobj)
             return;
         }
 
-        if (fp->u.ns.pkflash_gobj != NULL) {
-            fp->u.ns.pkflash_gobj = NULL;
+        if (Rogue_AbilityVars(fp, Ft_Kind_Ness)->ns.pkflash_gobj != NULL) {
+            Rogue_AbilityVars(fp, Ft_Kind_Ness)->ns.pkflash_gobj = NULL;
         }
 
         fp->death2_cb = NULL;
@@ -467,8 +468,8 @@ void ftNs_SpecialAirNRelease_IASA(HSD_GObj* gobj)
             return;
         }
 
-        if (fp->u.ns.pkflash_gobj != NULL) {
-            fp->u.ns.pkflash_gobj = NULL;
+        if (Rogue_AbilityVars(fp, Ft_Kind_Ness)->ns.pkflash_gobj != NULL) {
+            Rogue_AbilityVars(fp, Ft_Kind_Ness)->ns.pkflash_gobj = NULL;
         }
 
         fp->death2_cb = NULL;

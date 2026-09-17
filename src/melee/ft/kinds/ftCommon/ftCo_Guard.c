@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_effects.h>
 #include "ftCo_Guard.h"
 
 #include <math.h>
@@ -180,7 +181,7 @@ static inline float inlineB0(Fighter* fp)
         return fp->co_attrs.initial_shield_size;
     } else {
         float n1 =
-            (fp->shield_health / p_ftCommonData->x260_startShieldHealth) *
+            (fp->shield_health / Rogue_ModifyShieldHealth(fp, p_ftCommonData->x260_startShieldHealth)) *
             (fp->lightshield_amount *
                  (p_ftCommonData->x2D8 - p_ftCommonData->x2D4) +
              p_ftCommonData->x2D4);
@@ -417,7 +418,7 @@ bool ftCo_800925A4(HSD_GObj* gobj)
                              ((fp->lightshield_amount *
                                (p_ftCommonData->x2F0 - p_ftCommonData->x2EC)) +
                               p_ftCommonData->x2EC);
-        if (fp->shield_health < 0) {
+        if (fp->shield_health < 0 && !RogueEffects_PreventShieldBreak(fp, p_ftCommonData->x260_startShieldHealth)) {
             fp->shield_health = 0;
             fp->x221A_b7 = false;
             fp->x221B_b0 = false;
@@ -630,6 +631,7 @@ void ftCo_GuardOff_Coll(Fighter_GObj* gobj)
 void ftCo_80092E50(Fighter_GObj* gobj)
 {
     Fighter* fp = gobj->user_data;
+    if (fp->x221C_b2) RogueEffects_OnParry(fp);
     bool b;
     if (fp->x19B0 == 10U) {
         b = true;
@@ -683,7 +685,7 @@ void ftCo_80092F2C(HSD_GObj* gobj, bool arg1)
                              p_ftCommonData->x2E4)))) +
                   p_ftCommonData->x290;
         ftAnim_SetAnimRate(gobj,
-                           (0.1f + lbGetJObjEndFrame(GET_JOBJ(gobj))) / f);
+                           (0.1f + lbGetJObjEndFrame(GET_JOBJ(gobj))) / Rogue_ModifyShieldStun(fp, f));
         if (!arg1) {
             float guard_vel = f * p_ftCommonData->x294;
             if (!fp->x221C_b2) {
@@ -875,6 +877,7 @@ void ftCo_8009370C(Fighter_GObj* gobj, HSD_GObjEvent on_reflect)
 void ftCo_80093790(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
+    RogueEffects_OnParry(fp);
     PAD_STACK(8);
     ftCommon_8007DB24(gobj);
     ftCo_80092158_inline(gobj, 1050, fp->parts[fp->ft_data->x8->x11].joint);

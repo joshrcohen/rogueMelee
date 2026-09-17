@@ -1,4 +1,5 @@
 #include "gm_1879.h"
+#include <melee/rogue/rogue_debug.h>
 
 #include "gm_1A36.h"
 #include "gm_1A3F.h"
@@ -34,6 +35,12 @@
 #include <sysdolphin/baselib/state.h>
 #include <sysdolphin/baselib/tobj.h>
 #include <sysdolphin/baselib/wobj.h>
+static HSD_GObj* stage_intro_camera;
+HSD_GObj* gm_GetStageIntroCamera(void)
+{
+    return stage_intro_camera;
+}
+
 typedef struct gm_1832_StageState {
     u8 stage_index : 5;
     u8 done : 1;
@@ -310,6 +317,7 @@ static inline void gm_80187F48_OnEnter_inline(gm_80187F48_EnterData* arg0)
 
     gobj = GObj_Create(0x13, 0x14, 0);
     data->x8 = gobj;
+    stage_intro_camera = gobj;
     cobj = HSD_CObjLoadDesc(data->x4->desc);
     HSD_GObjObject_80390A70(gobj, HSD_GObj_CameraKind, cobj);
     GObj_SetupGXLinkMax(gobj, (GObj_RenderFunc) (Event) Camera_800304E0, 8);
@@ -346,7 +354,10 @@ static inline void gm_80187F48_OnEnter_inline(gm_80187F48_EnterData* arg0)
             data->x0->models[11 - state->stage_index]->joint);
         lb_80011C18(model_jobj, 0x08000000);
         HSD_GObjObject_80390A70(model_gobj, HSD_GObj_JObjKind, model_jobj);
-        GObj_SetupGXLink(model_gobj, fn_80187C9C, 0xB, 0xB);
+        /* Rogue mode supplies its own act/floor label. Keep the native
+         * animation process for timing, without Adventure's fixed stage #. */
+        if (gm_GetCurrentGameMode() != GM_ROGUE)
+            GObj_SetupGXLink(model_gobj, fn_80187C9C, 0xB, 0xB);
 
         model_stage = state->stage_index;
         (void) model_stage;
@@ -389,18 +400,21 @@ static inline void gm_80187F48_OnEnter_inline(gm_80187F48_EnterData* arg0)
 
 void gm_Scene_IntroNormal_OnEnter(void* arg0)
 {
+    stage_intro_camera = NULL;
     PAD_STACK(32);
     gm_80187F48_OnEnter_inline(arg0);
 }
 
 void gm_Scene_IntroNormal_OnLeave(void* arg0)
 {
+    stage_intro_camera = NULL;
     HSD_Archive** var = &lbl_804D6620;
     lbArchive_80016EFC(*var);
 }
 
 void gm_Scene_IntroNormal_OnFrame(void)
 {
+    if (gm_GetCurrentGameMode() == GM_ROGUE) Rogue_DebugIntroTestFrame();
     if (lbl_804736C0.x36.done) {
         gm_801A4B60();
     }

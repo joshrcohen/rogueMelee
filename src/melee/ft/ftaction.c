@@ -1,4 +1,5 @@
 #include "ftaction.h"
+#include <melee/rogue/rogue_ability.h>
 
 #include <Runtime/platform.h>
 
@@ -315,7 +316,7 @@ void ftAction_8007121C(Fighter_GObj* gobj, CommandInfo* cmd)
                                          fp, cmd->u->create_hitbox_0.bone)]
                                .joint;
         } else {
-            hitbox->jobj = fp->parts[idx].joint;
+            hitbox->jobj = fp->parts[Rogue_AbilityMapBone(fp, idx)].joint;
         }
         ftColl_8007ABD0(hitbox, cmd->u->create_hitbox_0.damage, gobj);
         NEXT_CMD(cmd);

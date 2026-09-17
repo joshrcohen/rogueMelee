@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftpopospeciallw.h"
 
 #include <melee/ft/forward.h>
@@ -22,10 +23,10 @@ void ftPp_SpecialHi_80122898(Fighter_GObj* gobj)
 {
     Fighter* fp = gobj->user_data;
     PAD_STACK(16);
-    if (fp->u.pp.x2230_b0) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x2230_b0) {
         efLib_DestroyAll(gobj);
         fp = gobj->user_data;
-        fp->u.pp.x2230_b0 = false;
+        Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x2230_b0 = false;
         fp->death2_cb = NULL;
         fp->take_dmg_cb = NULL;
         ftPartSetRotX(gobj->user_data, 0, 0.0f);
@@ -67,10 +68,10 @@ void ftPp_SpecialLw_Anim(Fighter_GObj* gobj)
     PAD_STACK(16);
     if (!ftAnim_IsFramesRemaining(gobj)) {
         Fighter* fp = gobj->user_data;
-        if (fp->u.pp.x2230_b0) {
+        if (Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x2230_b0) {
             efLib_DestroyAll(gobj);
             fp = gobj->user_data;
-            fp->u.pp.x2230_b0 = false;
+            Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x2230_b0 = false;
             fp->death2_cb = NULL;
             fp->take_dmg_cb = NULL;
             ftPartSetRotX(gobj->user_data, 0, 0.0f);
@@ -84,10 +85,10 @@ void ftPp_SpecialAirLw_Anim(Fighter_GObj* gobj)
     PAD_STACK(16);
     if (!ftAnim_IsFramesRemaining(gobj)) {
         Fighter* fp = gobj->user_data;
-        if (fp->u.pp.x2230_b0) {
+        if (Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x2230_b0) {
             efLib_DestroyAll(gobj);
             fp = gobj->user_data;
-            fp->u.pp.x2230_b0 = false;
+            Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x2230_b0 = false;
             fp->death2_cb = NULL;
             fp->take_dmg_cb = NULL;
             ftPartSetRotX(gobj->user_data, 0, 0.0f);
@@ -180,7 +181,7 @@ void fn_80122D2C(Fighter_GObj* gobj)
     if (fp->mv.pp.speciallw.x4_b0) {
         if (fp->mv.pp.speciallw.x0 == 0) {
             ftIceClimberAttributes* da = fp->dat_attrs;
-            lb_8000B1CC(fp->parts[FtPart_L3rdNa].joint, NULL, &pos);
+            lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, FtPart_L3rdNa)].joint, NULL, &pos);
             pos.x += da->xBC * fp->facing_dir;
             pos.y += da->xC0;
             itClimbersBlizzard_Spawn(gobj, &pos, fp->facing_dir);
@@ -190,12 +191,12 @@ void fn_80122D2C(Fighter_GObj* gobj)
     }
     switch (fp->cmd_vars[0]) {
     case 1:
-        efSync_Spawn(0x4EC, gobj, fp->parts[FtPart_L4thNb].joint);
+        efSync_Spawn(0x4EC, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_L4thNb)].joint);
         fp->mv.pp.speciallw.x4_b0 = true;
-        fp->u.pp.x2230_b0 = true;
+        Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x2230_b0 = true;
         ftPp_set_cbs(gobj);
         fp->cmd_vars[0] = 0;
-        if (fp->kind == Ft_Kind_Popo) {
+        if (Rogue_AbilitySourceKind(fp) == Ft_Kind_Popo) {
             ft_800881D8(fp, 0x1FC42, 0x7F, 0x40);
             ft_80088510(fp, 0x1FBEB, 0x7F, 0x40);
         } else {

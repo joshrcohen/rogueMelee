@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftzeldaspecialhi.h"
 
 #include <Runtime/platform.h>
@@ -41,7 +42,7 @@ void ftZd_SpecialHi_801396E0(HSD_GObj* gobj)
 
     if (!fp->x2219_b0) {
         Vec3 vec;
-        lb_8000B1CC(fp->parts[FtPart_HipN].joint, NULL, &vec);
+        lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, FtPart_HipN)].joint, NULL, &vec);
 
         if (fp->ground_or_air == GA_Ground) {
             efSync_Spawn(1270, gobj, fp->parts->joint);
@@ -61,7 +62,7 @@ void ftZd_SpecialHi_8013979C(HSD_GObj* gobj)
 
     {
         Vec3 vec;
-        lb_8000B1CC(fp->parts[FtPart_HipN].joint, NULL, &vec);
+        lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, FtPart_HipN)].joint, NULL, &vec);
 
         if (!fp->x2219_b0) {
             efSync_Spawn(1285, gobj, &vec);

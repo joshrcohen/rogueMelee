@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftmarsspecials.h"
 
 #include <Runtime/platform.h>
@@ -53,8 +54,8 @@ void ftMs_SpecialAirS_Enter(HSD_GObj* gobj)
     MarsAttributes* da = getFtSpecialAttrsD(fp0);
 
     fp0->self_vel.x = fp0->self_vel.x / da->x14;
-    if ((signed) fp0->u.ms.x222C == 0) {
-        fp0->u.ms.x222C = 1;
+    if ((signed) Rogue_AbilityVars(fp0, Ft_Kind_Mars)->ms.x222C == 0) {
+        Rogue_AbilityVars(fp0, Ft_Kind_Mars)->ms.x222C = 1;
         fp0->self_vel.y = da->x1C;
     } else {
         fp0->self_vel.y = 0;
@@ -163,7 +164,7 @@ void ftMs_SpecialS_801376E8(HSD_GObj* gobj)
 void ftMs_SpecialS_80137748(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    fp->u.ms.x222C = 0;
+    Rogue_AbilityVars(fp, Ft_Kind_Mars)->ms.x222C = 0;
 
     // Air_SetAsGrounded2
     ftCommon_AirToGroundStateChange(gobj, fp, 349, transition_flags);
@@ -260,7 +261,7 @@ void ftMs_SpecialS_801379D0(HSD_GObj* gobj)
     Fighter* fp = gobj->user_data;
     enum_t msid;
 
-    fp->u.ms.x222C = 0;
+    Rogue_AbilityVars(fp, Ft_Kind_Mars)->ms.x222C = 0;
     ftCommon_8007D7FC(fp);
 
     switch (fp->motion_id) {
@@ -401,7 +402,7 @@ void ftMs_SpecialS_80137D60(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
     enum_t msid;
-    fp->u.ms.x222C = 0;
+    Rogue_AbilityVars(fp, Ft_Kind_Mars)->ms.x222C = 0;
 
     // Air_SetAsGrounded2
     ftCommon_8007D7FC(fp);
@@ -536,7 +537,7 @@ void ftMs_SpecialS_8013809C(HSD_GObj* gobj)
     Fighter* fp = GET_FIGHTER(gobj);
     enum_t msid;
 
-    fp->u.ms.x222C = 0;
+    Rogue_AbilityVars(fp, Ft_Kind_Mars)->ms.x222C = 0;
 
     // Air_SetAsGrounded2
     ftCommon_8007D7FC(fp);

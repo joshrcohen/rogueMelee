@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftluigispecials.h"
 
 #include <Runtime/platform.h>
@@ -447,7 +448,7 @@ static inline void ftLuigi_SpecialS_Setup(HSD_GObj* gobj)
     Fighter* fp = getFighter(gobj);
 
     if (!fp->x2219_b0) {
-        efSync_Spawn(0x50A, gobj, fp->parts[FtPart_HipN].joint);
+        efSync_Spawn(0x50A, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_HipN)].joint);
         fp->x2219_b0 = true;
     }
 

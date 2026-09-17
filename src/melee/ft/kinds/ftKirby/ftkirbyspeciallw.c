@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include <melee/ft/forward.h>
 #include <sysdolphin/baselib/forward.h>
 
@@ -118,8 +119,8 @@ void ftKb_SpecialHi_800F346C(Fighter_GObj* gobj)
             fp->mv.kb.specialhi.x8.i = fp->cmd_vars[0];
             new_var = 1;
             fp->dmg.x1834 = dat_attr->speciallw_hp;
-            fp->u.kb.hat.x4 = fp->mv.kb.specialhi.x10.i =
-                ((fp->u.kb.hat.x4 + HSD_Randi(4)) % 5) + new_var;
+            Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.x4 = fp->mv.kb.specialhi.x10.i =
+                ((Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.x4 + HSD_Randi(4)) % 5) + new_var;
             fp->mv.kb.specialhi.x14 = 0;
             fp->mv.kb.specialhi.xC = 1;
         }
@@ -367,7 +368,7 @@ void ftKb_SpecialLw_Enter(Fighter_GObj* gobj)
     ftKb_DatAttrs* dat_attr = fp->dat_attrs;
     PAD_STACK(0x18);
 
-    temp_r28 = fp->parts[FtPart_YRotN].joint;
+    temp_r28 = fp->parts[Rogue_AbilityMapBone(fp, FtPart_YRotN)].joint;
     Fighter_ClearCmdVars(fp);
     fp->mv.kb.speciallw.x0 = dat_attr->speciallw_max_time_in_stone;
     fp->mv.kb.speciallw.x2 = dat_attr->speciallw_min_time_in_stone;
@@ -397,7 +398,7 @@ void ftKb_SpecialAirLw_Enter(Fighter_GObj* gobj)
     ftKb_DatAttrs* dat_attr = fp->dat_attrs;
     PAD_STACK(0x18);
 
-    temp_r28 = fp->parts[FtPart_YRotN].joint;
+    temp_r28 = fp->parts[Rogue_AbilityMapBone(fp, FtPart_YRotN)].joint;
     Fighter_ClearCmdVars(fp);
     fp->mv.kb.speciallw.x0 = dat_attr->speciallw_max_time_in_stone;
     fp->mv.kb.speciallw.x2 = dat_attr->speciallw_min_time_in_stone;
@@ -512,7 +513,7 @@ void ftKb_SpecialLw_IASA(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
     s32 temp_r28;
-    HSD_JObj* temp_r30 = fp->parts[FtPart_YRotN].joint;
+    HSD_JObj* temp_r30 = fp->parts[Rogue_AbilityMapBone(fp, FtPart_YRotN)].joint;
     PAD_STACK(16);
 
     if (fbKb_SpecialLw_IASA_Inline(gobj)) {
@@ -534,7 +535,7 @@ void ftKb_SpecialAirLw_IASA(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
     s32 temp_r28;
-    HSD_JObj* temp_r31 = fp->parts[FtPart_YRotN].joint;
+    HSD_JObj* temp_r31 = fp->parts[Rogue_AbilityMapBone(fp, FtPart_YRotN)].joint;
     PAD_STACK(16);
 
     if (fbKb_SpecialLw_IASA_Inline(gobj)) {

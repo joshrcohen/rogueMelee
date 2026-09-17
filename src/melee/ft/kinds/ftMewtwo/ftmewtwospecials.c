@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftmewtwospecials.h"
 
 #include <Runtime/platform.h>
@@ -112,9 +113,9 @@ void ftMt_SpecialAirS_Enter(HSD_GObj* gobj)
     fp->cmd_vars[1] = 0;
     fp->mv.mt.SpecialS.isConfusionReflect = false;
 
-    if (fp->u.mt.x223C_isConfusionBoost == false) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_Mewtwo)->mt.x223C_isConfusionBoost == false) {
         fp->self_vel.y = mewtwoAttrs->x18_MEWTWO_CONFUSION_AIR_BOOST;
-        fp->u.mt.x223C_isConfusionBoost = true;
+        Rogue_AbilityVars(fp, Ft_Kind_Mewtwo)->mt.x223C_isConfusionBoost = true;
     }
 
     Fighter_ChangeMotionState(gobj, ftMt_MS_SpecialAirS, 0, 0.0f, 1.0f, 0.0f,
@@ -238,7 +239,7 @@ void ftMt_SpecialAirS_AirToGround(HSD_GObj* gobj)
     ftMewtwo_SpecialS_SetGrab(gobj);
 
     fp->accessory4_cb = ftMt_SpecialS_ReflectThink;
-    fp->u.mt.x223C_isConfusionBoost = false;
+    Rogue_AbilityVars(fp, Ft_Kind_Mewtwo)->mt.x223C_isConfusionBoost = false;
 
     ftMewtwo_SpecialS_SetReflect(gobj);
 }

@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftnessspeciallw.h"
 
 #include <Runtime/platform.h>
@@ -98,7 +99,7 @@ void ftNs_SpecialLwStart_Anim(
 
         if (!fp->x2219_b0) {
             efAsync_Spawn(gobj, &fp->x60C, 0U, 1264,
-                          fp->parts[FtPart_L1stNb].joint);
+                          fp->parts[Rogue_AbilityMapBone(fp, FtPart_L1stNb)].joint);
             fp->x2219_b0 = true;
         }
         Fighter_SetEffectHitlagCallbacks(fp);
@@ -132,7 +133,7 @@ void ftNs_SpecialAirLwStart_Anim(
 
         if (!fp->x2219_b0) {
             efAsync_Spawn(gobj, &fp->x60C, 0U, 1264,
-                          fp->parts[FtPart_L1stNb].joint);
+                          fp->parts[Rogue_AbilityMapBone(fp, FtPart_L1stNb)].joint);
             fp->x2219_b0 = true;
         }
         Fighter_SetEffectHitlagCallbacks(fp);
@@ -767,7 +768,7 @@ void ftNs_SpecialAirLwHit_Anim(
             Fighter* fp = GET_FIGHTER(arg0);
             if (!fp->x2219_b0) {
                 efAsync_Spawn(arg0, &fp->x60C, 0U, 1264,
-                              fp->parts[FtPart_L1stNb].joint);
+                              fp->parts[Rogue_AbilityMapBone(fp, FtPart_L1stNb)].joint);
                 fp->x2219_b0 = true;
             }
             Fighter_SetEffectHitlagCallbacks(fp);

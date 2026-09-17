@@ -17,6 +17,8 @@ typedef struct _MainMenuData {
     /* 0x0003 */ u8 pad_3;
     /* 0x0004 */ HSD_JObj* tree[42]; // 42 * 4 = 0xA8 bytes
     /* 0x00AC */ HSD_Text* description;
+    HSD_Text* rogue_label;
+    HSD_JObj* rogue_label_anchor;
 } MainMenuData;
 
 typedef struct _MainMenuPanelData {

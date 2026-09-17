@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftgamewatchspeciallw.h"
 
 #include <melee/ft/forward.h>
@@ -26,18 +27,18 @@ void ftGw_SpecialLw_ItemPanicSetup(HSD_GObj* gobj)
 {
     Fighter* fp = getFighter(gobj);
 
-    if (fp->u.gw.x2268_panicGObj == NULL) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_GameWatch)->gw.x2268_panicGObj == NULL) {
         /// @todo Can't move below @c _.
         Vec3 vec;
 
         u8 _[16];
 
-        lb_8000B1CC(fp->parts[FtPart_TopN].joint, NULL, &vec);
+        lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, FtPart_TopN)].joint, NULL, &vec);
 
-        fp->u.gw.x2268_panicGObj = it_802C7D60(gobj, &vec, 0, fp->facing_dir);
+        Rogue_AbilityVars(fp, Ft_Kind_GameWatch)->gw.x2268_panicGObj = it_802C7D60(gobj, &vec, 0, fp->facing_dir);
     }
 
-    if (fp->u.gw.x2268_panicGObj != NULL) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_GameWatch)->gw.x2268_panicGObj != NULL) {
         fp->death2_cb = ftGw_Init_OnDamage;
         fp->take_dmg_cb = ftGw_Init_OnDamage;
     }
@@ -53,7 +54,7 @@ void ftGw_SpecialLw_ItemPanicSetFlag(HSD_GObj* gobj)
     Fighter* fp = GET_FIGHTER(gobj);
 
     ftGw_SpecialLw_ItemPanicExitHitlag(gobj);
-    fp->u.gw.x2268_panicGObj = NULL;
+    Rogue_AbilityVars(fp, Ft_Kind_GameWatch)->gw.x2268_panicGObj = NULL;
     fp->death2_cb = NULL;
     fp->take_dmg_cb = NULL;
 }
@@ -63,8 +64,8 @@ void ftGw_SpecialLw_ItemPanicRemove(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
 
-    if (fp->u.gw.x2268_panicGObj != NULL) {
-        it_802C7E94(fp->u.gw.x2268_panicGObj);
+    if (Rogue_AbilityVars(fp, Ft_Kind_GameWatch)->gw.x2268_panicGObj != NULL) {
+        it_802C7E94(Rogue_AbilityVars(fp, Ft_Kind_GameWatch)->gw.x2268_panicGObj);
         ftGw_SpecialLw_ItemPanicSetFlag(gobj);
     }
 }
@@ -74,8 +75,8 @@ void ftGw_SpecialLw_ItemPanicEnterHitlag(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
 
-    if (fp->u.gw.x2268_panicGObj != NULL) {
-        it_802C7EE0(fp->u.gw.x2268_panicGObj);
+    if (Rogue_AbilityVars(fp, Ft_Kind_GameWatch)->gw.x2268_panicGObj != NULL) {
+        it_802C7EE0(Rogue_AbilityVars(fp, Ft_Kind_GameWatch)->gw.x2268_panicGObj);
     }
 }
 
@@ -84,8 +85,8 @@ void ftGw_SpecialLw_ItemPanicExitHitlag(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
 
-    if (fp->u.gw.x2268_panicGObj != NULL) {
-        it_802C7F00(fp->u.gw.x2268_panicGObj);
+    if (Rogue_AbilityVars(fp, Ft_Kind_GameWatch)->gw.x2268_panicGObj != NULL) {
+        it_802C7F00(Rogue_AbilityVars(fp, Ft_Kind_GameWatch)->gw.x2268_panicGObj);
     }
 }
 
@@ -110,7 +111,7 @@ void ftGw_SpecialLw_UpdateBucketModel(HSD_GObj* gobj)
 
     ftParts_80074B0C(gobj, 5, 2);
 
-    switch (fp->u.gw.x2238_panicCharge) {
+    switch (Rogue_AbilityVars(fp, Ft_Kind_GameWatch)->gw.x2238_panicCharge) {
     case ftGw_Panic_Empty:
         /// @todo @c enum for parts
         ftParts_80074B0C(gobj, 6, -1);
@@ -150,7 +151,7 @@ void ftGw_SpecialLw_Enter(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
 
-    if (fp->u.gw.x2238_panicCharge >= ftGw_Panic_Full) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_GameWatch)->gw.x2238_panicCharge >= ftGw_Panic_Full) {
         ftGw_SpecialLwShoot_ReleaseOil(gobj);
         return;
     }
@@ -168,7 +169,7 @@ void ftGw_SpecialAirLw_Enter(HSD_GObj* gobj)
     Fighter* fp = GET_FIGHTER(gobj);
     ftGameWatchAttributes* sa = fp->dat_attrs;
 
-    if (fp->u.gw.x2238_panicCharge >= ftGw_Panic_Full) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_GameWatch)->gw.x2238_panicCharge >= ftGw_Panic_Full) {
         ftGw_SpecialAirLwShoot_ReleaseOil(gobj);
         return;
     }
@@ -454,7 +455,7 @@ void ftGw_SpecialLwCatch_Anim(HSD_GObj* gobj)
         return;
     }
 
-    if (fp->u.gw.x2238_panicCharge >= ftGw_Panic_Full) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_GameWatch)->gw.x2238_panicCharge >= ftGw_Panic_Full) {
         ft_8008A2BC(gobj);
         return;
     }
@@ -475,7 +476,7 @@ void ftGw_SpecialAirLwCatch_Anim(HSD_GObj* gobj)
         return;
     }
 
-    if (fp->u.gw.x2238_panicCharge >= ftGw_Panic_Full) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_GameWatch)->gw.x2238_panicCharge >= ftGw_Panic_Full) {
         ftCo_Fall_Enter(gobj);
         return;
     }
@@ -545,10 +546,10 @@ void ftGw_SpecialLw_AbsorbThink_DecideAction(HSD_GObj* gobj)
     /// @todo @c enum
     enum_t msid;
 
-    fp->u.gw.x2238_panicCharge += fp->AbsorbAttr.x1A48_hitsTaken;
-    fp->u.gw.x223C_panicDamage += fp->AbsorbAttr.x1A44_damageTaken;
+    Rogue_AbilityVars(fp, Ft_Kind_GameWatch)->gw.x2238_panicCharge += fp->AbsorbAttr.x1A48_hitsTaken;
+    Rogue_AbilityVars(fp, Ft_Kind_GameWatch)->gw.x223C_panicDamage += fp->AbsorbAttr.x1A44_damageTaken;
 
-    if (fp->u.gw.x2238_panicCharge >= ftGw_Panic_Full) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_GameWatch)->gw.x2238_panicCharge >= ftGw_Panic_Full) {
         ftCo_800BFFD0(fp, 5, 0);
     }
 
@@ -675,7 +676,7 @@ void ftGw_SpecialLwShoot_ReleaseOil(HSD_GObj* gobj)
         {
             ftGameWatchAttributes* sa = getFtSpecialAttrs(fp);
 
-            fp->cmd_vars[1] = fp->u.gw.x223C_panicDamage *
+            fp->cmd_vars[1] = Rogue_AbilityVars(fp, Ft_Kind_GameWatch)->gw.x223C_panicDamage *
                               sa->x78_GAMEWATCH_PANIC_DAMAGE_MUL;
 
             {
@@ -683,8 +684,8 @@ void ftGw_SpecialLwShoot_ReleaseOil(HSD_GObj* gobj)
                     fp->cmd_vars[1] + sa->x74_GAMEWATCH_PANIC_DAMAGE_ADD;
 
                 fp->cmd_vars[1] = panicDamage;
-                fp->u.gw.x2238_panicCharge = ftGw_Panic_Empty;
-                fp->u.gw.x223C_panicDamage = 0;
+                Rogue_AbilityVars(fp, Ft_Kind_GameWatch)->gw.x2238_panicCharge = ftGw_Panic_Empty;
+                Rogue_AbilityVars(fp, Ft_Kind_GameWatch)->gw.x223C_panicDamage = 0;
             }
         }
 
@@ -709,7 +710,7 @@ void ftGw_SpecialAirLwShoot_ReleaseOil(HSD_GObj* gobj)
         {
             ftGameWatchAttributes* sa = getFtSpecialAttrs(fp);
 
-            fp->cmd_vars[1] = fp->u.gw.x223C_panicDamage *
+            fp->cmd_vars[1] = Rogue_AbilityVars(fp, Ft_Kind_GameWatch)->gw.x223C_panicDamage *
                               sa->x78_GAMEWATCH_PANIC_DAMAGE_MUL;
 
             {
@@ -718,8 +719,8 @@ void ftGw_SpecialAirLwShoot_ReleaseOil(HSD_GObj* gobj)
                 fp->cmd_vars[1] = panicDamage;
             }
 
-            fp->u.gw.x2238_panicCharge = 0;
-            fp->u.gw.x223C_panicDamage = 0;
+            Rogue_AbilityVars(fp, Ft_Kind_GameWatch)->gw.x2238_panicCharge = 0;
+            Rogue_AbilityVars(fp, Ft_Kind_GameWatch)->gw.x223C_panicDamage = 0;
         }
 
         ftGw_SpecialLw_UpdateBucketModel(gobj);

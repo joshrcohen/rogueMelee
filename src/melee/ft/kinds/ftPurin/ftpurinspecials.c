@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftpurinspecials.h"
 
 #include <melee/ft/forward.h>
@@ -94,7 +95,7 @@ void ftPr_SpecialAirS_Phys(HSD_GObj* gobj)
 
     if (fp->cmd_vars[0]) {
         fp->cmd_vars[0] = 0;
-        ++fp->u.pr.x222C;
+        ++Rogue_AbilityVars(fp, Ft_Kind_Purin)->pr.x222C;
         {
             float angle = calcAngleRadians(gobj, fp->input.lstick[0].y);
             fp->self_vel.y = da->xF0 * sinf(angle);

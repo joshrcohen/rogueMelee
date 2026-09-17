@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 
 #include "ftpopospecialhi.h"
 
@@ -56,7 +57,7 @@ void ftPp_SpecialS_80120E68(Fighter_GObj* gobj)
     u8 _pad[4];
     Fighter* fp = GET_FIGHTER(gobj);
     ftIceClimberAttributes* da = fp->dat_attrs;
-    Fighter_GObj* gobj2 = Player_GetEntityAtIndex(fp->player_id, 1);
+    Fighter_GObj* gobj2 = Rogue_AbilityClimberPartner(fp);
     volatile float y;
     PAD_STACK(8);
 
@@ -91,7 +92,7 @@ bool ftPp_SpecialS_80120FE0(Fighter_GObj* gobj)
 
     if (cmd > 8 && cmd <= 0x53) {
         Item_GObj* item_gobj;
-        if ((item_gobj = fp->u.pp.x2238) != NULL) {
+        if ((item_gobj = Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x2238) != NULL) {
             Item_GObj* gobj = item_gobj;
             Item* ip = item_gobj->user_data;
             itClimbersStringAttributes* sa =
@@ -107,14 +108,14 @@ bool ftPp_SpecialS_80120FE0(Fighter_GObj* gobj)
                 it_802C3864(gobj);
             }
             if (fp->mv.pp.speciallw.x0 == 0x53) {
-                it_802C2750(fp->u.pp.x2238);
+                it_802C2750(Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x2238);
             }
         } else {
             goto end;
         }
     } else if (fp->mv.pp.speciallw.x0 == 8) {
         ftPp_SpecialS_801210C8(gobj);
-        if (fp->u.pp.x2238 == NULL) {
+        if (Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x2238 == NULL) {
             ft_8008A2BC(gobj);
             return true;
         }
@@ -130,11 +131,11 @@ void ftPp_SpecialS_801210C8(Fighter_GObj* arg0)
     Vec3 sp10;
     Fighter* fp = GET_FIGHTER(arg0);
     float dir;
-    lb_8000B1CC(fp->parts[FtPart_L4thNb].joint, NULL, &sp10);
+    lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, FtPart_L4thNb)].joint, NULL, &sp10);
     dir = fp->facing_dir;
-    fp->u.pp.x2238 = it_802C27D4(arg0, &sp10, fp->motion_id, dir);
-    fp->x1984_heldItemSpec = fp->u.pp.x2238;
-    if (fp->u.pp.x2238 != NULL) {
+    Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x2238 = it_802C27D4(arg0, &sp10, fp->motion_id, dir);
+    fp->x1984_heldItemSpec = Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x2238;
+    if (Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x2238 != NULL) {
         fp->death3_cb = ftPp_Init_8011F060;
         fp->take_dmg_cb = ftPp_Init_8011F060;
     }
@@ -143,7 +144,7 @@ void ftPp_SpecialS_801210C8(Fighter_GObj* arg0)
 void ftPp_SpecialS_8012114C(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    fp->u.pp.x2238 = NULL;
+    Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x2238 = NULL;
     fp->death3_cb = NULL;
     fp->take_dmg_cb = NULL;
 }
@@ -151,8 +152,8 @@ void ftPp_SpecialS_8012114C(Fighter_GObj* gobj)
 void ftPp_SpecialS_80121164(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    if (fp->u.pp.x2238 != NULL) {
-        it_802C2750(fp->u.pp.x2238);
+    if (Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x2238 != NULL) {
+        it_802C2750(Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x2238);
         ftPp_SpecialS_8012114C(gobj);
     }
 }
@@ -172,10 +173,10 @@ void ftPp_SpecialHi_Enter(Fighter_GObj* gobj)
     fp->cmd_vars[0] = 0;
     fp = GET_FIGHTER(gobj);
     fp->mv.pp.unk_80123954.x0 = 1;
-    fp->u.pp.x223C = 0;
-    fp->u.pp.x2240.z = 0.0f;
-    fp->u.pp.x2240.y = 0.0f;
-    fp->u.pp.x2240.x = 0.0f;
+    Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x223C = 0;
+    Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x2240.z = 0.0f;
+    Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x2240.y = 0.0f;
+    Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x2240.x = 0.0f;
 }
 void ftPp_SpecialAirHi_Enter(Fighter_GObj* gobj)
 {
@@ -196,17 +197,17 @@ void ftPp_SpecialAirHi_Enter(Fighter_GObj* gobj)
     fp->cmd_vars[0] = 0;
     fp = GET_FIGHTER(gobj);
     fp->mv.pp.unk_80123954.x0 = 1;
-    fp->u.pp.x223C = 0;
-    fp->u.pp.x2240.z = 0.0f;
-    fp->u.pp.x2240.y = 0.0f;
-    fp->u.pp.x2240.x = 0.0f;
+    Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x223C = 0;
+    Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x2240.z = 0.0f;
+    Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x2240.y = 0.0f;
+    Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x2240.x = 0.0f;
 }
 
 static inline bool checkNanaInRange(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
     ftIceClimberAttributes* da = fp->dat_attrs;
-    Fighter_GObj* nana_gobj = Player_GetEntityAtIndex(fp->player_id, 1);
+    Fighter_GObj* nana_gobj = Rogue_AbilityClimberPartner(fp);
     if (nana_gobj != NULL) {
         Vec3* nana_pos = &GET_FIGHTER(nana_gobj)->cur_pos;
         f32 dx = SQ(fp->cur_pos.x - nana_pos->x);
@@ -305,7 +306,7 @@ void ftPp_SpecialHiStart_0_Phys(Fighter_GObj* gobj)
 
     {
         Fighter_GObj* nn_gobj =
-            Player_GetEntityAtIndex(GET_FIGHTER(gobj)->player_id, 1);
+            Rogue_AbilityClimberPartner(GET_FIGHTER(gobj));
         if (nn_gobj != NULL) {
             Fighter* nn_fp = GET_FIGHTER(nn_gobj);
             if (nn_fp->motion_id >= ftPp_MS_SpecialHi_0 &&
@@ -316,7 +317,7 @@ void ftPp_SpecialHiStart_0_Phys(Fighter_GObj* gobj)
         }
     }
 
-    fp->u.pp.x2240 = sp;
+    Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x2240 = sp;
 }
 
 void ftPp_SpecialAirHiStart_0_Phys(Fighter_GObj* gobj)
@@ -334,7 +335,7 @@ void ftPp_SpecialAirHiStart_0_Phys(Fighter_GObj* gobj)
 
     {
         Fighter_GObj* nn_gobj =
-            Player_GetEntityAtIndex(GET_FIGHTER(gobj)->player_id, 1);
+            Rogue_AbilityClimberPartner(GET_FIGHTER(gobj));
         if (nn_gobj != NULL) {
             Fighter* nn_fp = GET_FIGHTER(nn_gobj);
             if (nn_fp->motion_id >= ftPp_MS_SpecialHi_0 &&
@@ -345,7 +346,7 @@ void ftPp_SpecialAirHiStart_0_Phys(Fighter_GObj* gobj)
         }
     }
 
-    fp->u.pp.x2240 = sp;
+    Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x2240 = sp;
 }
 
 void ftPp_SpecialHiStart_0_Coll(Fighter_GObj* gobj)
@@ -410,7 +411,7 @@ void ftPp_SpecialHiThrow_0_Anim(Fighter_GObj* gobj)
             {
                 int found;
                 Fighter_GObj* nn_gobj =
-                    Player_GetEntityAtIndex(GET_FIGHTER(gobj)->player_id, 1);
+                    Rogue_AbilityClimberPartner(GET_FIGHTER(gobj));
                 if (nn_gobj != NULL && ftNn_Init_8012309C(nn_gobj) == 1) {
                     found = 1;
                 } else {
@@ -448,7 +449,7 @@ void ftPp_SpecialAirHiThrow_0_Anim(Fighter_GObj* gobj)
             {
                 int found;
                 Fighter_GObj* nn_gobj =
-                    Player_GetEntityAtIndex(GET_FIGHTER(gobj)->player_id, 1);
+                    Rogue_AbilityClimberPartner(GET_FIGHTER(gobj));
                 if (nn_gobj != NULL && ftNn_Init_8012309C(nn_gobj) == 1) {
                     found = 1;
                 } else {
@@ -485,7 +486,7 @@ void ftPp_SpecialHiThrow_0_Phys(Fighter_GObj* gobj)
 
     {
         Fighter_GObj* nn_gobj =
-            Player_GetEntityAtIndex(GET_FIGHTER(gobj)->player_id, 1);
+            Rogue_AbilityClimberPartner(GET_FIGHTER(gobj));
         if (nn_gobj != NULL) {
             Fighter* nn_fp = GET_FIGHTER(nn_gobj);
             if (nn_fp->motion_id >= ftPp_MS_SpecialHi_0 &&
@@ -496,7 +497,7 @@ void ftPp_SpecialHiThrow_0_Phys(Fighter_GObj* gobj)
         }
     }
 
-    fp->u.pp.x2240 = sp;
+    Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x2240 = sp;
 }
 
 static inline void doFallPhys(Fighter_GObj* gobj)
@@ -519,7 +520,7 @@ void ftPp_SpecialAirHiThrow_0_Phys(Fighter_GObj* gobj)
 
     {
         Fighter_GObj* nn_gobj =
-            Player_GetEntityAtIndex(GET_FIGHTER(gobj)->player_id, 1);
+            Rogue_AbilityClimberPartner(GET_FIGHTER(gobj));
         if (nn_gobj != NULL) {
             Fighter* nn_fp = GET_FIGHTER(nn_gobj);
             if (nn_fp->motion_id >= ftPp_MS_SpecialHi_0 &&
@@ -530,7 +531,7 @@ void ftPp_SpecialAirHiThrow_0_Phys(Fighter_GObj* gobj)
         }
     }
 
-    fp->u.pp.x2240 = sp;
+    Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x2240 = sp;
 }
 
 void ftPp_SpecialHiThrow_0_Coll(Fighter_GObj* gobj)
@@ -785,7 +786,7 @@ void ftPp_SpecialHiThrow2_Phys(Fighter_GObj* gobj)
 
     {
         Fighter_GObj* nn_gobj =
-            Player_GetEntityAtIndex(GET_FIGHTER(gobj)->player_id, 1);
+            Rogue_AbilityClimberPartner(GET_FIGHTER(gobj));
         if (nn_gobj != NULL) {
             Fighter* nn_fp = GET_FIGHTER(nn_gobj);
             if (nn_fp->motion_id >= ftPp_MS_SpecialHi_0 &&
@@ -796,14 +797,14 @@ void ftPp_SpecialHiThrow2_Phys(Fighter_GObj* gobj)
         }
     }
 
-    fp->u.pp.x2240 = sp;
+    Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x2240 = sp;
 }
 
 static inline void ftPp_SpecialAirHiThrow2_Phys_inline(Fighter_GObj* gobj,
                                                        Vec3* sp)
 {
     Fighter_GObj* nn_gobj =
-        Player_GetEntityAtIndex(GET_FIGHTER(gobj)->player_id, 1);
+        Rogue_AbilityClimberPartner(GET_FIGHTER(gobj));
     if (nn_gobj != NULL) {
         Fighter* nn_fp = GET_FIGHTER(nn_gobj);
         if (nn_fp->motion_id >= ftPp_MS_SpecialHi_0 &&
@@ -834,7 +835,7 @@ void ftPp_SpecialAirHiThrow2_Phys(Fighter_GObj* gobj)
         fp = GET_FIGHTER(gobj);
         sp.x = sp.y = sp.z = 0.0f;
         ftPp_SpecialAirHiThrow2_Phys_inline(gobj, &sp);
-        fp->u.pp.x2240 = sp;
+        Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x2240 = sp;
     }
 }
 

@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftcaptainspecials.h"
 
 #include <Runtime/platform.h>
@@ -28,8 +29,8 @@ void ftCa_SpecialS_RemoveGFX(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
     efLib_DestroyAll(gobj);
-    fp->u.ca.during_specials = false;
-    fp->u.ca.during_specials_start = false;
+    Rogue_AbilityVars(fp, Ft_Kind_Captain)->ca.during_specials = false;
+    Rogue_AbilityVars(fp, Ft_Kind_Captain)->ca.during_specials_start = false;
 }
 
 static void setCallbacks(HSD_GObj* gobj)
@@ -62,18 +63,18 @@ void ftCa_SpecialS_Enter(HSD_GObj* gobj)
     ftAnim_8006EBA4(gobj);
     switch (ftLib_GetKind(gobj)) {
     case Ft_Kind_Captain: {
-        efSync_Spawn(1169, gobj, fp->parts[FtPart_HeadN].joint);
-        fp->u.ca.during_specials_start = true;
+        efSync_Spawn(1169, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_HeadN)].joint);
+        Rogue_AbilityVars(fp, Ft_Kind_Captain)->ca.during_specials_start = true;
         break;
     }
     case Ft_Kind_Ganon:
-        efSync_Spawn(1293, gobj, fp->parts[FtPart_L2ndNb].joint);
-        fp->u.ca.during_specials_start = true;
+        efSync_Spawn(1293, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_L2ndNb)].joint);
+        Rogue_AbilityVars(fp, Ft_Kind_Captain)->ca.during_specials_start = true;
         break;
     default:
         break;
     }
-    fp->u.ca.during_specials = false;
+    Rogue_AbilityVars(fp, Ft_Kind_Captain)->ca.during_specials = false;
     Fighter_SetEffectHitlagCallbacks(fp);
     fp->hurtbox_detect_cb = ftCa_SpecialS_OnDetect;
 
@@ -95,19 +96,19 @@ static inline void setupAirStart(HSD_GObj* gobj)
     ftAnim_8006EBA4(gobj);
     switch (ftLib_GetKind(gobj)) {
     case Ft_Kind_Captain: {
-        efSync_Spawn(1169, gobj, fp->parts[FtPart_HeadN].joint);
-        fp->u.ca.during_specials_start = true;
+        efSync_Spawn(1169, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_HeadN)].joint);
+        Rogue_AbilityVars(fp, Ft_Kind_Captain)->ca.during_specials_start = true;
         break;
     }
     case Ft_Kind_Ganon: {
-        efSync_Spawn(1293, gobj, fp->parts[FtPart_L2ndNb].joint);
-        fp->u.ca.during_specials_start = true;
+        efSync_Spawn(1293, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_L2ndNb)].joint);
+        Rogue_AbilityVars(fp, Ft_Kind_Captain)->ca.during_specials_start = true;
         break;
     }
     default:
         break;
     }
-    fp->u.ca.during_specials = false;
+    Rogue_AbilityVars(fp, Ft_Kind_Captain)->ca.during_specials = false;
     Fighter_SetEffectHitlagCallbacks(fp);
     fp->hurtbox_detect_cb = ftCa_SpecialS_OnDetect;
     {
@@ -214,18 +215,18 @@ void ftCa_SpecialSStart_Anim(HSD_GObj* gobj)
 void ftCa_SpecialS_Anim(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    if (!fp->u.ca.during_specials) {
+    if (!Rogue_AbilityVars(fp, Ft_Kind_Captain)->ca.during_specials) {
         switch (ftLib_GetKind(gobj)) {
         case Ft_Kind_Captain: {
-            efSync_Spawn(1170, gobj, fp->parts[FtPart_TransN].joint,
+            efSync_Spawn(1170, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_TransN)].joint,
                          &fp->facing_dir);
-            fp->u.ca.during_specials = true;
+            Rogue_AbilityVars(fp, Ft_Kind_Captain)->ca.during_specials = true;
             break;
         }
         case Ft_Kind_Ganon:
-            efSync_Spawn(1294, gobj, fp->parts[FtPart_TransN].joint,
+            efSync_Spawn(1294, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_TransN)].joint,
                          &fp->facing_dir);
-            fp->u.ca.during_specials = true;
+            Rogue_AbilityVars(fp, Ft_Kind_Captain)->ca.during_specials = true;
             break;
         default:
             break;
@@ -257,18 +258,18 @@ void ftCa_SpecialAirS_Anim(HSD_GObj* gobj)
     Fighter* fp = GET_FIGHTER(gobj);
     ftCaptain_DatAttrs* captainAttrs = fp->dat_attrs;
     u8 _[8];
-    if (!fp->u.ca.during_specials) {
+    if (!Rogue_AbilityVars(fp, Ft_Kind_Captain)->ca.during_specials) {
         switch (ftLib_GetKind(gobj)) {
         case Ft_Kind_Captain: {
-            efSync_Spawn(1171, gobj, fp->parts[FtPart_TransN].joint,
+            efSync_Spawn(1171, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_TransN)].joint,
                          &fp->facing_dir);
-            fp->u.ca.during_specials = true;
+            Rogue_AbilityVars(fp, Ft_Kind_Captain)->ca.during_specials = true;
             break;
         }
         case Ft_Kind_Ganon: {
-            efSync_Spawn(1295, gobj, fp->parts[FtPart_TransN].joint,
+            efSync_Spawn(1295, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_TransN)].joint,
                          &fp->facing_dir);
-            fp->u.ca.during_specials = true;
+            Rogue_AbilityVars(fp, Ft_Kind_Captain)->ca.during_specials = true;
             break;
         }
         default:

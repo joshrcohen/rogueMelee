@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftmewtwospeciallw.h"
 
 #include <Runtime/platform.h>
@@ -56,7 +57,7 @@ void ftMt_SpecialLw_Enter(HSD_GObj* gobj)
 
     fp->throw_flags = 0;
     fp->cmd_vars[0] = 0;
-    fp->u.mt.x222C_disableGObj = NULL;
+    Rogue_AbilityVars(fp, Ft_Kind_Mewtwo)->mt.x222C_disableGObj = NULL;
 
     Fighter_ChangeMotionState(gobj, ftMt_MS_SpecialLw, 0, 0.0f, 1.0f, 0.0f,
                               NULL);
@@ -76,7 +77,7 @@ void ftMt_SpecialAirLw_Enter(HSD_GObj* gobj)
 
     fp->throw_flags = 0;
     fp->cmd_vars[0] = 0;
-    fp->u.mt.x222C_disableGObj = NULL;
+    Rogue_AbilityVars(fp, Ft_Kind_Mewtwo)->mt.x222C_disableGObj = NULL;
     fp->self_vel.y = 0.0f;
 
     Fighter_ChangeMotionState(gobj, ftMt_MS_SpecialAirLw, 0, 0.0f, 1.0f, 0.0f,
@@ -149,7 +150,7 @@ void ftMt_SpecialAirLw_Phys(HSD_GObj* gobj)
 static inline void ftMewtwo_SpecialLw_SetCall(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    if (fp->u.mt.x222C_disableGObj != NULL) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_Mewtwo)->mt.x222C_disableGObj != NULL) {
         fp->death2_cb = ftMt_Init_OnDeath2;
         fp->take_dmg_cb = ftMt_Init_OnTakeDamage;
     }
@@ -217,12 +218,12 @@ void ftMt_SpecialLw_CreateDisable(HSD_GObj* gobj)
     if (fp->cmd_vars[0] != 0U) {
         mewtwoAttrs = getFtSpecialAttrsD(fp);
 
-        lb_8000B1CC(fp->parts[FtPart_L3rdNb].joint, NULL, &sp18);
+        lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, FtPart_L3rdNb)].joint, NULL, &sp18);
 
         sp18.x += (mewtwoAttrs->x80_MEWTWO_DISABLE_OFFSET_X * fp->facing_dir);
         sp18.y += mewtwoAttrs->x84_MEWTWO_DISABLE_OFFSET_Y;
 
-        fp->u.mt.x222C_disableGObj =
+        Rogue_AbilityVars(fp, Ft_Kind_Mewtwo)->mt.x222C_disableGObj =
             itMewtwoDisable_Logic67_SpawnMewtwoDisable(gobj, &sp18,
                                                        fp->facing_dir);
 

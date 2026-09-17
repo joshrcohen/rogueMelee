@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include <melee/ft/forward.h>
 #include <sysdolphin/baselib/forward.h>
 
@@ -230,8 +231,8 @@ void ftKb_SpecialN_800F5B5C(Fighter_GObj* gobj, Vec3* output)
 void ftKb_SpecialN_800F5BA4(Fighter* fp)
 {
     ftKb_DatAttrs* da = fp->dat_attrs;
-    if ((s32) fp->kind == Ft_Kind_Kirby &&
-        (s32) fp->u.kb.hat.kind != Ft_Kind_Kirby && !fp->u.kb.hat.x8_b0 &&
+    if ((s32) Rogue_AbilitySourceKind(fp) == Ft_Kind_Kirby &&
+        (s32) Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind != Ft_Kind_Kirby && !Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.x8_b0 &&
         (u32) fp->victim_gobj == 0U &&
         fp->dmg.x1860_element != HitElement_Cape &&
         HSD_Randi((s32) da->specialn_odds_lose_ability_on_hit) == 0)
@@ -243,8 +244,8 @@ void ftKb_SpecialN_800F5BA4(Fighter* fp)
 void ftKb_SpecialN_800F5C34(Fighter* fp)
 {
     ftKb_DatAttrs* da = fp->dat_attrs;
-    if ((s32) fp->kind == Ft_Kind_Kirby &&
-        (s32) fp->u.kb.hat.kind != Ft_Kind_Kirby && !fp->u.kb.hat.x8_b0 &&
+    if ((s32) Rogue_AbilitySourceKind(fp) == Ft_Kind_Kirby &&
+        (s32) Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind != Ft_Kind_Kirby && !Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.x8_b0 &&
         (u32) fp->victim_gobj == 0U &&
         HSD_Randi((s32) da->specialn_odds_lose_ability_on_hit) == 0)
     {
@@ -272,10 +273,10 @@ void ftKb_SpecialN_800F5D04(Fighter_GObj* gobj, bool arg1)
     ftKb_DatAttrs* da;
     PAD_STACK(8);
     ftKb_SpecialN_800F19AC(gobj);
-    ftKb_SpecialN_800F190C(gobj, fp->u.kb.hat.kind);
-    ftKb_SpecialN_800EEEC4(gobj, fp->u.kb.hat.kind);
+    ftKb_SpecialN_800F190C(gobj, Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind);
+    ftKb_SpecialN_800EEEC4(gobj, Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind);
     new_var = fp;
-    if ((s32) fp->u.kb.hat.kind != Ft_Kind_Kirby && arg1 == 1) {
+    if ((s32) Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind != Ft_Kind_Kirby && arg1 == 1) {
         Fighter* fp2 = GET_FIGHTER(gobj);
         da = fp2->dat_attrs;
         pos.x = fp2->cur_pos.x;
@@ -287,7 +288,7 @@ void ftKb_SpecialN_800F5D04(Fighter_GObj* gobj, bool arg1)
         it_802ADA1C(&pos, &vel, fp2->facing_dir);
         ft_PlaySFX(fp, 0x22305, 0x7F, 0x40);
     }
-    new_var->u.kb.hat.kind = Ft_Kind_Kirby;
+    Rogue_AbilityVars(new_var, Ft_Kind_Kirby)->kb.hat.kind = Ft_Kind_Kirby;
 }
 
 void ftKb_SpecialN_800F5DE8(Fighter_GObj* gobj)
@@ -340,14 +341,14 @@ void ftKb_SpecialN_800F5F68(HSD_GObj* gobj)
 
     fp->throw_flags = 0;
     fp->cmd_vars[0] = fp->cmd_vars[1] = 0;
-    fp->u.kb.xE0 = 4;
+    Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xE0 = 4;
 
     // Ends up being 00 28 according to data sheet
-    fp->u.kb.xE4 = da->jumpaerial_unk;
+    Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xE4 = da->jumpaerial_unk;
 
-    fp->u.kb.xE8 = lbAnim_8001E8F8(ftData_80085E50(fp, ftCo_MS_HammerFall));
-    fp->u.kb.xEC = lbAnim_8001E8F8(ftData_80085E50(fp, ftCo_MS_HammerJump));
-    fp->u.kb.xF0 = lbAnim_8001E8F8(ftData_80085E50(fp, ftCo_MS_HammerLanding));
+    Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xE8 = lbAnim_8001E8F8(ftData_80085E50(fp, ftCo_MS_HammerFall));
+    Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xEC = lbAnim_8001E8F8(ftData_80085E50(fp, ftCo_MS_HammerJump));
+    Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xF0 = lbAnim_8001E8F8(ftData_80085E50(fp, ftCo_MS_HammerLanding));
 
     Fighter_ChangeMotionState(gobj, ftKb_MS_SpecialN, 0, 0, 1, 0, NULL);
     fp->x2222_b2 = true;
@@ -367,11 +368,11 @@ void ftKb_SpecialN_800F6070(HSD_GObj* gobj)
 
     fp->throw_flags = 0;
     fp->cmd_vars[0] = fp->cmd_vars[1] = 0;
-    fp->u.kb.xE0 = 4;
-    fp->u.kb.xE4 = da->jumpaerial_unk;
-    fp->u.kb.xE8 = lbAnim_8001E8F8(ftData_80085E50(fp, ftCo_MS_HammerFall));
-    fp->u.kb.xEC = lbAnim_8001E8F8(ftData_80085E50(fp, ftCo_MS_HammerJump));
-    fp->u.kb.xF0 = lbAnim_8001E8F8(ftData_80085E50(fp, ftCo_MS_HammerLanding));
+    Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xE0 = 4;
+    Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xE4 = da->jumpaerial_unk;
+    Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xE8 = lbAnim_8001E8F8(ftData_80085E50(fp, ftCo_MS_HammerFall));
+    Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xEC = lbAnim_8001E8F8(ftData_80085E50(fp, ftCo_MS_HammerJump));
+    Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xF0 = lbAnim_8001E8F8(ftData_80085E50(fp, ftCo_MS_HammerLanding));
 
     Fighter_ChangeMotionState(gobj, ftKb_MS_SpecialAirN, 0, 0, 1, 0, NULL);
     fp->x2222_b2 = true;
@@ -391,7 +392,7 @@ void fn_800F6178(HSD_GObj* gobj)
                               Ft_MF_KeepGfx | Ft_MF_SkipModel | Ft_MF_KeepSfx,
                               0, 1, 0, NULL);
     fp->x2222_b2 = true;
-    fp->u.kb.xF4_b0 = true;
+    Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xF4_b0 = true;
     ftKb_SpecialN_800F9070(gobj);
     ftCommon_8007E2F4(fp, 0x1FF);
 }
@@ -402,7 +403,7 @@ static void fn_800F6210(HSD_GObj* gobj)
     Fighter_ChangeMotionState(gobj, ftKb_MS_SpecialNCapture0, 0x212, 0.0f,
                               1.0f, 0.0f, NULL);
     fp->x2222_b2 = true;
-    fp->u.kb.xF4_b0 = false;
+    Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xF4_b0 = false;
     ftCommon_8007E2F4(fp, 0x1FF);
 }
 
@@ -414,7 +415,7 @@ static void fn_800F6280(HSD_GObj* gobj)
                               Ft_MF_KeepGfx | Ft_MF_SkipModel | Ft_MF_KeepSfx,
                               0, 1, 0, NULL);
     fp->x2222_b2 = true;
-    fp->u.kb.xF4_b0 = true;
+    Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xF4_b0 = true;
     ftKb_SpecialN_800F9070(gobj);
     ftCommon_8007E2F4(fp, 0x1FF);
 }
@@ -425,7 +426,7 @@ static void fn_800F6318(HSD_GObj* gobj)
     Fighter_ChangeMotionState(gobj, ftKb_MS_SpecialAirNCapture0, 0x212, 0.0f,
                               1.0f, 0.0f, NULL);
     fp->x2222_b2 = true;
-    fp->u.kb.xF4_b0 = false;
+    Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xF4_b0 = false;
     ftCommon_8007E2F4(fp, 0x1FF);
 }
 
@@ -463,7 +464,7 @@ void fn_800F64C8(Fighter_GObj* gobj, float anim_start)
     ftCo_DatAttrs* ca = getFtAttrs(fp);
     ftKb_DatAttrs* da = fp->dat_attrs;
     ftWalkCommon_800DFCA4(gobj, ftKb_MS_EatWalkSlow, Ft_MF_SkipModel,
-                          anim_start, fp->u.kb.xE8, fp->u.kb.xEC, fp->u.kb.xF0,
+                          anim_start, Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xE8, Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xEC, Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xF0,
                           ca->slow_walk_max, ca->mid_walk_point,
                           ca->fast_walk_min, da->specialn_walk_speed);
     ftCommon_8007E2F4(fp, 0x1FF);
@@ -726,7 +727,7 @@ ftKb_SpecialN_SetThrowCb(Fighter_GObj* gobj, s32 mask,
 void ftKb_SpecialN_Anim(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    HSD_JObj* joint = fp->parts[FtPart_YRotN].joint;
+    HSD_JObj* joint = fp->parts[Rogue_AbilityMapBone(fp, FtPart_YRotN)].joint;
     PAD_STACK(8);
 
     if (fp->cmd_vars[0] != 0) {
@@ -745,7 +746,7 @@ void ftKb_SpecialN_Anim(Fighter_GObj* gobj)
 void ftKb_SpecialAirN_Anim(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    HSD_JObj* joint = fp->parts[FtPart_YRotN].joint;
+    HSD_JObj* joint = fp->parts[Rogue_AbilityMapBone(fp, FtPart_YRotN)].joint;
     PAD_STACK(8);
 
     if (fp->cmd_vars[0] != 0) {
@@ -1009,8 +1010,8 @@ static inline void ftKb_SpecialNDrink_Anim_inline(Fighter_GObj* gobj,
                                                   Fighter_GObj* victim_gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    fp->u.kb.xE0 = ftCo_800BD9E0(gobj, victim_gobj);
-    ftKb_SpecialN_800F1BAC(gobj, fp->u.kb.xE0, true);
+    Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xE0 = ftCo_800BD9E0(gobj, victim_gobj);
+    ftKb_SpecialN_800F1BAC(gobj, Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xE0, true);
 }
 
 void ftKb_SpecialNDrink_Anim(Fighter_GObj* gobj)
@@ -1064,8 +1065,8 @@ void ftKb_SpecialAirNDrink_Anim(Fighter_GObj* gobj)
             ftCo_800DE2CC(gobj, victim_gobj);
             ftCo_800BE000(victim_gobj, gobj);
             fp2 = getFighter(gobj);
-            fp2->u.kb.xE0 = ftCo_800BD9E0(gobj, victim_gobj);
-            ftKb_SpecialN_800F1BAC(gobj, fp2->u.kb.xE0, true);
+            Rogue_AbilityVars(fp2, Ft_Kind_Kirby)->kb.xE0 = ftCo_800BD9E0(gobj, victim_gobj);
+            ftKb_SpecialN_800F1BAC(gobj, Rogue_AbilityVars(fp2, Ft_Kind_Kirby)->kb.xE0, true);
             fp->cmd_vars[0] = 0;
         }
     }
@@ -1147,8 +1148,8 @@ void ftKb_SpecialNLoop_IASA(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
 
-    if (fp->u.kb.xE4 != 0) {
-        fp->u.kb.xE4--;
+    if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xE4 != 0) {
+        Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xE4--;
         return;
     }
 
@@ -1162,8 +1163,8 @@ void ftKb_SpecialAirNLoop_IASA(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
 
-    if (fp->u.kb.xE4 != 0) {
-        fp->u.kb.xE4--;
+    if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xE4 != 0) {
+        Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xE4--;
         return;
     }
 
@@ -1276,7 +1277,7 @@ void ftKb_EatWait_IASA(Fighter_GObj* gobj)
     s32 r0_2;
     PAD_STACK(0x68);
 
-    if (fp->u.kb.xF4_b0) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xF4_b0) {
         if (ftKb_EatWait_ItemEat(gobj)) {
             return;
         }
@@ -1309,8 +1310,8 @@ void ftKb_EatWait_IASA(Fighter_GObj* gobj)
         if (r0_2 == 0 && ftWalkCommon_800DFC70(gobj)) {
             Fighter* fp4 = GET_FIGHTER(gobj);
             ftWalkCommon_800DFCA4(
-                gobj, 0x168, 0x10, 0.0f, fp4->u.kb.xE8, fp4->u.kb.xEC,
-                fp4->u.kb.xF0, fp4->co_attrs.slow_walk_max,
+                gobj, 0x168, 0x10, 0.0f, Rogue_AbilityVars(fp4, Ft_Kind_Kirby)->kb.xE8, Rogue_AbilityVars(fp4, Ft_Kind_Kirby)->kb.xEC,
+                Rogue_AbilityVars(fp4, Ft_Kind_Kirby)->kb.xF0, fp4->co_attrs.slow_walk_max,
                 fp4->co_attrs.mid_walk_point, fp4->co_attrs.fast_walk_min,
                 ((ftKb_DatAttrs*) fp4->dat_attrs)->specialn_walk_speed);
             ftCommon_8007E2F4(fp4, 0x1FF);
@@ -1420,7 +1421,7 @@ void ftKb_SpecialAirNCaptureWait_IASA(Fighter_GObj* gobj)
     Fighter_GObj* gobj2 = gobj;
     PAD_STACK(0x38);
 
-    if (fp->u.kb.xF4_b0) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xF4_b0) {
         if (ftKb_SpecialAirNCaptureWait_ItemEat(gobj2)) {
             return;
         }
@@ -1771,8 +1772,8 @@ void ftKb_SpecialN_800F9070(HSD_GObj* gobj)
 void ftKb_SpecialN_800F9090(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    if (fp->target_item_gobj != NULL && fp->kind == Ft_Kind_Kirby &&
-        fp->u.kb.hat.kind == Ft_Kind_Kirby)
+    if (fp->target_item_gobj != NULL && Rogue_AbilitySourceKind(fp) == Ft_Kind_Kirby &&
+        Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind == Ft_Kind_Kirby)
     {
         bool capturing = false;
         if (fp->motion_id == ftKb_MS_SpecialNCapture1 ||

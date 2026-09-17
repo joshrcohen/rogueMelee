@@ -1,4 +1,5 @@
 #include "ftanim.h"
+#include <melee/rogue/rogue_ability.h>
 
 #include <placeholder.h>
 
@@ -1060,6 +1061,10 @@ void ftAnim_800704F0(Fighter_GObj* gobj, int tobj_idx, float frame)
     HSD_TObj** temp_r30;
 
     fp = gobj->user_data;
+    /* Texture indices describe the source costume, unlike retargetable bone
+     * animations. Yoshi's mouth/eye tracks are not Samus's texture slots. */
+    if (Rogue_IsAbilityState(fp) && Rogue_AbilitySourceKind(fp) != fp->kind)
+        return;
     ftAnim_80070458(fp, &fp->tobj_list, tobj_idx, frame);
     if (ftData_UnkCallbackPairs0[fp->kind].x4 != NULL) {
         ftData_UnkCallbackPairs0[fp->kind].x4(gobj, tobj_idx, frame);

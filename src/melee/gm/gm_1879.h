@@ -5,6 +5,8 @@
 
 #include <placeholder.h>
 
+HSD_GObj* gm_GetStageIntroCamera(void);
+
 /* 187910 */ void fn_80187910(HSD_GObj*);
 /* 187AB4 */ void fn_80187AB4(HSD_GObj*);
 /* 187C9C */ void fn_80187C9C(HSD_GObj*, int);

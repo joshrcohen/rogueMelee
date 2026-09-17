@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include <melee/ft/forward.h>
 
 #include "ftkirby.h"
@@ -37,7 +38,7 @@ void ftKb_SpecialNKp_800FA588(Fighter_GObj* gobj)
     offset.x = 0.0f;
     offset.y = 0.5f;
     offset.z = 3.0f;
-    lb_8000B1CC(fp->parts[12].joint, &offset, &pos);
+    lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, 12)].joint, &offset, &pos);
     pos.x +=
         fp->x34_scale.y * (da->specialn_kp_breath_x_offset * fp->facing_dir);
     pos.y += da->specialn_kp_breath_y_offset * fp->x34_scale.y;
@@ -63,7 +64,7 @@ void ftKb_SpecialNKp_800FA588(Fighter_GObj* gobj)
     }
 
     itKoopaFlame_Spawn(gobj, &pos, fp->facing_dir, fp->mv.kb.specialn_kp.x0[1],
-                       new_facing, fp->u.kb.x84, fp->u.kb.x88,
+                       new_facing, Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.x84, Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.x88,
                        It_Kind_Kirby_KoopaFlame);
 
     if (fp->mv.kb.specialn_kp.x14 == 0) {
@@ -73,7 +74,7 @@ void ftKb_SpecialNKp_800FA588(Fighter_GObj* gobj)
     }
 
     if ((fp->mv.kb.specialn_kp.x14 % 3) == 0) {
-        f32 f = (fp->u.kb.x88 - da->specialn_kp_lowest_charge_graphic_size) /
+        f32 f = (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.x88 - da->specialn_kp_lowest_charge_graphic_size) /
                 (da->specialn_kp_flame_scale -
                  da->specialn_kp_lowest_charge_graphic_size);
         if (f < 0.3333f) {
@@ -94,13 +95,13 @@ void ftKb_SpecialNKp_800FA7D4(Fighter_GObj* gobj)
     Fighter* fp = GET_FIGHTER(gobj);
     ftKb_DatAttrs* da = fp->dat_attrs;
     if (fp->motion_id >= 449 || fp->motion_id < 443) {
-        fp->u.kb.x84 = fp->u.kb.x84 + da->specialn_kp_fuel_recharge_rate;
-        if (fp->u.kb.x84 > da->specialn_kp_max_fuel) {
-            fp->u.kb.x84 = da->specialn_kp_max_fuel;
+        Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.x84 = Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.x84 + da->specialn_kp_fuel_recharge_rate;
+        if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.x84 > da->specialn_kp_max_fuel) {
+            Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.x84 = da->specialn_kp_max_fuel;
         }
-        fp->u.kb.x88 = fp->u.kb.x88 + da->specialn_kp_flame_size_recharge_rate;
-        if (fp->u.kb.x88 > da->specialn_kp_flame_scale) {
-            fp->u.kb.x88 = da->specialn_kp_flame_scale;
+        Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.x88 = Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.x88 + da->specialn_kp_flame_size_recharge_rate;
+        if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.x88 > da->specialn_kp_flame_scale) {
+            Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.x88 = da->specialn_kp_flame_scale;
         }
     }
 }
@@ -184,7 +185,7 @@ void ftKb_KpSpecialNStart_Anim(Fighter_GObj* gobj)
     if (!ftAnim_IsFramesRemaining(gobj)) {
         Fighter* fp = GET_FIGHTER(gobj);
         ftKirby_MotionState msid = ftKb_MS_KpSpecialN;
-        switch (fp->u.kb.hat.kind) {
+        switch (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind) {
         case Ft_Kind_GKoops:
             msid = ftKb_MS_GkSpecialN;
             break;
@@ -235,7 +236,7 @@ void ftKb_KpSpecialAirNStart_Anim(Fighter_GObj* gobj)
     if (!ftAnim_IsFramesRemaining(gobj)) {
         Fighter* fp = GET_FIGHTER(gobj);
         ftKirby_MotionState msid = ftKb_MS_KpSpecialAirN;
-        switch (fp->u.kb.hat.kind) {
+        switch (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind) {
         case Ft_Kind_GKoops:
             msid = ftKb_MS_GkSpecialAirN;
             break;
@@ -300,7 +301,7 @@ void ftKb_KpSpecialN_IASA(Fighter_GObj* gobj)
             }
         } else {
             s32 msid = ftKb_MS_KpSpecialNEnd;
-            switch ((s32) fp->u.kb.hat.kind) {
+            switch ((s32) Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind) {
             case Ft_Kind_Koopa:
                 break;
             case Ft_Kind_GKoops:
@@ -316,13 +317,13 @@ void ftKb_KpSpecialN_IASA(Fighter_GObj* gobj)
     if ((s32) fp->mv.kb.specialn_kp.x0[0] >= 3) {
         fp->mv.kb.specialn_kp.x0[0] = 0;
     }
-    fp->u.kb.x84 -= 1.0F;
-    if (fp->u.kb.x84 < da->specialn_kp_spew_flame_velocity) {
-        fp->u.kb.x84 = da->specialn_kp_spew_flame_velocity;
+    Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.x84 -= 1.0F;
+    if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.x84 < da->specialn_kp_spew_flame_velocity) {
+        Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.x84 = da->specialn_kp_spew_flame_velocity;
     }
-    fp->u.kb.x88 -= 1.0F;
-    if (fp->u.kb.x88 < da->specialn_kp_lowest_charge_graphic_size) {
-        fp->u.kb.x88 = da->specialn_kp_lowest_charge_graphic_size;
+    Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.x88 -= 1.0F;
+    if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.x88 < da->specialn_kp_lowest_charge_graphic_size) {
+        Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.x88 = da->specialn_kp_lowest_charge_graphic_size;
     }
     fp->mv.kb.specialn_kp.x0[3] += 1;
     if ((s32) fp->mv.kb.specialn_kp.x0[3] >
@@ -354,7 +355,7 @@ void ftKb_KpSpecialAirN_IASA(Fighter_GObj* gobj)
             }
         } else {
             s32 msid = ftKb_MS_KpSpecialAirNEnd;
-            switch ((s32) fp->u.kb.hat.kind) {
+            switch ((s32) Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind) {
             case Ft_Kind_Koopa:
                 break;
             case Ft_Kind_GKoops:
@@ -370,13 +371,13 @@ void ftKb_KpSpecialAirN_IASA(Fighter_GObj* gobj)
     if ((s32) fp->mv.kb.specialn_kp.x0[0] >= 3) {
         fp->mv.kb.specialn_kp.x0[0] = 0;
     }
-    fp->u.kb.x84 -= 1.0F;
-    if (fp->u.kb.x84 < da->specialn_kp_spew_flame_velocity) {
-        fp->u.kb.x84 = da->specialn_kp_spew_flame_velocity;
+    Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.x84 -= 1.0F;
+    if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.x84 < da->specialn_kp_spew_flame_velocity) {
+        Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.x84 = da->specialn_kp_spew_flame_velocity;
     }
-    fp->u.kb.x88 -= 1.0F;
-    if (fp->u.kb.x88 < da->specialn_kp_lowest_charge_graphic_size) {
-        fp->u.kb.x88 = da->specialn_kp_lowest_charge_graphic_size;
+    Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.x88 -= 1.0F;
+    if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.x88 < da->specialn_kp_lowest_charge_graphic_size) {
+        Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.x88 = da->specialn_kp_lowest_charge_graphic_size;
     }
     fp->mv.kb.specialn_kp.x0[3] += 1;
     if ((s32) fp->mv.kb.specialn_kp.x0[3] >

@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftpurinspecialn.h"
 
 #include <melee/ft/forward.h>
@@ -67,7 +68,7 @@ void ftPr_SpecialS_8013D658(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
     HSD_JObj* jobj = GET_JOBJ(gobj);
-    HSD_JObjSetScale(jobj, &fp->u.pr.x2230);
+    HSD_JObjSetScale(jobj, &Rogue_AbilityVars(fp, Ft_Kind_Purin)->pr.x2230);
     ftPartSetRotY(fp, FtPart_TopN, M_PI_2 * fp->facing_dir);
     if (fp->mv.pr.specialn.facing_dir != 0) {
         fp->facing_dir = fp->mv.pr.specialn.facing_dir;
@@ -224,7 +225,7 @@ void ftPr_SpecialS_8013DC64(HSD_GObj* gobj)
     HSD_JObj* jobj = GET_JOBJ(gobj);
     Fighter* fp = GET_FIGHTER(gobj);
     ftPurinAttributes* da = fp->dat_attrs;
-    HSD_JObjGetScale(jobj, &fp->u.pr.x2230);
+    HSD_JObjGetScale(jobj, &Rogue_AbilityVars(fp, Ft_Kind_Purin)->pr.x2230);
     fp->gr_vel = 0;
     fp->mv.pr.specialn.x0 = da->x34;
     fp->mv.pr.specialn.x4 = -1;
@@ -259,13 +260,13 @@ static inline void scaleAnimStep(HSD_GObj* gobj, Vec3* scale)
     HSD_JObj* jobj = GET_JOBJ(gobj);
     int frame = fp->mv.pr.specialn.x8;
     if (frame >= 0 && frame < 4) {
-        scale->x = fp->u.pr.x2230.x;
-        scale->y = fp->u.pr.x2230.y * ftPr_Init_803D05C8[frame];
-        scale->z = fp->u.pr.x2230.z * ftPr_Init_803D05D8[frame];
+        scale->x = Rogue_AbilityVars(fp, Ft_Kind_Purin)->pr.x2230.x;
+        scale->y = Rogue_AbilityVars(fp, Ft_Kind_Purin)->pr.x2230.y * ftPr_Init_803D05C8[frame];
+        scale->z = Rogue_AbilityVars(fp, Ft_Kind_Purin)->pr.x2230.z * ftPr_Init_803D05D8[frame];
         HSD_JObjSetScale(jobj, scale);
         fp->mv.pr.specialn.x8 += 1;
     } else {
-        HSD_JObjSetScale(jobj, &fp->u.pr.x2230);
+        HSD_JObjSetScale(jobj, &Rogue_AbilityVars(fp, Ft_Kind_Purin)->pr.x2230);
     }
 }
 
@@ -573,7 +574,7 @@ ftPr_SpecialAirNChargeRelease_Anim_inline(HSD_GObj* gobj, Vec3* scale,
         HSD_JObjSetScale(jobj, scale);
         fp->mv.pr.specialn.x8 += 1;
     } else {
-        HSD_JObjSetScale(jobj, &fp->u.pr.x2230);
+        HSD_JObjSetScale(jobj, &Rogue_AbilityVars(fp, Ft_Kind_Purin)->pr.x2230);
     }
 }
 
@@ -609,7 +610,7 @@ void ftPr_SpecialAirNChargeRelease_Anim(HSD_GObj* gobj)
                     ftPr_SpecialS_8013DA24(gobj, true, 0x40012, 0);
                     return;
                 }
-                ftPr_JObjSetRotationY(fp->parts[FtPart_TopN].joint, M_PI_2,
+                ftPr_JObjSetRotationY(fp->parts[Rogue_AbilityMapBone(fp, FtPart_TopN)].joint, M_PI_2,
                                       scale_base);
                 return;
             }
@@ -618,11 +619,11 @@ void ftPr_SpecialAirNChargeRelease_Anim(HSD_GObj* gobj)
                 ftPr_SpecialS_8013DA24(gobj, true, 0x40012, 0);
                 return;
             }
-            ftPr_JObjSetRotationY(fp->parts[FtPart_TopN].joint, M_PI_2,
+            ftPr_JObjSetRotationY(fp->parts[Rogue_AbilityMapBone(fp, FtPart_TopN)].joint, M_PI_2,
                                   scale_base);
             return;
         }
-        ftPr_JObjSetRotationY(fp->parts[FtPart_TopN].joint, M_PI_2,
+        ftPr_JObjSetRotationY(fp->parts[Rogue_AbilityMapBone(fp, FtPart_TopN)].joint, M_PI_2,
                               scale_base);
         return;
     }
@@ -1276,7 +1277,7 @@ static inline void ftPr_SpecialAirNChargeRelease_Coll_inline(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
     HSD_JObj* jobj = GET_JOBJ(gobj);
-    HSD_JObjSetScale(jobj, &fp->u.pr.x2230);
+    HSD_JObjSetScale(jobj, &Rogue_AbilityVars(fp, Ft_Kind_Purin)->pr.x2230);
     ftPartSetRotY(fp, FtPart_TopN, M_PI_2 * fp->facing_dir);
     if (fp->mv.pr.specialn.facing_dir != 0) {
         fp->facing_dir = fp->mv.pr.specialn.facing_dir;

@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_effects.h>
 #include "ftyoshiguard.h"
 
 #include <melee/ft/forward.h>
@@ -21,6 +22,7 @@
 #include <melee/ft/kinds/ftCommon/ftCo_ItemThrow.h>
 #include <melee/ft/kinds/ftCommon/ftCo_Pass.h>
 #include <melee/ft/types.h>
+#include <melee/rogue/rogue_hooks.h>
 #include <sysdolphin/baselib/jobj.h>
 
 void ftYs_Init_8012BDA0(Fighter_GObj* gobj)
@@ -262,6 +264,8 @@ void ftYs_Shield_8012C600(Fighter_GObj* gobj, bool arg1)
     Fighter* fp = GET_FIGHTER(gobj);
 
     Fighter_ChangeMotionState(gobj, 0x158, 0U, 0.0F, 1.0F, 0.0F, NULL);
+    /* Yoshi uses a fixed shield-damage animation instead of common guard stun. */
+    ftAnim_SetAnimRate(gobj, 60.0f / Rogue_ModifyShieldStun(fp, 60.0f));
     fp->hitlag_cb = (void (*)(HSD_GObj*)) ftCo_80093240;
     fp->active_timer.lstick.x = 0xFE;
     fp->post_hitlag_cb = (void (*)(HSD_GObj*)) ftCo_800932DC;
@@ -363,7 +367,10 @@ void ftYs_Shield_8012C914(Fighter_GObj* gobj)
     ftYs_Shield_8012C914_inline(gobj);
 }
 
-void ftYs_Shield_8012CACC(HSD_GObj* arg0) {}
+void ftYs_Shield_8012CACC(HSD_GObj* arg0)
+{
+    RogueEffects_OnParry(GET_FIGHTER(arg0));
+}
 
 void ftYs_GuardOn_1_Anim(HSD_GObj* gobj)
 {

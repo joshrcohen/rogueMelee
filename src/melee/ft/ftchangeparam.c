@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_hooks.h>
 #include "ftchangeparam.h"
 
 #include <placeholder.h>
@@ -150,6 +151,7 @@ void ftCo_800D0FA0(Fighter_GObj* gobj)
     Fighter* fp = GET_FIGHTER(gobj);
 
     fp->co_attrs = *fp->ft_data->x0;
+    Rogue_ApplyMovementStats(fp);
     {
         fp->x294_itPickup = *fp->ft_data->x40;
         fp->x2C4 = *fp->ft_data->x50;
@@ -171,6 +173,7 @@ void ftCo_800D105C(Fighter_GObj* fgp)
 
     fp = GET_FIGHTER(fgp);
     fp->co_attrs = *fp->ft_data->x0;
+    Rogue_ApplyMovementStats(fp);
     fp->x294_itPickup = *fp->ft_data->x40;
     fp->x2C4 = *fp->ft_data->x50;
 

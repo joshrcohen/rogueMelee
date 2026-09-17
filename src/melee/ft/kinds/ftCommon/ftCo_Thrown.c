@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_effects.h>
 #include "ftCo_Thrown.h"
 
 #include <melee/ft/forward.h>
@@ -191,6 +192,7 @@ void ftCo_800DE854(Fighter_GObj* gobj)
     Fighter_GObj* thrower_gobj = fp->victim_gobj;
     Fighter* thrower_fp = GET_FIGHTER(thrower_gobj);
     HitCapsule* hit = &thrower_fp->xDF4[1];
+    float damage = Rogue_ModifyAttackDamage(thrower_fp, fp, hit->damage, true);
     Vec3 collpos;
     lb_8000B1CC(fp->parts[ftParts_GetBoneIndex(fp, FtPart_XRotN)].joint, NULL,
                 &collpos);
@@ -199,9 +201,9 @@ void ftCo_800DE854(Fighter_GObj* gobj)
     fp->dmg.facing_dir_1 = -thrower_fp->facing_dir;
     fp->dmg.x184c_damaged_hurtbox = 1;
     fp->dmg.x1854_collpos = collpos;
-    fp->dmg.x1860_element = hit->element;
-    Fighter_UnkTakeDamage_8006CC30(fp, hit->damage);
-    ftColl_8007891C(thrower_gobj, gobj, hit->damage);
+    fp->dmg.x1860_element = RogueEffects_OnHit(thrower_fp, fp, damage) ? HitElement_Electric : hit->element;
+    Fighter_UnkTakeDamage_8006CC30(fp, damage);
+    ftColl_8007891C(thrower_gobj, gobj, damage);
 }
 
 void ftCo_800DE920(Fighter_GObj* gobj, f32 anim_timer)

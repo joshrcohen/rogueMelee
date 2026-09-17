@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue.h>
 
 #include "gm_unsplit.h"
 #include "gmmain_lib.h"
@@ -78,7 +79,7 @@ void bootOnLeave(GameModeState* data)
 
     // Enter mode
     // Gekko "boot to CSS" code changes scene_id to a hardcoded 2 (::GM_VS)
-    gm_ChangeGameModeAfterCurrentScene(scene_data->mode_id);
+    gm_ChangeGameModeAfterCurrentScene(Rogue_DeveloperBootRequested() ? GM_ROGUE : scene_data->mode_id);
 }
 
 GameModeState gm_Mode_MemCard_States[] = {

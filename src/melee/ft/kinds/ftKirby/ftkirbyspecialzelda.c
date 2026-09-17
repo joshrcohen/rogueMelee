@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftkirbyspecialzelda.h"
 
 #include <melee/ft/forward.h>
@@ -57,7 +58,7 @@ void fn_80105AB0(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
     if (!fp->x2219_b0) {
-        efSync_Spawn(0x4B7, gobj, fp->parts[1].joint);
+        efSync_Spawn(0x4B7, gobj, fp->parts[Rogue_AbilityMapBone(fp, 1)].joint);
         fp->x2219_b0 = true;
     }
     Fighter_SetEffectHitlagCallbacks(fp);

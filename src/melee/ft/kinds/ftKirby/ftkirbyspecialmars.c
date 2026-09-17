@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftkirbyspecialmars.h"
 
 #include <melee/ft/forward.h>
@@ -29,17 +30,17 @@ void fn_8010B1F4(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
     if (!fp->x2219_b0) {
-        if ((s32) fp->u.kb.hat.kind == Ft_Kind_Mars) {
+        if ((s32) Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind == Ft_Kind_Mars) {
             if ((s32) fp->ground_or_air == GA_Ground) {
-                efSync_Spawn(0x4B4, gobj, fp->parts[FtPart_TopN].joint);
+                efSync_Spawn(0x4B4, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_TopN)].joint);
             } else {
-                efSync_Spawn(0x4B5, gobj, fp->parts[FtPart_TopN].joint);
+                efSync_Spawn(0x4B5, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_TopN)].joint);
             }
         } else {
             if ((s32) fp->ground_or_air == GA_Ground) {
-                efSync_Spawn(0x4B8, gobj, fp->parts[FtPart_TopN].joint);
+                efSync_Spawn(0x4B8, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_TopN)].joint);
             } else {
-                efSync_Spawn(0x4B9, gobj, fp->parts[FtPart_TopN].joint);
+                efSync_Spawn(0x4B9, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_TopN)].joint);
             }
         }
         fp->x2219_b0 = true;
@@ -65,7 +66,7 @@ static inline void setupStartAccessory(HSD_GObj* gobj, Vec3* scale)
     mars_hat = ft_80459B88.hats[Ft_Kind_Mars - 1]; ///< @todo kirby hat enum
     fe_hat = ft_80459B88.hats[Ft_Kind_Emblem - 1];
 
-    if (fp->u.kb.hat.kind == Ft_Kind_Mars) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind == Ft_Kind_Mars) {
         ftCommon_SetAccessory(fp, (HSD_Joint*) mars_hat->hat_dynamics[0]);
     } else {
         ftCommon_SetAccessory(fp, (HSD_Joint*) fe_hat->hat_dynamics[0]);
@@ -90,7 +91,7 @@ void ftKb_SpecialNMs_8010B2FC(HSD_GObj* gobj)
         Fighter* fp = GET_FIGHTER(gobj);
         da = fp->dat_attrs;
 
-        if (fp->u.kb.hat.kind == Ft_Kind_Mars) {
+        if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind == Ft_Kind_Mars) {
             ms_da = &da->ms;
         } else {
             ms_da = &da->fe;
@@ -106,7 +107,7 @@ void ftKb_SpecialNMs_8010B2FC(HSD_GObj* gobj)
         ftKirby_MotionState msid;
         {
             Fighter* fp = GET_FIGHTER(gobj);
-            if (fp->u.kb.hat.kind == Ft_Kind_Mars) {
+            if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind == Ft_Kind_Mars) {
                 msid = ftKb_MS_MsSpecialNStart;
             } else {
                 msid = ftKb_MS_FeSpecialNStart;
@@ -128,7 +129,7 @@ void ftKb_SpecialNMs_8010B4A0(HSD_GObj* gobj)
         Fighter* fp = GET_FIGHTER(gobj);
         da = fp->dat_attrs;
 
-        if (fp->u.kb.hat.kind == Ft_Kind_Mars) {
+        if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind == Ft_Kind_Mars) {
             ms_da = &da->ms;
         } else {
             ms_da = &da->fe;
@@ -148,7 +149,7 @@ void ftKb_SpecialNMs_8010B4A0(HSD_GObj* gobj)
         ftKirby_MotionState msid;
         {
             Fighter* fp = GET_FIGHTER(gobj);
-            if (fp->u.kb.hat.kind == Ft_Kind_Mars) {
+            if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind == Ft_Kind_Mars) {
                 msid = ftKb_MS_MsSpecialAirNStart;
             } else {
                 msid = ftKb_MS_FeSpecialAirNStart;
@@ -172,7 +173,7 @@ void ftKb_MsSpecialNStart_Anim(HSD_GObj* gobj)
         ftKb_SpecialNMs_8010BC40(gobj);
         {
             Fighter* fp = GET_FIGHTER(gobj);
-            if (fp->u.kb.hat.kind == Ft_Kind_Mars) {
+            if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind == Ft_Kind_Mars) {
                 ftCo_800BFFD0(fp, 99, 0);
             } else {
                 ftCo_800BFFD0(fp, 100, 0);
@@ -187,7 +188,7 @@ void ftKb_MsSpecialAirNStart_Anim(HSD_GObj* gobj)
         ftKb_SpecialNMs_8010BC90(gobj);
         {
             Fighter* fp = GET_FIGHTER(gobj);
-            if (fp->u.kb.hat.kind == Ft_Kind_Mars) {
+            if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind == Ft_Kind_Mars) {
                 ftCo_800BFFD0(fp, 99, 0);
             } else {
                 ftCo_800BFFD0(fp, 100, 0);
@@ -206,7 +207,7 @@ void ftKb_MsSpecialNStart_Phys(Fighter_GObj* gobj)
     ftKb_DatAttrs* da = fp->dat_attrs;
     struct ftKb_SpecialNMs_DatAttrs* ms_da;
     PAD_STACK(16);
-    if (fp->u.kb.hat.kind == Ft_Kind_Mars) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind == Ft_Kind_Mars) {
         ms_da = &da->ms;
     } else {
         ms_da = &da->fe;
@@ -222,7 +223,7 @@ void ftKb_MsSpecialAirNStart_Phys(Fighter_GObj* gobj)
     Fighter* fp = getFighter(gobj);
     ftKb_DatAttrs* da = fp->dat_attrs;
     PAD_STACK(16);
-    if (fp->u.kb.hat.kind == Ft_Kind_Mars) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind == Ft_Kind_Mars) {
         ms_da = &da->ms;
     } else {
         ms_da = &da->fe;
@@ -249,7 +250,7 @@ void ftKb_MsSpecialAirNStart_Coll(Fighter_GObj* gobj)
 static inline FtMotionId getAirSpecialMotionId(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    if (fp->u.kb.hat.kind == Ft_Kind_Mars) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind == Ft_Kind_Mars) {
         return ftKb_MS_MsSpecialAirNStart;
     } else {
         return ftKb_MS_FeSpecialAirNStart;
@@ -268,7 +269,7 @@ void ftKb_SpecialNMs_8010B868(Fighter_GObj* gobj)
 static inline FtMotionId getGroundSpecialMotionId(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    if (fp->u.kb.hat.kind == Ft_Kind_Mars) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind == Ft_Kind_Mars) {
         return ftKb_MS_MsSpecialNStart;
     } else {
         return ftKb_MS_FeSpecialNStart;
@@ -289,7 +290,7 @@ void ftKb_MsSpecialNLoop_Anim(Fighter_GObj* gobj)
     s32* charge;
     Fighter* fp = GET_FIGHTER(gobj);
     ftKb_DatAttrs* da = fp->dat_attrs;
-    if (fp->u.kb.hat.kind == Ft_Kind_Mars) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind == Ft_Kind_Mars) {
         charge = (s32*) &da->ms.charge_iterations;
     } else {
         charge = (s32*) &da->fe.charge_iterations;
@@ -306,7 +307,7 @@ void ftKb_MsSpecialAirNLoop_Anim(Fighter_GObj* gobj)
     u32* charge;
     Fighter* fp = GET_FIGHTER(gobj);
     ftKb_DatAttrs* da = fp->dat_attrs;
-    if (fp->u.kb.hat.kind == Ft_Kind_Mars) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind == Ft_Kind_Mars) {
         charge = &da->ms.charge_iterations;
     } else {
         charge = &da->fe.charge_iterations;
@@ -425,7 +426,7 @@ void ftKb_MsSpecialNEnd_Anim(Fighter_GObj* gobj)
     u32 dmg;
     ftKb_DatAttrs* da = fp->dat_attrs;
     PAD_STACK(24);
-    if ((s32) fp->u.kb.hat.kind == Ft_Kind_Mars) {
+    if ((s32) Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind == Ft_Kind_Mars) {
         ms_da = &da->ms;
     } else {
         ms_da = &da->fe;
@@ -460,7 +461,7 @@ void ftKb_MsSpecialAirNEnd_Anim(Fighter_GObj* gobj)
     u32 dmg;
     ftKb_DatAttrs* da = fp->dat_attrs;
     PAD_STACK(24);
-    if ((s32) fp->u.kb.hat.kind == Ft_Kind_Mars) {
+    if ((s32) Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind == Ft_Kind_Mars) {
         ms_da = &da->ms;
     } else {
         ms_da = &da->fe;
@@ -564,11 +565,11 @@ void ftKb_SpecialNPe_8010C148(Fighter_GObj* gobj)
     s32 msid;
     PAD_STACK(4 * 6);
     if (fp->cmd_vars[0] == 0U) {
-        msid = ((s32) fp->u.kb.hat.kind == Ft_Kind_Mars)
+        msid = ((s32) Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind == Ft_Kind_Mars)
                    ? ftKb_MS_MsSpecialNEnd0
                    : ftKb_MS_FeSpecialNEnd0;
     } else {
-        msid = ((s32) fp->u.kb.hat.kind == Ft_Kind_Mars)
+        msid = ((s32) Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind == Ft_Kind_Mars)
                    ? ftKb_MS_MsSpecialNEnd0 + 1
                    : ftKb_MS_FeSpecialNEnd0 + 1;
     }
@@ -582,11 +583,11 @@ void ftKb_SpecialNPe_8010C1E8(Fighter_GObj* gobj)
     s32 msid;
     PAD_STACK(4 * 6);
     if (fp->cmd_vars[0] == 0U) {
-        msid = ((s32) fp->u.kb.hat.kind == Ft_Kind_Mars)
+        msid = ((s32) Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind == Ft_Kind_Mars)
                    ? ftKb_MS_MsSpecialAirNEnd0
                    : ftKb_MS_FeSpecialAirNEnd0;
     } else {
-        msid = ((s32) fp->u.kb.hat.kind == Ft_Kind_Mars)
+        msid = ((s32) Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind == Ft_Kind_Mars)
                    ? ftKb_MS_MsSpecialAirNEnd0 + 1
                    : ftKb_MS_FeSpecialAirNEnd0 + 1;
     }

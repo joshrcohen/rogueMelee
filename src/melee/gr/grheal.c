@@ -1,3 +1,4 @@
+#include <melee/gm/gm_1A3F.h>
 #include "grheal.h"
 
 #include <Runtime/platform.h>
@@ -299,7 +300,8 @@ void stageGObj1_GObjProc(Ground_GObj* ground)
     Ground* gp;
 
     gp = ground->user_data;
-    Ground_801C3D44(fn_8021F424, 10.0F, 20.0F);
+    if (gm_GetCurrentGameMode() != GM_ROGUE)
+        Ground_801C3D44(fn_8021F424, 10.0F, 20.0F);
     lb_800115F4();
     gp->u.flatzone2.xC4 = 0;
 }

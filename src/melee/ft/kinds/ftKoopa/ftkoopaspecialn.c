@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftkoopaspecialn.h"
 
 #include <melee/ft/forward.h>
@@ -62,32 +63,32 @@ void ftKp_SpecialLw_80134ACC(Fighter_GObj* gobj)
     Vec3 v;
     enum_t* dirs = ftKp_Init_803CF2A0;
     PAD_STACK(12);
-    lb_8000B1CC(fp->parts[48].joint, NULL, &v);
+    lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, 48)].joint, NULL, &v);
     v.x += fp->x34_scale.y * (da->x24 * fp->facing_dir);
     v.y += da->x28 * fp->x34_scale.y;
     itKoopaFlame_Spawn(gobj, &v, fp->facing_dir, fp->mv.kp.specialn.x4,
                        ftKp_SpecialN_80134ACC_inline(gobj, dirs),
-                       fp->u.kp.x222C, fp->u.kp.x2230, It_Kind_Koopa_Flame);
+                       Rogue_AbilityVars(fp, Ft_Kind_Koopa)->kp.x222C, Rogue_AbilityVars(fp, Ft_Kind_Koopa)->kp.x2230, It_Kind_Koopa_Flame);
     if (fp->mv.kp.specialn.x14 == 0) {
         fp->mv.kp.specialn.x4 = Item_8026AE60();
         ft_80089824(gobj);
         ft_800892A0(gobj);
     }
     if ((fp->mv.kp.specialn.x14 % 3) == 0) {
-        f32 f = (fp->u.kp.x2230 - da->x1C) / (da->x18 - da->x1C);
+        f32 f = (Rogue_AbilityVars(fp, Ft_Kind_Koopa)->kp.x2230 - da->x1C) / (da->x18 - da->x1C);
         if (f < 0.3333f) {
-            if (fp->kind == Ft_Kind_Koopa) {
+            if (Rogue_AbilitySourceKind(fp) == Ft_Kind_Koopa) {
                 ft_PlaySFX(fp, 0x24A2B, 0x7F, 0x40);
             } else {
                 ft_PlaySFX(fp, 0x1D4F3, 0x7F, 0x40);
             }
         } else if (f < 0.6666f) {
-            if (fp->kind == Ft_Kind_Koopa) {
+            if (Rogue_AbilitySourceKind(fp) == Ft_Kind_Koopa) {
                 ft_PlaySFX(fp, 0x24A28, 0x7F, 0x40);
             } else {
                 ft_PlaySFX(fp, 0x1D4F0, 0x7F, 0x40);
             }
-        } else if (fp->kind == Ft_Kind_Koopa) {
+        } else if (Rogue_AbilitySourceKind(fp) == Ft_Kind_Koopa) {
             ft_PlaySFX(fp, 0x24A25, 0x7F, 0x40);
         } else {
             ft_PlaySFX(fp, 0x1D4ED, 0x7F, 0x40);
@@ -102,13 +103,13 @@ void ftKp_SpecialLw_80134D78(Fighter_GObj* gobj)
     Fighter* fp = GET_FIGHTER(gobj);
     ftKoopaAttributes* da = fp->dat_attrs;
     if ((fp->motion_id >= 0x15B) || (fp->motion_id < 0x155)) {
-        fp->u.kp.x222C = fp->u.kp.x222C + da->x8;
-        if (fp->u.kp.x222C > da->x10) {
-            fp->u.kp.x222C = da->x10;
+        Rogue_AbilityVars(fp, Ft_Kind_Koopa)->kp.x222C = Rogue_AbilityVars(fp, Ft_Kind_Koopa)->kp.x222C + da->x8;
+        if (Rogue_AbilityVars(fp, Ft_Kind_Koopa)->kp.x222C > da->x10) {
+            Rogue_AbilityVars(fp, Ft_Kind_Koopa)->kp.x222C = da->x10;
         }
-        fp->u.kp.x2230 = fp->u.kp.x2230 + da->xC;
-        if (fp->u.kp.x2230 > da->x18) {
-            fp->u.kp.x2230 = da->x18;
+        Rogue_AbilityVars(fp, Ft_Kind_Koopa)->kp.x2230 = Rogue_AbilityVars(fp, Ft_Kind_Koopa)->kp.x2230 + da->xC;
+        if (Rogue_AbilityVars(fp, Ft_Kind_Koopa)->kp.x2230 > da->x18) {
+            Rogue_AbilityVars(fp, Ft_Kind_Koopa)->kp.x2230 = da->x18;
         }
     }
 }
@@ -259,13 +260,13 @@ void ftKp_SpecialN_IASA(Fighter_GObj* gobj)
     if (fp->mv.kp.specialn.x0 >= 3) {
         fp->mv.kp.specialn.x0 = 0;
     }
-    fp->u.kp.x222C -= 1.0f;
-    if (fp->u.kp.x222C < da->x14) {
-        fp->u.kp.x222C = da->x14;
+    Rogue_AbilityVars(fp, Ft_Kind_Koopa)->kp.x222C -= 1.0f;
+    if (Rogue_AbilityVars(fp, Ft_Kind_Koopa)->kp.x222C < da->x14) {
+        Rogue_AbilityVars(fp, Ft_Kind_Koopa)->kp.x222C = da->x14;
     }
-    fp->u.kp.x2230 -= 1.0f;
-    if (fp->u.kp.x2230 < da->x1C) {
-        fp->u.kp.x2230 = da->x1C;
+    Rogue_AbilityVars(fp, Ft_Kind_Koopa)->kp.x2230 -= 1.0f;
+    if (Rogue_AbilityVars(fp, Ft_Kind_Koopa)->kp.x2230 < da->x1C) {
+        Rogue_AbilityVars(fp, Ft_Kind_Koopa)->kp.x2230 = da->x1C;
     }
     fp->mv.kp.specialn.flame_timer += 1;
     if (fp->mv.kp.specialn.flame_timer > da->flame_limit) {
@@ -301,13 +302,13 @@ void ftKp_SpecialAirN_IASA(Fighter_GObj* gobj)
     if (fp->mv.kp.specialn.x0 >= 3) {
         fp->mv.kp.specialn.x0 = 0;
     }
-    fp->u.kp.x222C -= 1.0f;
-    if (fp->u.kp.x222C < da->x14) {
-        fp->u.kp.x222C = da->x14;
+    Rogue_AbilityVars(fp, Ft_Kind_Koopa)->kp.x222C -= 1.0f;
+    if (Rogue_AbilityVars(fp, Ft_Kind_Koopa)->kp.x222C < da->x14) {
+        Rogue_AbilityVars(fp, Ft_Kind_Koopa)->kp.x222C = da->x14;
     }
-    fp->u.kp.x2230 -= 1.0f;
-    if (fp->u.kp.x2230 < da->x1C) {
-        fp->u.kp.x2230 = da->x1C;
+    Rogue_AbilityVars(fp, Ft_Kind_Koopa)->kp.x2230 -= 1.0f;
+    if (Rogue_AbilityVars(fp, Ft_Kind_Koopa)->kp.x2230 < da->x1C) {
+        Rogue_AbilityVars(fp, Ft_Kind_Koopa)->kp.x2230 = da->x1C;
     }
     fp->mv.kp.specialn.flame_timer += 1;
     if (fp->mv.kp.specialn.flame_timer > da->flame_limit) {

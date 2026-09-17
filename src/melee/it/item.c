@@ -1,4 +1,6 @@
+#include <melee/rogue/rogue_items.h>
 #include "item.h"
+#include <melee/rogue/rogue_effects.h>
 
 #include <melee/lb/forward.h>
 
@@ -204,6 +206,7 @@ static void Item_80267130(HSD_GObj* gobj, SpawnItem* spawnItem)
     item_data->pos = spawnItem->prev_pos;
     item_data->init_facing_dir = item_data->facing_dir = spawnItem->facing_dir;
     item_data->owner = spawnItem->x0_parent_gobj;
+    RogueItem_Spawn(item_data);
 
     {
         int facing_dir;
@@ -1767,6 +1770,14 @@ static bool OnClankThink(HSD_GObj* gobj, Item* item_data)
 
 static bool OnGiveDamageThink(HSD_GObj* gobj, Item* item_data)
 {
+    if (item_data->xC34_damageDealt > 0 && ftLib_80086960(item_data->owner) &&
+        RogueEffects_TryPierce(item_data->owner->user_data, item_data->kind,
+                              RogueItem_Pierced(item_data))) {
+        /* Keep native hit history: passing through cannot hit the same victim
+         * again immediately. Shields, walls, reflection and expiry keep their
+         * ordinary callbacks, and the next damaging impact is ordinary too. */
+        return false;
+    }
     bool (*cb_OnGiveDamage)(HSD_GObj*) =
         item_data->xB8_itemLogicTable->dmg_dealt;
     if (it_80274C78(gobj)) {

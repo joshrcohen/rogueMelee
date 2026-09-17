@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include <melee/ft/forward.h>
 #include <sysdolphin/baselib/forward.h>
 
@@ -35,7 +36,7 @@ void ftKb_SpecialN_800F9110(Fighter_GObj* gobj)
     fp->throw_flags = 0;
     {
         Fighter* fp = GET_FIGHTER(gobj);
-        if (fp->u.kb.hat.kind != Ft_Kind_Mario) {
+        if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind != Ft_Kind_Mario) {
             msid = (new_var = 0x200);
         }
     }
@@ -81,14 +82,14 @@ static inline s32 fn_800F9260_inline(HSD_GObj* gobj)
 
     fp2 = GET_FIGHTER(gobj);
     for (i = count = 0; i < 9; i++) {
-        if (i != fp2->u.kb.x68 && i != fp2->u.kb.x6C) {
+        if (i != Rogue_AbilityVars(fp2, Ft_Kind_Kirby)->kb.x68 && i != Rogue_AbilityVars(fp2, Ft_Kind_Kirby)->kb.x6C) {
             candidates[count] = i;
             count++;
         }
     }
     pick = candidates[HSD_Randi(count)];
-    fp2->u.kb.x6C = fp2->u.kb.x68;
-    fp2->u.kb.x68 = pick;
+    Rogue_AbilityVars(fp2, Ft_Kind_Kirby)->kb.x6C = Rogue_AbilityVars(fp2, Ft_Kind_Kirby)->kb.x68;
+    Rogue_AbilityVars(fp2, Ft_Kind_Kirby)->kb.x68 = pick;
     return pick;
 }
 
@@ -108,12 +109,12 @@ void fn_800F9260(HSD_GObj* gobj)
     s32 pick;
     HSD_JObj* joint;
 
-    if (fp->u.kb.hat.kind != Ft_Kind_Kirby) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind != Ft_Kind_Kirby) {
         if (ftCheckThrowB0(fp)) {
             lb_8000B1CC(
                 fp->parts[ftParts_GetBoneIndex(fp, FtPart_LHandN)].joint, NULL,
                 &sp44);
-            if (fp->u.kb.hat.kind == Ft_Kind_Mario) {
+            if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind == Ft_Kind_Mario) {
                 it_8029B6F8((Item_GObj*) gobj, &sp44, It_Kind_Kirby_MarioFire,
                             fp->facing_dir);
                 bone = fn_800F9260_GetLHandBone(fp);
@@ -184,7 +185,7 @@ void ftKb_SpecialNLg_800F951C(Fighter_GObj* gobj)
     motion_id = 0x190;
     anim_frame = fp->cur_anim_frame;
 
-    if (fp2->u.kb.hat.kind != 0) {
+    if (Rogue_AbilityVars(fp2, Ft_Kind_Kirby)->kb.hat.kind != 0) {
         motion_id = 0x201;
     }
 
@@ -206,7 +207,7 @@ void ftKb_SpecialNLg_800F9598(Fighter_GObj* gobj)
     motion_id = 0x18F;
     anim_frame = fp->cur_anim_frame;
 
-    if (fp2->u.kb.hat.kind != 0) {
+    if (Rogue_AbilityVars(fp2, Ft_Kind_Kirby)->kb.hat.kind != 0) {
         motion_id = 0x200;
     }
 

@@ -1,4 +1,5 @@
 #include "ftCo_SpecialAir.h"
+#include <melee/rogue/rogue_ability.h>
 
 #include <Runtime/platform.h>
 
@@ -16,7 +17,8 @@ bool ftCo_SpecialAir_CheckInput(Fighter_GObj* gobj)
             if (ftData_SpecialAirHi[fp->kind] == NULL) {
                 return false;
             }
-            ftData_SpecialAirHi[fp->kind](gobj);
+            if (!Rogue_TrySpecial(gobj, ROGUE_ABILITY_UP, true))
+                ftData_SpecialAirHi[fp->kind](gobj);
             fp->x2227_b5 = true;
             return true;
         }
@@ -24,7 +26,8 @@ bool ftCo_SpecialAir_CheckInput(Fighter_GObj* gobj)
             if (ftData_SpecialAirLw[fp->kind] == NULL) {
                 return false;
             }
-            ftData_SpecialAirLw[fp->kind](gobj);
+            if (!Rogue_TrySpecial(gobj, ROGUE_ABILITY_DOWN, true))
+                ftData_SpecialAirLw[fp->kind](gobj);
             fp->x2227_b5 = true;
             return true;
         }
@@ -36,7 +39,8 @@ bool ftCo_SpecialAir_CheckInput(Fighter_GObj* gobj)
             {
                 ftCommon_UpdateFacing(fp);
             }
-            ftData_SpecialAirS[fp->kind](gobj);
+            if (!Rogue_TrySpecial(gobj, ROGUE_ABILITY_SIDE, true))
+                ftData_SpecialAirS[fp->kind](gobj);
             fp->x2227_b5 = true;
             return true;
         }
@@ -49,7 +53,8 @@ bool ftCo_SpecialAir_CheckInput(Fighter_GObj* gobj)
         {
             fp->facing_dir = -fp->facing_dir;
         }
-        ftData_SpecialAirN[fp->kind](gobj);
+        if (!Rogue_TrySpecial(gobj, ROGUE_ABILITY_NEUTRAL, true))
+            ftData_SpecialAirN[fp->kind](gobj);
         fp->x2227_b5 = true;
         return true;
     }

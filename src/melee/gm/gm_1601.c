@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue.h>
 #include "gm_1601.h"
 
 #include <Runtime/platform.h>
@@ -2355,6 +2356,7 @@ int gm_801647F8(u8 arg0)
 /// Is a specific character unlocked?
 bool gm_IsCKindUnlocked(u8 ckind)
 {
+    if (gm_GetCurrentGameMode() == GM_ROGUE && ckind < CKind_Playable_Count) return true;
     u16* unlocked_chars_bitmask = gmMainLib_GetUnlockedCharactersBitmaskPtr();
     u8 selkind = ckind_to_selkind_map[ckind];
     u8 unlock_bit = gm_SelKindToUnlockIndex(selkind);
@@ -3887,7 +3889,9 @@ void fn_80168A6C(void* arg0, void* arg1, s32 idx)
 
 f32 gm_80168B34(CharacterKind ckind, int arg1, int arg2)
 {
-    int base;
+    /* The first roster entries use their character index directly. The
+     * non-matching build must not rely on the original register contents. */
+    int base = ckind;
     if (ckind == CKind_GKoops) {
         return 58.0F;
     }

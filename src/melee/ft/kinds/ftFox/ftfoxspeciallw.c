@@ -1,4 +1,5 @@
 #include "ftfoxspeciallw.h"
+#include <melee/rogue/rogue_ability.h>
 
 #include <Runtime/platform.h>
 
@@ -37,7 +38,7 @@ void ftFx_SpecialLw_CreateLoopGFX(HSD_GObj* gobj)
     Fighter* fp = gobj->user_data;
 
     if (fp->x2219_b0 == false) {
-        efSync_Spawn(1160, gobj, fp->parts[FtPart_HipN].joint);
+        efSync_Spawn(1160, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_HipN)].joint);
         fp->x2219_b0 = true;
     }
 
@@ -51,7 +52,7 @@ void ftFx_SpecialLw_CreateStartGFX(HSD_GObj* gobj)
     Fighter* fp = gobj->user_data;
 
     if (fp->x2219_b0 == false) {
-        efSync_Spawn(1161, gobj, fp->parts[FtPart_HipN].joint);
+        efSync_Spawn(1161, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_HipN)].joint);
         fp->x2219_b0 = true;
     }
 
@@ -64,7 +65,7 @@ void ftFx_SpecialLw_CreateReflectGFX(HSD_GObj* gobj)
     Fighter* fp = gobj->user_data;
 
     if (fp->x2219_b0 == false) {
-        efSync_Spawn(1162, gobj, fp->parts[FtPart_HipN].joint);
+        efSync_Spawn(1162, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_HipN)].joint);
         fp->x2219_b0 = true;
         fp->x2219_b0 = true;
     }

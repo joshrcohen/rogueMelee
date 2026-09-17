@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftfoxspecials.h"
 
 #include <melee/ft/forward.h>
@@ -32,7 +33,7 @@ void ftFx_SpecialS_CreateGFX(HSD_GObj* gobj)
     Fighter* fp = GET_FIGHTER(gobj);
 
     if (fp->x2219_b0 == false) {
-        efSync_Spawn(0x48D, gobj, fp->parts[FtPart_TopN].joint,
+        efSync_Spawn(0x48D, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_TopN)].joint,
                      &fp->facing_dir);
         fp->x2219_b0 = true;
     }
@@ -251,7 +252,7 @@ static inline void ftFox_SpecialS_CreateGhostItem(HSD_GObj* gobj)
 
     if (fp->cmd_vars[2] == 1) {
         fp->cmd_vars[2] = 0;
-        if (fp->kind == Ft_Kind_Fox) {
+        if (Rogue_AbilitySourceKind(fp) == Ft_Kind_Fox) {
             ghostGObj = it_8029CEB4(gobj, &fp->cur_pos, It_Kind_Fox_Illusion,
                                     fp->facing_dir);
         } else {

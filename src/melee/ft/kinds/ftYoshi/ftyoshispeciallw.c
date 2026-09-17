@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftyoshispeciallw.h"
 
 #include <melee/ft/forward.h>
@@ -31,7 +32,7 @@ void fn_8012E644(Fighter_GObj* gobj)
     Vec3 transn_pos, star_pos;
     PAD_STACK(4);
 
-    lb_8000B1CC(fp->parts[FtPart_TransN].joint, NULL, &transn_pos);
+    lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, FtPart_TransN)].joint, NULL, &transn_pos);
     star_pos.x = (-1.0f * da->speciallw_star_offset.x) + transn_pos.x;
     star_pos.y = transn_pos.y + da->speciallw_star_offset.y;
     star_pos.z = transn_pos.z;

@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftyoshispecials.h"
 
 #include <melee/ft/forward.h>
@@ -113,7 +114,7 @@ static inline void fn_8012EC7C_inline(Fighter_GObj* gobj)
     if ((motion != 0x16B) && ((motion >= 0x16B) || (motion != 0x167))) {
         ftParts_80074B0C(gobj, 0, 0);
     }
-    HSD_JObjSetScale(jobj, &fp->u.ys.x222C);
+    HSD_JObjSetScale(jobj, &Rogue_AbilityVars(fp, Ft_Kind_Yoshi)->ys.x222C);
     ftPartSetRotY(fp, 0, M_PI_2 * fp->facing_dir);
     ftPartSetRotZ(fp, 2, 0.0F);
     if (fp->mv.ys.specials.x24 != 0.0F) {
@@ -129,15 +130,15 @@ static inline void ftYs_SpecialS_UpdateScale(Fighter_GObj* gobj, Vec3* scale)
     Fighter* fp = GET_FIGHTER(gobj);
     HSD_JObj* jobj = GET_JOBJ(gobj);
     if (fp->mv.ys.specials.x8 >= 0 && fp->mv.ys.specials.x8 < 4) {
-        scale->x = fp->u.ys.x222C.x;
+        scale->x = Rogue_AbilityVars(fp, Ft_Kind_Yoshi)->ys.x222C.x;
         scale->y =
-            fp->u.ys.x222C.y * ftYs_Unk3_803CED84[fp->mv.ys.specials.x8];
+            Rogue_AbilityVars(fp, Ft_Kind_Yoshi)->ys.x222C.y * ftYs_Unk3_803CED84[fp->mv.ys.specials.x8];
         scale->z =
-            fp->u.ys.x222C.z * ftYs_Unk3_803CED94[fp->mv.ys.specials.x8];
+            Rogue_AbilityVars(fp, Ft_Kind_Yoshi)->ys.x222C.z * ftYs_Unk3_803CED94[fp->mv.ys.specials.x8];
         HSD_JObjSetScale(jobj, scale);
         fp->mv.ys.specials.x8++;
     } else {
-        HSD_JObjSetScale(jobj, &fp->u.ys.x222C);
+        HSD_JObjSetScale(jobj, &Rogue_AbilityVars(fp, Ft_Kind_Yoshi)->ys.x222C);
     }
 }
 
@@ -150,13 +151,13 @@ static inline void ftYs_SpecialS_UpdateScale2(Fighter_GObj* gobj)
     fp = gobj->user_data;
     jobj = gobj->hsd_obj;
     if (fp->mv.ys.specials.x8 >= 0 && fp->mv.ys.specials.x8 < 4) {
-        scale.x = fp->u.ys.x222C.x;
-        scale.y = fp->u.ys.x222C.y * ftYs_Unk3_803CED84[fp->mv.ys.specials.x8];
-        scale.z = fp->u.ys.x222C.z * ftYs_Unk3_803CED94[fp->mv.ys.specials.x8];
+        scale.x = Rogue_AbilityVars(fp, Ft_Kind_Yoshi)->ys.x222C.x;
+        scale.y = Rogue_AbilityVars(fp, Ft_Kind_Yoshi)->ys.x222C.y * ftYs_Unk3_803CED84[fp->mv.ys.specials.x8];
+        scale.z = Rogue_AbilityVars(fp, Ft_Kind_Yoshi)->ys.x222C.z * ftYs_Unk3_803CED94[fp->mv.ys.specials.x8];
         HSD_JObjSetScale(jobj, &scale);
         fp->mv.ys.specials.x8++;
     } else {
-        HSD_JObjSetScale(jobj, &fp->u.ys.x222C);
+        HSD_JObjSetScale(jobj, &Rogue_AbilityVars(fp, Ft_Kind_Yoshi)->ys.x222C);
     }
 }
 
@@ -192,7 +193,7 @@ void fn_8012EC7C(Fighter_GObj* gobj)
     if ((motion != 0x16B) && ((motion >= 0x16B) || (motion != 0x167))) {
         ftParts_80074B0C(gobj, 0, 0);
     }
-    HSD_JObjSetScale(jobj, &fp->u.ys.x222C);
+    HSD_JObjSetScale(jobj, &Rogue_AbilityVars(fp, Ft_Kind_Yoshi)->ys.x222C);
     ftPartSetRotY(fp, 0, M_PI_2 * fp->facing_dir);
     ftPartSetRotZ(fp, 2, 0.0F);
     if (fp->mv.ys.specials.x24 != 0.0F) {
@@ -209,7 +210,7 @@ void fn_8012EDE8(Fighter_GObj* gobj)
     FtMotionId motion = fp->motion_id;
     Vec3 v;
     if ((motion != 0x16B) && ((motion >= 0x16B) || (motion != 0x167))) {
-        lb_8000B1CC(fp->parts[4].joint, NULL, &v);
+        lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, 4)].joint, NULL, &v);
         (void) (fp != NULL);
         efSync_Spawn(0x4CF, gobj, &v, &fp->co_attrs.xBC);
         ft_PlaySFX(fp, 0x44618, 0x7FU, 0x40U);
@@ -314,7 +315,7 @@ void ftYs_SpecialS_8012F35C(Fighter_GObj* gobj)
     ftYoshiAttributes* attributes = fp->dat_attrs;
     PAD_STACK(16);
 
-    HSD_JObjGetScale(jobj, &fp->u.ys.x222C);
+    HSD_JObjGetScale(jobj, &Rogue_AbilityVars(fp, Ft_Kind_Yoshi)->ys.x222C);
 
     if (fp->ground_or_air == GA_Ground) {
         var_f0 = attributes->x54;
@@ -581,7 +582,7 @@ void ftYs_SpecialAirSEnd_Anim(Fighter_GObj* gobj)
 
     if (fp->cmd_vars[1] == 1) {
         fp->cmd_vars[1]++;
-        lb_8000B1CC(fp->parts[4].joint, NULL, &sp2C);
+        lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, 4)].joint, NULL, &sp2C);
         (void) (fp != NULL);
         efSync_Spawn(0x4CF, gobj, &sp2C, &fp->co_attrs.xBC);
     }
@@ -717,7 +718,7 @@ void ftYs_SpecialAirSLanding_Anim(Fighter_GObj* gobj)
 
     if (fp->cmd_vars[1] == 1) {
         fp->cmd_vars[1]++;
-        lb_8000B1CC(fp->parts[4].joint, NULL, &sp30);
+        lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, 4)].joint, NULL, &sp30);
         (void) (fp != NULL);
         efSync_Spawn(0x4CF, gobj, &sp30, &fp->co_attrs.xBC);
     }

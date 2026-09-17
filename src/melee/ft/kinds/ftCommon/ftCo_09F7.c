@@ -1,4 +1,5 @@
 #include "ftCo_09F7.h"
+#include <melee/rogue/rogue_ability.h>
 
 #include <math.h>
 #include <placeholder.h>
@@ -72,7 +73,7 @@ block_2:
         goto block_5;
     }
 
-    part = fp->ft_data->x54[fp->x2220_b0];
+    part = Rogue_AbilityMapBone(fp, Rogue_AbilityData(fp)->x54[fp->x2220_b0]);
 
     fp->x2220_b0++;
     if (fp->x2220_b0 < 5) {
@@ -84,10 +85,11 @@ block_5:
     if (part != 0x8E) {
         goto block_7;
     }
-    part = fp->ft_data->x8->x10;
+    part = Rogue_AbilityMapBone(fp, Rogue_AbilityData(fp)->x8->x10);
     goto block_9;
 block_7:
     if (arg3 == 0) {
+        part = Rogue_AbilityMapBone(fp, part);
         goto block_9;
     }
     part = ftParts_GetBoneIndex(fp, part);
@@ -143,7 +145,7 @@ block_12:
     case 0x428:
     case 0x429:
     case 0x42A: {
-        f32* attrs = &fp->ft_data->x0->x168;
+        f32* attrs = &Rogue_AbilityData(fp)->x0->x168;
         HSD_JObj* joint = fp->parts[part].joint;
         efAsync_Spawn(gobj, &GET_FIGHTER(gobj)->x60C, 3, gfx_id, joint, attrs);
         return;

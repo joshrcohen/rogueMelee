@@ -1,5 +1,6 @@
 #ifndef MELEE_FT_INLINES_H
 #define MELEE_FT_INLINES_H
+#include <melee/rogue/rogue_hooks.h>
 
 #include <Runtime/platform.h>
 
@@ -135,7 +136,8 @@ static inline void getAccelAndTarget(Fighter* fp, float* accel,
     *accel = fp->input.lstick[0].x * fp->co_attrs.dash_accel_mul;
     *accel += fp->input.lstick[0].x > 0 ? +co_attrs->dash_accel_base
                                         : -co_attrs->dash_accel_base;
-    *target_vel = fp->input.lstick[0].x * co_attrs->dash_max_velocity;
+    *target_vel = Rogue_ModifyRunSpeed(fp, fp->input.lstick[0].x * co_attrs->dash_max_velocity);
+    *accel = Rogue_ModifyRunSpeed(fp, *accel);
 }
 
 /// used for all fighters except Kirby and Purin

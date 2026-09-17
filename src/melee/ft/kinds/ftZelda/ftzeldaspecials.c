@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftzeldaspecials.h"
 
 #include <Runtime/platform.h>
@@ -46,7 +47,7 @@ void ftZd_SpecialS_Enter(HSD_GObj* gobj)
     fighter2->mv.zd.specials.x0 = attributes->x10;
     fighter2->mv.zd.specials.x4 = attributes->x14;
     fighter2->mv.zd.specials.x8 = attributes->x18;
-    fighter2->u.zd.x222C = 0;
+    Rogue_AbilityVars(fighter2, Ft_Kind_Zelda)->zd.x222C = 0;
     fighter2->mv.zd.specials.xC = attributes->x1C;
     fighter2->death2_cb = 0;
     fighter2->take_dmg_cb = 0;
@@ -74,7 +75,7 @@ void ftZd_SpecialAirS_Enter(HSD_GObj* gobj)
     fighter2->mv.zd.specials.x0 = attributes->x10;
     fighter2->mv.zd.specials.x4 = attributes->x14;
     fighter2->mv.zd.specials.x8 = attributes->x18;
-    fighter2->u.zd.x222C = 0;
+    Rogue_AbilityVars(fighter2, Ft_Kind_Zelda)->zd.x222C = 0;
     fighter2->mv.zd.specials.xC = attributes->x1C;
     fighter2->death2_cb = 0;
     fighter2->take_dmg_cb = 0;
@@ -97,9 +98,9 @@ void ftZd_SpecialSStart_Anim(HSD_GObj* gobj)
     fp = GET_FIGHTER(gobj);
     attributes = fp->dat_attrs;
 
-    if (fp->cmd_vars[0] == 1U && fp->u.zd.x222C == 0U) {
+    if (fp->cmd_vars[0] == 1U && Rogue_AbilityVars(fp, Ft_Kind_Zelda)->zd.x222C == 0U) {
         fp->cmd_vars[0] = 0U;
-        lb_8000B1CC(fp->parts[89].joint, NULL, &sp24);
+        lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, 89)].joint, NULL, &sp24);
 
         sp24.z = 0;
         temp_f2 = attributes->x20;
@@ -107,13 +108,13 @@ void ftZd_SpecialSStart_Anim(HSD_GObj* gobj)
         sp24.y += attributes->x24;
 
         temp_r3 = it_802C3BAC(gobj, &sp24, fp->facing_dir, temp_f2);
-        fp->u.zd.x222C = temp_r3;
+        Rogue_AbilityVars(fp, Ft_Kind_Zelda)->zd.x222C = temp_r3;
 
         if (temp_r3 != 0) {
             fp->death2_cb = &ftZd_Init_801393AC;
             fp->take_dmg_cb = &ftZd_Init_801393AC;
         }
-        efSync_Spawn(1275, gobj, fp->parts[76].joint);
+        efSync_Spawn(1275, gobj, fp->parts[Rogue_AbilityMapBone(fp, 76)].joint);
     }
 
     if (!ftAnim_IsFramesRemaining(gobj)) {
@@ -140,9 +141,9 @@ void ftZd_SpecialSLoop_Anim(HSD_GObj* gobj)
     fp = GET_FIGHTER(gobj);
     attributes = fp->dat_attrs;
 
-    if ((fp->cmd_vars[0] == 1U) && (fp->u.zd.x222C == 0U)) {
+    if ((fp->cmd_vars[0] == 1U) && (Rogue_AbilityVars(fp, Ft_Kind_Zelda)->zd.x222C == 0U)) {
         fp->cmd_vars[0] = 0U;
-        lb_8000B1CC(fp->parts[89].joint, NULL, &sp20);
+        lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, 89)].joint, NULL, &sp20);
 
         sp20.z = 0;
         temp_f2 = attributes->x20;
@@ -150,13 +151,13 @@ void ftZd_SpecialSLoop_Anim(HSD_GObj* gobj)
         sp20.y += attributes->x24;
 
         temp_r3_u32 = it_802C3BAC(gobj, &sp20, fp->facing_dir, temp_f2);
-        fp->u.zd.x222C = temp_r3_u32;
+        Rogue_AbilityVars(fp, Ft_Kind_Zelda)->zd.x222C = temp_r3_u32;
 
         if (temp_r3_u32 != 0) {
             fp->death2_cb = &ftZd_Init_801393AC;
             fp->take_dmg_cb = &ftZd_Init_801393AC;
         }
-        efSync_Spawn(1275, gobj, fp->parts[76].joint);
+        efSync_Spawn(1275, gobj, fp->parts[Rogue_AbilityMapBone(fp, 76)].joint);
     }
 
     if (fp->mv.zd.specials.x0 != 0) {
@@ -167,7 +168,7 @@ void ftZd_SpecialSLoop_Anim(HSD_GObj* gobj)
         fp->mv.zd.specials.x4 -= 1;
     }
 
-    temp_r3_u32 = fp->u.zd.x222C;
+    temp_r3_u32 = Rogue_AbilityVars(fp, Ft_Kind_Zelda)->zd.x222C;
     if (temp_r3_u32 == NULL) {
         if (fp->mv.zd.specials.x0 <= 0 && fp->mv.zd.specials.x4 <= 0) {
             temp_f1 = 0;
@@ -175,10 +176,10 @@ void ftZd_SpecialSLoop_Anim(HSD_GObj* gobj)
                                       NULL);
         }
     } else {
-        temp_r3 = itZeldaDinFire_GetOwner(fp->u.zd.x222C);
+        temp_r3 = itZeldaDinFire_GetOwner(Rogue_AbilityVars(fp, Ft_Kind_Zelda)->zd.x222C);
 
         if (temp_r3 != gobj) {
-            fp->u.zd.x222C = NULL;
+            Rogue_AbilityVars(fp, Ft_Kind_Zelda)->zd.x222C = NULL;
         }
     }
 }
@@ -201,7 +202,7 @@ void ftZd_SpecialSEnd_Anim(HSD_GObj* gobj)
         fp->mv.zd.specials.x0 = attributes->x10;
         fp->mv.zd.specials.x4 = attributes->x14;
         fp->mv.zd.specials.x8 = attributes->x18;
-        fp->u.zd.x222C = 0;
+        Rogue_AbilityVars(fp, Ft_Kind_Zelda)->zd.x222C = 0;
         fp->mv.zd.specials.xC = attributes->x1C;
         fp->death2_cb = 0;
         fp->take_dmg_cb = 0;
@@ -225,9 +226,9 @@ void ftZd_SpecialAirSStart_Anim(HSD_GObj* gobj)
 
     fp = GET_FIGHTER(gobj);
     attributes = fp->dat_attrs;
-    if (fp->cmd_vars[0] == 1U && fp->u.zd.x222C == 0U) {
+    if (fp->cmd_vars[0] == 1U && Rogue_AbilityVars(fp, Ft_Kind_Zelda)->zd.x222C == 0U) {
         fp->cmd_vars[0] = 0U;
-        lb_8000B1CC(fp->parts[89].joint, NULL, &sp24);
+        lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, 89)].joint, NULL, &sp24);
 
         sp24.z = 0;
         temp_f2 = attributes->x20;
@@ -235,13 +236,13 @@ void ftZd_SpecialAirSStart_Anim(HSD_GObj* gobj)
         sp24.y += attributes->x24;
 
         temp_r3 = it_802C3BAC(gobj, &sp24, fp->facing_dir, temp_f2);
-        fp->u.zd.x222C = temp_r3;
+        Rogue_AbilityVars(fp, Ft_Kind_Zelda)->zd.x222C = temp_r3;
 
         if (temp_r3 != 0) {
             fp->death2_cb = &ftZd_Init_801393AC;
             fp->take_dmg_cb = &ftZd_Init_801393AC;
         }
-        efSync_Spawn(1275, gobj, fp->parts[76].joint);
+        efSync_Spawn(1275, gobj, fp->parts[Rogue_AbilityMapBone(fp, 76)].joint);
     }
 
     if (!ftAnim_IsFramesRemaining(gobj)) {
@@ -267,9 +268,9 @@ void ftZd_SpecialAirSLoop_Anim(HSD_GObj* gobj)
     fp = GET_FIGHTER(gobj);
     attributes = fp->dat_attrs;
 
-    if (fp->cmd_vars[0] == 1U && fp->u.zd.x222C == 0U) {
+    if (fp->cmd_vars[0] == 1U && Rogue_AbilityVars(fp, Ft_Kind_Zelda)->zd.x222C == 0U) {
         fp->cmd_vars[0] = 0U;
-        lb_8000B1CC(fp->parts[89].joint, NULL, &sp20);
+        lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, 89)].joint, NULL, &sp20);
 
         sp20.z = 0;
         temp_f2 = attributes->x20;
@@ -277,13 +278,13 @@ void ftZd_SpecialAirSLoop_Anim(HSD_GObj* gobj)
         sp20.y += attributes->x24;
 
         temp_r3 = it_802C3BAC(gobj, &sp20, fp->facing_dir, temp_f2);
-        fp->u.zd.x222C = temp_r3;
+        Rogue_AbilityVars(fp, Ft_Kind_Zelda)->zd.x222C = temp_r3;
 
         if (temp_r3 != NULL) {
             fp->death2_cb = &ftZd_Init_801393AC;
             fp->take_dmg_cb = &ftZd_Init_801393AC;
         }
-        efSync_Spawn(1275, gobj, fp->parts[76].joint);
+        efSync_Spawn(1275, gobj, fp->parts[Rogue_AbilityMapBone(fp, 76)].joint);
     }
 
     if (fp->mv.zd.specials.x0 != 0) {
@@ -294,17 +295,17 @@ void ftZd_SpecialAirSLoop_Anim(HSD_GObj* gobj)
         fp->mv.zd.specials.x4 -= 1;
     }
 
-    if (fp->u.zd.x222C == 0U) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_Zelda)->zd.x222C == 0U) {
         if (fp->mv.zd.specials.x0 <= 0 && fp->mv.zd.specials.x4 <= 0) {
             temp_f1 = 0;
             Fighter_ChangeMotionState(gobj, 348, 0, temp_f1, 1.0, temp_f1,
                                       NULL);
         }
     } else {
-        temp_r3 = itZeldaDinFire_GetOwner(fp->u.zd.x222C);
+        temp_r3 = itZeldaDinFire_GetOwner(Rogue_AbilityVars(fp, Ft_Kind_Zelda)->zd.x222C);
 
         if (temp_r3 != gobj) {
-            fp->u.zd.x222C = NULL;
+            Rogue_AbilityVars(fp, Ft_Kind_Zelda)->zd.x222C = NULL;
         }
     }
 }
@@ -328,7 +329,7 @@ void ftZd_SpecialAirSEnd_Anim(HSD_GObj* gobj)
             fp->mv.zd.specials.x0 = sa->x10;
             fp->mv.zd.specials.x4 = sa->x14;
             fp->mv.zd.specials.x8 = sa->x18;
-            fp->u.zd.x222C = 0;
+            Rogue_AbilityVars(fp, Ft_Kind_Zelda)->zd.x222C = 0;
             fp->mv.zd.specials.xC = sa->x1C;
             fp->death2_cb = 0;
             fp->take_dmg_cb = 0;

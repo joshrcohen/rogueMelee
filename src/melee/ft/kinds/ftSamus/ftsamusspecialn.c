@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftsamusspecialn.h"
 
 #include <Runtime/platform.h>
@@ -36,7 +37,7 @@ static void ftSamus_801293BC_inner(HSD_GObj* gobj)
 
     u8 _[8];
 
-    s32 x2230 = fp->u.ss.x2230;
+    s32 x2230 = Rogue_AbilityVars(fp, Ft_Kind_Samus)->ss.x2230;
     fp->self_vel.x = (fp->facing_dir * (samus_attr->x1C * x2230));
 }
 
@@ -46,8 +47,8 @@ void ftSs_SpecialN_801291F0(HSD_GObj* gobj)
 
     if (gobj) {
         Fighter* fp = GET_FIGHTER(gobj);
-        if (fp->u.ss.x222C) {
-            fp->u.ss.x222C = 0;
+        if (Rogue_AbilityVars(fp, Ft_Kind_Samus)->ss.x222C) {
+            Rogue_AbilityVars(fp, Ft_Kind_Samus)->ss.x222C = 0;
         }
         ftSamus_destroyAllEF(gobj);
     }
@@ -60,7 +61,7 @@ void ftSs_SpecialN_80129258(HSD_GObj* gobj)
     if (gobj) {
         Fighter* fp = GET_FIGHTER(gobj);
         ftSamus_UnkAndDestroyAllEF(gobj);
-        fp->u.ss.x2230 = 0;
+        Rogue_AbilityVars(fp, Ft_Kind_Samus)->ss.x2230 = 0;
     }
 }
 
@@ -75,20 +76,20 @@ static bool ftSs_SpecialN_801292E4(HSD_GObj* gobj)
 
     Fighter* fp = getFighter(gobj);
 
-    if ((fp->cmd_vars[0] == 1U) && (!fp->u.ss.x222C)) {
+    if ((fp->cmd_vars[0] == 1U) && (!Rogue_AbilityVars(fp, Ft_Kind_Samus)->ss.x222C)) {
         fp->cmd_vars[0] = 0U;
         vec2.z = 4;
         vec2.y = 0;
         vec2.x = 0;
-        lb_8000B1CC(fp->parts[FtPart_RHandNb].joint, &vec2, &vec1);
+        lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, FtPart_RHandNb)].joint, &vec2, &vec1);
         vec1.z = 0;
         result = it_802B55C8(gobj, &vec1, FtPart_RHandNb, It_Kind_Samus_Charge,
                              fp->facing_dir);
-        fp->u.ss.x222C = result;
+        Rogue_AbilityVars(fp, Ft_Kind_Samus)->ss.x222C = result;
         if (result != NULL) {
             ftSamus_updateDamageDeathCBs(gobj);
         } else {
-            fp->u.ss.x222C = 0U;
+            Rogue_AbilityVars(fp, Ft_Kind_Samus)->ss.x222C = 0U;
             return true;
         }
     }
@@ -106,12 +107,12 @@ static void ftSs_SpecialN_801293BC(HSD_GObj* gobj)
     fp = getFighterPlus(gobj);
     samus_attr = fp->dat_attrs;
 
-    if ((fp->cmd_vars[1] == 1) && (fp->u.ss.x222C)) {
+    if ((fp->cmd_vars[1] == 1) && (Rogue_AbilityVars(fp, Ft_Kind_Samus)->ss.x222C)) {
         Vec3 vec1;
         u32 x2230;
 
         fp->cmd_vars[1] = 2;
-        lb_8000B1CC(fp->parts[FtPart_ThrowN].joint, NULL, &vec1);
+        lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, FtPart_ThrowN)].joint, NULL, &vec1);
         vec1.z = 0;
         held_item = fp->item_gobj;
         if (fp->facing_dir == +1) {
@@ -119,13 +120,13 @@ static void ftSs_SpecialN_801293BC(HSD_GObj* gobj)
         } else {
             var_f0 = M_PI;
         }
-        x2230 = fp->u.ss.x2230;
-        it_802B56E4(fp->u.ss.x222C, &vec1, var_f0, x2230, samus_attr->x18);
+        x2230 = Rogue_AbilityVars(fp, Ft_Kind_Samus)->ss.x2230;
+        it_802B56E4(Rogue_AbilityVars(fp, Ft_Kind_Samus)->ss.x222C, &vec1, var_f0, x2230, samus_attr->x18);
         if ((fp->motion_id == 348) || (fp->ground_or_air == GA_Air)) {
             u8 unused1[28];
             ftSamus_801293BC_inner(gobj);
         }
-        fp->u.ss.x2230 = 0U;
+        Rogue_AbilityVars(fp, Ft_Kind_Samus)->ss.x2230 = 0U;
 
         ftSs_SpecialN_801291F0(gobj);
         efSync_Spawn(1158, gobj, &vec1, &fp->facing_dir);
@@ -176,7 +177,7 @@ void ftSs_SpecialNStart_Anim(HSD_GObj* gobj)
 
     ftSs_SpecialN_801292E4(gobj);
     if (!ftAnim_IsFramesRemaining(gobj)) {
-        if ((fp->mv.ss.unk3.x0 == 1) || (fp->u.ss.x2230 == samus_attr->x18)) {
+        if ((fp->mv.ss.unk3.x0 == 1) || (Rogue_AbilityVars(fp, Ft_Kind_Samus)->ss.x2230 == samus_attr->x18)) {
             Fighter_ChangeMotionState(gobj, 346, 0, 0, 1, 0, NULL);
         } else {
             Fighter_ChangeMotionState(gobj, 344, 0, 0, 1, 0, NULL);
@@ -207,8 +208,8 @@ void ftSs_SpecialNHold_Anim(HSD_GObj* gobj)
         float var_f1;
         s32 index;
         fighter2->cmd_vars[2] = 0;
-        if (fighter2->u.ss.x2230) {
-            var_f1 = fighter2->u.ss.x2230 / samus_attr->x18;
+        if (Rogue_AbilityVars(fighter2, Ft_Kind_Samus)->ss.x2230) {
+            var_f1 = Rogue_AbilityVars(fighter2, Ft_Kind_Samus)->ss.x2230 / samus_attr->x18;
         } else {
             var_f1 = 0.f;
         }
@@ -219,10 +220,10 @@ void ftSs_SpecialNHold_Anim(HSD_GObj* gobj)
     fp->mv.ss.unk3.x4 += 1;
     if (fp->mv.ss.unk3.x4 > samus_attr->x20) {
         fp->mv.ss.unk3.x4 = 0;
-        fp->u.ss.x2230 += 1;
-        if (fp->u.ss.x2230 >= samus_attr->x18) {
+        Rogue_AbilityVars(fp, Ft_Kind_Samus)->ss.x2230 += 1;
+        if (Rogue_AbilityVars(fp, Ft_Kind_Samus)->ss.x2230 >= samus_attr->x18) {
             ftCo_800BFFD0(fp, 53, 0);
-            fp->u.ss.x2230 = samus_attr->x18;
+            Rogue_AbilityVars(fp, Ft_Kind_Samus)->ss.x2230 = samus_attr->x18;
             Fighter_ChangeMotionState(gobj, 345, 0, 0, 1, 0, 0);
             ftSamus_UnkAndDestroyAllEF(gobj);
             ftSamus_updateDamageDeathCBs(gobj);
@@ -407,7 +408,7 @@ void ftSs_SpecialAirN_Coll(HSD_GObj* gobj)
 int ftSs_SpecialS_8012A068(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    return fp->u.ss.x2238;
+    return Rogue_AbilityVars(fp, Ft_Kind_Samus)->ss.x2238;
 }
 
 static void ftSs_SpecialS_8012A168(HSD_GObj* gobj, Vec3* spawnlocation);
@@ -419,8 +420,8 @@ void ftSs_SpecialS_8012A074(Fighter_GObj* gobj)
 
     if (ftCheckThrowB0(fp)) {
         Vec3 position;
-        fp->u.ss.x2238++;
-        lb_8000B1CC(fp->parts[FtPart_56].joint, NULL, &position);
+        Rogue_AbilityVars(fp, Ft_Kind_Samus)->ss.x2238++;
+        lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, FtPart_56)].joint, NULL, &position);
         position.x += samus_attr->x34 * fp->facing_dir;
 
         if (fp->motion_id == ftSs_MS_SpecialS ||

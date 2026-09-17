@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftsamusspecialhi.h"
 
 #include <Runtime/platform.h>
@@ -37,8 +38,8 @@ void ftSs_SpecialHi_Enter(HSD_GObj* gobj)
     Fighter_ClearCmdVars(fp);
     fp->mv.ss.unk5.x0 = 0;
     ftAnim_8006EBA4(gobj);
-    efSync_Spawn(1154, gobj, fp->parts[FtPart_YRotN].joint);
-    fp->u.ss.x2244 = 1;
+    efSync_Spawn(1154, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_YRotN)].joint);
+    Rogue_AbilityVars(fp, Ft_Kind_Samus)->ss.x2244 = 1;
 }
 
 void ftSs_SpecialAirHi_Enter(HSD_GObj* gobj)
@@ -55,15 +56,15 @@ void ftSs_SpecialAirHi_Enter(HSD_GObj* gobj)
     fp->self_vel.y = samus_attr->x44;
     ftCommon_ClampSelfVelX(fp, samus_attr->x40);
     ftAnim_8006EBA4(gobj);
-    efSync_Spawn(1154, gobj, fp->parts[FtPart_YRotN].joint);
-    fp->u.ss.x2244 = 1;
+    efSync_Spawn(1154, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_YRotN)].joint);
+    Rogue_AbilityVars(fp, Ft_Kind_Samus)->ss.x2244 = 1;
 }
 
 static void ftSamus_DestroyAllUnsetx2444(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
     efLib_DestroyAll(gobj);
-    fp->u.ss.x2244 = 0;
+    Rogue_AbilityVars(fp, Ft_Kind_Samus)->ss.x2244 = 0;
 }
 
 void ftSs_SpecialHi_Anim(HSD_GObj* gobj)

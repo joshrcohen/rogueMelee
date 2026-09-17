@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftkirbyspecialpikachu.h"
 
 #include <melee/ft/forward.h>
@@ -25,7 +26,7 @@ static void doEnter(Fighter_GObj* gobj, ftKirby_MotionState pk_msid,
 {
     Fighter* fp = GET_FIGHTER(gobj);
     ftKirby_MotionState msid = pk_msid;
-    switch (fp->u.kb.hat.kind) {
+    switch (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind) {
     case Ft_Kind_Pikachu:
         break;
     case Ft_Kind_Pichu:
@@ -65,7 +66,7 @@ void ftKb_PkSpecialN_Anim(Fighter_GObj* gobj)
 
         if (!fp->cmd_vars[ftPk_SpecialN_Cmd1]) {
             fp->cmd_vars[ftPk_SpecialN_Cmd1] = true;
-            switch (fp->u.kb.hat.kind) {
+            switch (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind) {
             case Ft_Kind_Pikachu:
                 it_pos.x = (fp->x34_scale.y * (da->specialn_pk_spawn_offset.x *
                                                fp->facing_dir)) +
@@ -111,7 +112,7 @@ void ftKb_PkSpecialAirN_Anim(Fighter_GObj* gobj)
 
         if (!fp->cmd_vars[ftPk_SpecialN_Cmd1]) {
             fp->cmd_vars[ftPk_SpecialN_Cmd1] = true;
-            switch (fp->u.kb.hat.kind) {
+            switch (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind) {
             case Ft_Kind_Pikachu:
                 it_pos.x =
                     (fp->x34_scale.y *
@@ -144,7 +145,7 @@ void ftKb_PkSpecialAirN_Anim(Fighter_GObj* gobj)
         }
     }
 
-    switch (fp->u.kb.hat.kind) {
+    switch (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.kind) {
     case Ft_Kind_Pikachu:
         landing_lag = da->specialairn_pk_landing_lag;
         break;

@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftsamusspeciallw1.h"
 
 #include <Runtime/platform.h>
@@ -32,7 +33,7 @@ void ftSs_SpecialLw_8012ADF0(Fighter_GObj* gobj)
     if (ftCheckThrowB0(fp)) {
         Vec3 vec;
         PAD_STACK(4);
-        lb_8000B1CC(fp->parts[FtPart_TopN].joint, NULL, &vec);
+        lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, FtPart_TopN)].joint, NULL, &vec);
         vec.x += samus_attr->x74_vec.x * fp->facing_dir;
         vec.y += samus_attr->x74_vec.y;
         vec.z += samus_attr->x74_vec.z;

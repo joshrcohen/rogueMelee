@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftsamusspeciallw0.h"
 
 #include <melee/ft/forward.h>
@@ -269,11 +270,11 @@ int ftSs_SpecialLw_80129100(HSD_GObj* gobj, int* arg1, int* arg2)
 
         u8 _[4];
 
-        if (!fp->u.ss.x222C) {
+        if (!Rogue_AbilityVars(fp, Ft_Kind_Samus)->ss.x222C) {
             return -1;
         }
 
-        *arg1 = fp->u.ss.x2230;
+        *arg1 = Rogue_AbilityVars(fp, Ft_Kind_Samus)->ss.x2230;
         *arg2 = samus_attr->x18;
         return 0;
     }

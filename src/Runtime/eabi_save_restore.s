@@ -105,3 +105,7 @@ restore_fpr 29, -24
 restore_fpr 30, -16
 restore_fpr 31, -8
 blr
+
+.global __cvt_dbl_ull
+__cvt_dbl_ull:
+    b __cvt_dbl_usll

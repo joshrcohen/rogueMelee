@@ -1,4 +1,5 @@
 #include "ftCo_Attack100.h"
+#include <melee/rogue/rogue_ability.h>
 
 #include <Runtime/platform.h>
 
@@ -48,7 +49,8 @@ bool ftCo_800D6824(Fighter_GObj* gobj)
         return false;
     }
     if (fp->x689 == 0) {
-        ftData_SpecialN[fp->kind](gobj);
+        if (!Rogue_TrySpecial(gobj, ROGUE_ABILITY_NEUTRAL, false))
+            ftData_SpecialN[fp->kind](gobj);
         return true;
     }
     return false;
@@ -71,7 +73,8 @@ bool ftCo_800D68C0(Fighter_GObj* gobj)
         return false;
     }
     if (fp->x687 == 0) {
-        ftData_SpecialLw[fp->kind](gobj);
+        if (!Rogue_TrySpecial(gobj, ROGUE_ABILITY_DOWN, false))
+            ftData_SpecialLw[fp->kind](gobj);
         return true;
     }
     return false;
@@ -94,7 +97,8 @@ bool ftCo_Attack100_CheckInput(Fighter_GObj* gobj)
         return false;
     }
     if (fp->x686 == 0) {
-        ftData_SpecialHi[fp->kind](gobj);
+        if (!Rogue_TrySpecial(gobj, ROGUE_ABILITY_UP, false))
+            ftData_SpecialHi[fp->kind](gobj);
         return true;
     }
     return false;
@@ -107,7 +111,8 @@ bool ftCo_800D69C4(Fighter_GObj* gobj)
         return false;
     }
     if (fp->x686 == 0 && fp->x68B >= p_ftCommonData->x1C) {
-        ftData_SpecialAirHi[fp->kind](gobj);
+        if (!Rogue_TrySpecial(gobj, ROGUE_ABILITY_UP, true))
+            ftData_SpecialAirHi[fp->kind](gobj);
         return true;
     }
     return false;

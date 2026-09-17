@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftkirbyspecialgamewatch.h"
 
 #include <melee/ft/forward.h>
@@ -69,7 +70,7 @@ void fn_8010CE5C(Fighter_GObj* gobj)
                                 fp = gobj->user_data;
                                 pSausage = sausageCount;
                                 for (i = 5, i -= 5; i < 5; i++) {
-                                    if (i != fp->u.kb.xD4 && i != fp->u.kb.xD8)
+                                    if (i != Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xD4 && i != Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xD8)
                                     {
                                         *pSausage++ = i;
                                         var_r28++;
@@ -79,9 +80,9 @@ void fn_8010CE5C(Fighter_GObj* gobj)
                                     int temp_r5 =
                                         sausageCount[HSD_Randi(var_r28)];
                                     int var_r6;
-                                    fp->u.kb.xD8 = fp->u.kb.xD4;
+                                    Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xD8 = Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xD4;
                                     var_r6 = temp_r5;
-                                    fp->u.kb.xD4 = temp_r5;
+                                    Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xD4 = temp_r5;
                                     it_802C837C(gobj, &vec0,
                                                 It_Kind_Kirby_GameWatchChef,
                                                 var_r6, fp2->facing_dir);
@@ -102,9 +103,9 @@ void fn_8010CFB0(Fighter_GObj* gobj)
     Vec3 pos;
     lb_8000B1CC(fp->parts[ftParts_GetBoneIndex(fp, FtPart_LThumbNb)].joint,
                 NULL, &pos);
-    fp->u.kb.xDC = it_802C74D8(
+    Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xDC = it_802C74D8(
         gobj, &pos, ftParts_GetBoneIndex(fp, FtPart_LThumbNb), fp->facing_dir);
-    if (fp->u.kb.xDC != NULL) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xDC != NULL) {
         fp->death2_cb = ftKb_Init_800EE74C;
         fp->take_dmg_cb = ftKb_Init_800EE7B8;
     }
@@ -117,14 +118,14 @@ void ftKb_SpecialNGw_8010D074(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
     ftKb_SpecialNGw_8010D130(gobj);
-    fp->u.kb.xDC = NULL;
+    Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xDC = NULL;
 }
 
 void ftKb_SpecialNGw_8010D0A8(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    if (fp->u.kb.xDC != NULL) {
-        it_802C760C(fp->u.kb.xDC);
+    if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xDC != NULL) {
+        it_802C760C(Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xDC);
         ftKb_SpecialNGw_8010D074(gobj);
     }
 }
@@ -132,16 +133,16 @@ void ftKb_SpecialNGw_8010D0A8(Fighter_GObj* gobj)
 void fn_8010D100(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    if (fp->u.kb.xDC != NULL) {
-        it_802C7658(fp->u.kb.xDC);
+    if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xDC != NULL) {
+        it_802C7658(Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xDC);
     }
 }
 
 void ftKb_SpecialNGw_8010D130(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    if (fp->u.kb.xDC != NULL) {
-        it_802C7678(fp->u.kb.xDC);
+    if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xDC != NULL) {
+        it_802C7678(Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xDC);
     }
 }
 

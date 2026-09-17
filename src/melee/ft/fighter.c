@@ -1,4 +1,8 @@
+#include <melee/rogue/rogue_ai.h>
+#include <melee/rogue/rogue_effects.h>
 #include "fighter.h"
+#include <melee/rogue/rogue_hooks.h>
+#include <melee/rogue/rogue_ability.h>
 
 #include <math.h>
 #include <placeholder.h>
@@ -231,6 +235,7 @@ void Fighter_UpdateModelScale(Fighter_GObj* gobj)
 
 void Fighter_UnkInitReset_80067C98(Fighter* fp)
 {
+    Rogue_AbilityCleanup(fp);
     Vec3 player_coords;
     float x, y, z;
 
@@ -417,7 +422,7 @@ void Fighter_UnkInitReset_80067C98(Fighter* fp)
     fp->x2098 = 0;
     fp->x2092 = 0;
     fp->x2094 = 0;
-    fp->shield_health = p_ftCommonData->x260_startShieldHealth;
+    fp->shield_health = Rogue_ModifyShieldHealth(fp, p_ftCommonData->x260_startShieldHealth);
 
     fp->x221A_b7 = 0;
     fp->x221B_b0 = 0;
@@ -931,6 +936,7 @@ Fighter_GObj* Fighter_Create(struct plAllocInfo* input)
         }
     }
     ftLib_800867E8(gobj);
+    Rogue_AbilityFighterCreated(fp);
     return gobj;
 }
 
@@ -947,6 +953,8 @@ void Fighter_ChangeMotionState(Fighter_GObj* gobj, FtMotionId msid,
     u8(*unk_byte_ptr)[2];
     bool animflags_bool;
     union Struct2070 x2070;
+
+    new_motion_state = Rogue_AbilityMotionState(fp, msid);
 
     fp->motion_id = msid;
     fp->facing_dir1 = fp->facing_dir;
@@ -1178,7 +1186,9 @@ void Fighter_ChangeMotionState(Fighter_GObj* gobj, FtMotionId msid,
     ftPartSetRotY(fp, 0, (M_PI_2 * fp->facing_dir));
     ftPartSetRotZ(fp, 0, 0.0F);
 
-    if (msid >= fp->x18) {
+    if (new_motion_state != NULL) {
+        /* Per-fighter source ability; global character tables stay intact. */
+    } else if (msid >= fp->x18) {
         new_motion_state = &fp->x20_actionStateList[(msid - fp->x18)];
     } else {
         new_motion_state = &fp->x1C_actionStateList[msid];
@@ -1880,6 +1890,7 @@ void Fighter_Spaghetti_8006AD10(Fighter_GObj* gobj)
                     HSD_PadGameStatus[fp->x618_player_id].button;
             }
 
+            RogueAI_ApplyInput(fp);
             if (gm_8016B0FC()) {
                 fp->input.triggers[0] = 0.0f;
                 if (ftCo_IsCpuControlled(fp)) {
@@ -2652,6 +2663,7 @@ void Fighter_UnkTakeDamage_8006CC30(Fighter* fp, float arg0)
 
 void Fighter_TakeDamage_8006CC7C(Fighter* fp, float damage_amount)
 {
+    damage_amount = Rogue_ModifyDamageReceived(fp, damage_amount);
     if (!fp->x2226_b4 || fp->x2226_b3) {
         fp->dmg.x1830_percent += damage_amount;
         if (fp->metal_timer != 0) {
@@ -2820,11 +2832,12 @@ void Fighter_ProcessHit_8006D1EC(Fighter_GObj* gobj)
 
     if (!fp->x221F_b3) {
         if (!fp->x221A_b7) {
-            if (fp->shield_health < p_ftCommonData->x260_startShieldHealth) {
-                fp->shield_health += p_ftCommonData->x27C;
-                if (fp->shield_health > p_ftCommonData->x260_startShieldHealth)
+            float shield_max = Rogue_ModifyShieldHealth(fp, p_ftCommonData->x260_startShieldHealth);
+            if (fp->shield_health < shield_max) {
+                fp->shield_health += Rogue_ModifyShieldRegen(fp, p_ftCommonData->x27C);
+                if (fp->shield_health > shield_max)
                 {
-                    fp->shield_health = p_ftCommonData->x260_startShieldHealth;
+                    fp->shield_health = shield_max;
                 }
             }
         }
@@ -2837,7 +2850,7 @@ void Fighter_ProcessHit_8006D1EC(Fighter_GObj* gobj)
                             (p_ftCommonData->x2E0 - p_ftCommonData->x2DC)) +
                            p_ftCommonData->x2DC)))) +
                 p_ftCommonData->x288;
-            if (fp->shield_health < 0.0f) {
+            if (fp->shield_health < 0.0f && !RogueEffects_PreventShieldBreak(fp, p_ftCommonData->x260_startShieldHealth)) {
                 bool3 = 1;
                 fp->shield_health = p_ftCommonData->x280_unkShieldHealth;
                 /// this function is called when shield is broken
@@ -3094,6 +3107,8 @@ void Fighter_Unload_8006DABC(void* user_data)
     ///          directly it's probably just written directly.
     Fighter* fp = (Fighter*) user_data;
     int kind = fp->kind;
+
+    Rogue_AbilityFighterDestroyed(fp);
 
     if (ftData_OnUserDataRemove[kind]) {
         ftData_OnUserDataRemove[kind](fp->gobj);

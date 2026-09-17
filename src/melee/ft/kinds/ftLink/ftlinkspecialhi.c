@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftlinkspecialhi.h"
 
 #include <Runtime/platform.h>
@@ -28,10 +29,10 @@ static void onAccessory4(HSD_GObj* gobj)
     Fighter* fp = GET_FIGHTER(gobj);
     HSD_JObj* jobj0 = fp->parts[ftParts_GetBoneIndex(fp, FtPart_TransN)].joint;
     HSD_JObj* jobj1;
-    if (fp->kind == Ft_Kind_Link) {
-        jobj1 = fp->parts[FtPart_L2ndNa].joint;
+    if (Rogue_AbilitySourceKind(fp) == Ft_Kind_Link) {
+        jobj1 = fp->parts[Rogue_AbilityMapBone(fp, FtPart_L2ndNa)].joint;
     } else {
-        jobj1 = fp->parts[FtPart_L3rdNa].joint;
+        jobj1 = fp->parts[Rogue_AbilityMapBone(fp, FtPart_L3rdNa)].joint;
     }
     if (!fp->x2219_b0) {
         if (fp->ground_or_air == GA_Ground) {

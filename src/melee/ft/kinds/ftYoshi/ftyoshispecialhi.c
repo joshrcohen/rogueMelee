@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftyoshispecialhi.h"
 
 #include <melee/ft/forward.h>
@@ -27,7 +28,7 @@
 static void setDamageCallbacks(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    if (fp->u.ys.x2238 != NULL) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_Yoshi)->ys.x2238 != NULL) {
         fp->take_dmg_cb = ftYs_Init_8012BA8C;
         fp->death2_cb = ftYs_Init_8012BA8C;
     }
@@ -93,13 +94,13 @@ void fn_8012E110(Fighter_GObj* gobj)
 
     if (ftCheckThrowB0(fp)) {
         Vec3 sp30;
-        lb_8000B1CC(fp->parts[31].joint, NULL, &sp30);
-        fp->x1984_heldItemSpec = fp->u.ys.x2238 =
-            it_802B2A10(gobj, &sp30, 0x1F, fp->facing_dir);
+        lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, 31)].joint, NULL, &sp30);
+        fp->x1984_heldItemSpec = Rogue_AbilityVars(fp, Ft_Kind_Yoshi)->ys.x2238 =
+            it_802B2A10(gobj, &sp30, Rogue_AbilityMapBone(fp, 0x1F), fp->facing_dir);
         setDamageCallbacks(gobj);
     }
 
-    if (fp->cmd_vars[0] != 0U && fp->u.ys.x2238 != NULL) {
+    if (fp->cmd_vars[0] != 0U && Rogue_AbilityVars(fp, Ft_Kind_Yoshi)->ys.x2238 != NULL) {
         Vec3 sp24;
         Vec3 sp18;
         PAD_STACK(4);
@@ -111,10 +112,10 @@ void fn_8012E110(Fighter_GObj* gobj)
         ftYs_SpecialS_8012DF8C_outline(gobj, &sp18);
         {
             float x4 = fp->mv.ys.specialhi.x4;
-            it_802B28C8(fp->u.ys.x2238, &sp18, &sp24, x4 * da->x110 + da->x10C,
+            it_802B28C8(Rogue_AbilityVars(fp, Ft_Kind_Yoshi)->ys.x2238, &sp18, &sp24, x4 * da->x110 + da->x10C,
                         x4);
         }
-        fp->u.ys.x2238 = NULL;
+        Rogue_AbilityVars(fp, Ft_Kind_Yoshi)->ys.x2238 = NULL;
         fp->take_dmg_cb = NULL;
         fp->death2_cb = NULL;
     }
@@ -124,10 +125,10 @@ void ftYs_SpecialS_8012E270(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
 
-    if (fp->u.ys.x2238 != NULL && fp->mv.ys.specials.x0 == 0) {
-        it_802B2890(fp->u.ys.x2238);
+    if (Rogue_AbilityVars(fp, Ft_Kind_Yoshi)->ys.x2238 != NULL && fp->mv.ys.specials.x0 == 0) {
+        it_802B2890(Rogue_AbilityVars(fp, Ft_Kind_Yoshi)->ys.x2238);
     }
-    fp->u.ys.x2238 = NULL;
+    Rogue_AbilityVars(fp, Ft_Kind_Yoshi)->ys.x2238 = NULL;
     fp->take_dmg_cb = NULL;
     fp->death2_cb = NULL;
 }
@@ -140,7 +141,7 @@ void ftYs_SpecialHi_Enter(Fighter_GObj* gobj)
 
     fp->mv.ys.specialhi.x0 = 0;
     fp->mv.ys.specialhi.x4 = 0;
-    fp->u.ys.x2238 = NULL;
+    Rogue_AbilityVars(fp, Ft_Kind_Yoshi)->ys.x2238 = NULL;
     fp->throw_flags = 0;
     fp->cmd_vars[0] = 0;
     Fighter_ChangeMotionState(gobj, ftYs_MS_SpecialHi, 0, 0.0F, 1.0F, 0.0F,
@@ -158,7 +159,7 @@ void ftYs_SpecialAirHi_Enter(Fighter_GObj* gobj)
 
     fp->mv.ys.specialhi.x0 = 0;
     fp->mv.ys.specialhi.x4 = 0;
-    fp->u.ys.x2238 = NULL;
+    Rogue_AbilityVars(fp, Ft_Kind_Yoshi)->ys.x2238 = NULL;
     fp->throw_flags = 0;
     fp->cmd_vars[0] = 0;
     Fighter_ChangeMotionState(gobj, ftYs_MS_SpecialAirHi, 0, 0.0F, 1.0F, 0.0F,

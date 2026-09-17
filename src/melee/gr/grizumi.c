@@ -11,6 +11,7 @@
 #include <dolphin/gx/GXTexture.h>
 #include <dolphin/mtx.h>
 #include <melee/cm/camera.h>
+#include <melee/gm/gm_1879.h>
 #include <melee/ft/ftdrawcommon.h>
 #include <melee/lb/lb_00B0.h>
 #include <melee/lb/lb_00F9.h>
@@ -752,10 +753,14 @@ void grIzumi_801CCEA0(HSD_GObj* gobj, int renderpass)
     if (refl->image != NULL) {
         cobj = GET_COBJ(gobj);
         ftDrawCommon_80081140();
-        Camera_8002A4AC(Camera_80030A50());
-
+        /* Adventure intros own an animated camera and have no live battle
+         * camera. The previous match's camera pointer survives scene teardown. */
+        src_gobj = gm_GetStageIntroCamera();
+        if (src_gobj == NULL) {
+            src_gobj = Camera_80030A50();
+            if (src_gobj != NULL) Camera_8002A4AC(src_gobj);
+        }
         dst = GET_COBJ(gobj);
-        src_gobj = Camera_80030A50();
         if (src_gobj != NULL) {
             // uses r0 if put on two lines:
             if ((src = GET_COBJ(src_gobj)) != NULL) {

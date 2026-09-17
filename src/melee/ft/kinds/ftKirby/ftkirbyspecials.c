@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include <melee/ft/forward.h>
 #include <sysdolphin/baselib/forward.h>
 
@@ -42,7 +43,7 @@ static inline void fn_800F53AC_SpawnEffect(HSD_GObj* gobj)
     } else {
         ef_id = 0x496;
     }
-    efSync_Spawn(ef_id, gobj, fp->parts[FtPart_HipN].joint, &fp->facing_dir);
+    efSync_Spawn(ef_id, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_HipN)].joint, &fp->facing_dir);
     fp->x2219_b0 = true;
     Fighter_SetEffectHitlagCallbacks(fp);
 }
@@ -50,10 +51,10 @@ static inline void fn_800F53AC_SpawnEffect(HSD_GObj* gobj)
 static inline void fn_800F53AC_CleanupItem(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    Item_GObj* item = fp->u.kb.hat.x0;
+    Item_GObj* item = Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.x0;
     if (item != NULL) {
         it_802ADC34(item);
-        fp->u.kb.hat.x0 = NULL;
+        Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.x0 = NULL;
     }
 }
 
@@ -64,13 +65,13 @@ void fn_800F53AC(HSD_GObj* gobj)
 
     if (fp->cmd_vars[0] == 1) {
         f32 dir;
-        lb_8000B1CC(fp->parts[FtPart_R3rdNa].joint, NULL, &pos);
+        lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, FtPart_R3rdNa)].joint, NULL, &pos);
         dir = fp->facing_dir;
-        fp->u.kb.hat.x0 =
+        Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.x0 =
             it_802ADC54(gobj, &pos, FtPart_R3rdNa, fp->ground_or_air, dir);
-        fp->x1984_heldItemSpec = fp->u.kb.hat.x0;
+        fp->x1984_heldItemSpec = Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.x0;
         fp->cmd_vars[0] = 0;
-        if (fp->u.kb.hat.x0 != NULL) {
+        if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.x0 != NULL) {
             if (fp->death2_cb != NULL && fp->death2_cb != ftKb_Init_800EE74C) {
                 OSReport(ftKb_Init_803CB510);
                 __assert(ftKb_Init_803CB52C, 0x66, ftKb_Init_804D3DB0);
@@ -89,9 +90,9 @@ void fn_800F53AC(HSD_GObj* gobj)
 void ftKb_SpecialAirLw_800F5524(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    if (fp->u.kb.hat.x0 != NULL) {
-        it_802ADC34(fp->u.kb.hat.x0);
-        fp->u.kb.hat.x0 = NULL;
+    if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.x0 != NULL) {
+        it_802ADC34(Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.x0);
+        Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.x0 = NULL;
     }
 }
 
@@ -111,9 +112,9 @@ void ftKb_SpecialAirS_Enter(Fighter_GObj* gobj)
     ftKb_DatAttrs* da = fp->dat_attrs;
     PAD_STACK(8);
     fp->cmd_vars[0] = 0;
-    if (!fp->u.kb.x64) {
+    if (!Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.x64) {
         fp->self_vel.y = da->specials_aerial_vertical_momentum;
-        fp->u.kb.x64 = true;
+        Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.x64 = true;
     }
     Fighter_ChangeMotionState(gobj, ftKb_MS_SpecialAirS, 0, 0.0f, 1.0f, 0.0f,
                               NULL);
@@ -153,9 +154,9 @@ void ftKb_SpecialS_Coll(Fighter_GObj* gobj)
         return;
     }
     fp = GET_FIGHTER(gobj);
-    if (fp->u.kb.hat.x0 != NULL) {
-        it_802ADC34(fp->u.kb.hat.x0);
-        fp->u.kb.hat.x0 = NULL;
+    if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.x0 != NULL) {
+        it_802ADC34(Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.x0);
+        Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.hat.x0 = NULL;
     }
     ftCo_Fall_Enter(gobj);
 }
@@ -166,11 +167,11 @@ void ftKb_SpecialAirS_Coll(Fighter_GObj* gobj)
     ftKb_DatAttrs* da = fp->dat_attrs;
     if (ft_80081D0C(gobj)) {
         Fighter* fp2 = GET_FIGHTER(gobj);
-        if (fp2->u.kb.hat.x0 != NULL) {
-            it_802ADC34(fp2->u.kb.hat.x0);
-            fp2->u.kb.hat.x0 = NULL;
+        if (Rogue_AbilityVars(fp2, Ft_Kind_Kirby)->kb.hat.x0 != NULL) {
+            it_802ADC34(Rogue_AbilityVars(fp2, Ft_Kind_Kirby)->kb.hat.x0);
+            Rogue_AbilityVars(fp2, Ft_Kind_Kirby)->kb.hat.x0 = NULL;
         }
-        fp->u.kb.x64 = false;
+        Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.x64 = false;
         ftCo_LandingFallSpecial_Enter(gobj, 0, da->specials_landing_lag);
     }
 }
@@ -206,6 +207,6 @@ void ftKb_SpecialN_800F5874(Vec2* arg0)
 HSD_Joint* ftKb_SpecialN_800F5898(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    ftData* ca = fp->ft_data;
+    ftData* ca = Rogue_AbilityData(fp);
     return ca->x48_items[4];
 }

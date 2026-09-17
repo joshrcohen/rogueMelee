@@ -1,4 +1,16 @@
 # Generated
+# Rogue playtest: local assets, emulator profiles and distributable binaries
+*.iso
+*.gcm
+*.rvz
+*.raw
+*.gci
+*.zip
+*.delta
+/dist/
+/.tools/
+/.archive/
+/Dolphin-x64/
 *.m2c
 ctx.c
 ctx_includes.h

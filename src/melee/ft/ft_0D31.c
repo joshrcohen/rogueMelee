@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_effects.h>
 #include "ft_0D31.h"
 
 #include "fighter.h"
@@ -27,6 +28,20 @@
 
 const Quaternion lbl_803B7500 = { 0, 3.1415927f, 0, 0 };
 
+static bool rogueSurviveBlastZone(Fighter_GObj* gobj)
+{
+    Fighter* fp = GET_FIGHTER(gobj);
+    if (!RogueEffects_TryLastStand(fp)) return false;
+    float damage = fp->dmg.x1830_percent;
+    /* Use native cleanup and revival without the separate KO/stock accounting.
+     * This releases grabs, held items and character callbacks before returning. */
+    ftCo_800D331C(gobj);
+    ftCo_800D4FF4(gobj);
+    fp->dmg.x1830_percent = damage;
+    Player_SetHPByIndex(fp->player_id, fp->is_sub_fighter, damage);
+    return true;
+}
+
 bool ftCo_800D3158(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
@@ -42,10 +57,12 @@ bool ftCo_800D3158(Fighter_GObj* gobj)
         return false;
     }
     if (fp->cur_pos.x > Stage_GetBlastZoneRightOffset()) {
+        if (rogueSurviveBlastZone(gobj)) return true;
         ftCo_800D3950(gobj);
         return true;
     }
     if (fp->cur_pos.x < Stage_GetBlastZoneLeftOffset()) {
+        if (rogueSurviveBlastZone(gobj)) return true;
         ftCo_800D3680(gobj);
         return true;
     }
@@ -53,6 +70,7 @@ bool ftCo_800D3158(Fighter_GObj* gobj)
         (fp->ground_or_air == GA_Ground || fp->x2222_b3 ||
          fp->x8c_kb_vel.y > p_ftCommonData->x4F0))
     {
+        if (rogueSurviveBlastZone(gobj)) return true;
         if (Player_GetMoreFlagsBit5(fp->player_id)) {
             ftCo_800D3E40(gobj);
         } else {
@@ -72,6 +90,7 @@ bool ftCo_800D3158(Fighter_GObj* gobj)
         return true;
     }
     if (fp->cur_pos.y < Stage_GetBlastZoneBottomOffset()) {
+        if (rogueSurviveBlastZone(gobj)) return true;
         ftCo_800D3BC8(gobj);
         return true;
     }
@@ -137,6 +156,11 @@ void ftCo_800D331C(Fighter_GObj* gobj)
 void ftCo_800D34E0(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
+    if (fp->dmg.x18c4_source_ply >= 0 && fp->dmg.x18c4_source_ply < 6) {
+        HSD_GObj* killer = Player_GetEntity(fp->dmg.x18c4_source_ply);
+        if (killer) RogueEffects_OnKO(GET_FIGHTER(killer), fp);
+    }
+    RogueEffects_OnDeath(fp);
     Player_SetFallsByIndex(
         fp->player_id, fp->is_sub_fighter,
         Player_GetFallsByIndex(fp->player_id, fp->is_sub_fighter) + 1);

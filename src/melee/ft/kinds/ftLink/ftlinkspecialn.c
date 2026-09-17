@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftlinkspecialn.h"
 
 #include <Runtime/platform.h>
@@ -48,7 +49,7 @@ ftLk_SpecialNIndex ftLk_SpecialN_GetIndex(Fighter_GObj* gobj)
     ftLk_SpecialNIndex result = ftLk_SpecialNIndex_None;
     if (gobj != NULL) {
         Fighter* fp = GET_FIGHTER(gobj);
-        if (fp != NULL && fp->u.lk.x14 != NULL) {
+        if (fp != NULL && Rogue_AbilityVars(fp, Ft_Kind_Link)->lk.x14 != NULL) {
             FtMotionId msid = fp->motion_id;
             switch (msid) {
             case ftLk_MS_SpecialNStart:
@@ -68,9 +69,9 @@ void ftLk_SpecialN_UnsetArrow(Fighter_GObj* gobj)
 {
     if (gobj != NULL) {
         Fighter* fp = GET_FIGHTER(gobj);
-        if (fp != NULL && fp->u.lk.arrow_gobj != NULL) {
-            fp->u.lk.arrow_gobj = NULL;
-            if (fp->u.lk.boomerang_gobj == NULL && fp->u.lk.x14 == NULL) {
+        if (fp != NULL && Rogue_AbilityVars(fp, Ft_Kind_Link)->lk.arrow_gobj != NULL) {
+            Rogue_AbilityVars(fp, Ft_Kind_Link)->lk.arrow_gobj = NULL;
+            if (Rogue_AbilityVars(fp, Ft_Kind_Link)->lk.boomerang_gobj == NULL && Rogue_AbilityVars(fp, Ft_Kind_Link)->lk.x14 == NULL) {
                 /// @todo Does this actually do anything? Doesn't seem to
                 /// return @c bool.
                 ftLk_Init_BoomerangExists(gobj);
@@ -83,9 +84,9 @@ void ftLk_SpecialN_UnsetFv14(Fighter_GObj* gobj)
 {
     if (gobj != NULL) {
         Fighter* fp = GET_FIGHTER(gobj);
-        if (fp != NULL && fp->u.lk.x14 != NULL) {
-            fp->u.lk.x14 = NULL;
-            if (fp->u.lk.boomerang_gobj == NULL && fp->u.lk.arrow_gobj == NULL)
+        if (fp != NULL && Rogue_AbilityVars(fp, Ft_Kind_Link)->lk.x14 != NULL) {
+            Rogue_AbilityVars(fp, Ft_Kind_Link)->lk.x14 = NULL;
+            if (Rogue_AbilityVars(fp, Ft_Kind_Link)->lk.boomerang_gobj == NULL && Rogue_AbilityVars(fp, Ft_Kind_Link)->lk.arrow_gobj == NULL)
             {
                 /// @todo Does this actually do anything? Doesn't seem to
                 /// return @c bool.
@@ -116,9 +117,9 @@ void ftLk_SpecialN_ProcessFv10(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
     FORCE_PAD_STACK_8;
-    if (fp->u.lk.arrow_gobj != NULL) {
-        it_802A8A7C(fp->u.lk.arrow_gobj);
-        fp->u.lk.arrow_gobj = NULL;
+    if (Rogue_AbilityVars(fp, Ft_Kind_Link)->lk.arrow_gobj != NULL) {
+        it_802A8A7C(Rogue_AbilityVars(fp, Ft_Kind_Link)->lk.arrow_gobj);
+        Rogue_AbilityVars(fp, Ft_Kind_Link)->lk.arrow_gobj = NULL;
         ftLk_Init_BoomerangExists(gobj);
     }
 }
@@ -127,9 +128,9 @@ void ftLk_SpecialN_ProcessFv14(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
     FORCE_PAD_STACK_8;
-    if (fp->u.lk.x14 != NULL) {
-        it_802AF304(fp->u.lk.x14);
-        fp->u.lk.x14 = NULL;
+    if (Rogue_AbilityVars(fp, Ft_Kind_Link)->lk.x14 != NULL) {
+        it_802AF304(Rogue_AbilityVars(fp, Ft_Kind_Link)->lk.x14);
+        Rogue_AbilityVars(fp, Ft_Kind_Link)->lk.x14 = NULL;
         ftLk_Init_BoomerangExists(gobj);
     }
 }
@@ -141,7 +142,7 @@ static inline bool isDrawback(Fighter_GObj* gobj)
     FORCE_PAD_STACK_16;
     FORCE_PAD_STACK_8;
     FORCE_PAD_STACK_4;
-    if (fp->u.lk.x14 == NULL) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_Link)->lk.x14 == NULL) {
         Vec3 pos;
         lb_8000B1CC(fp->parts[ftParts_GetBoneIndex(fp, FtPart_RThumbNb)].joint,
                     NULL, &pos);
@@ -149,7 +150,7 @@ static inline bool isDrawback(Fighter_GObj* gobj)
             Item_GObj* fv_x14 = it_802AF1A4(
                 fp->facing_dir, gobj, &pos,
                 ftParts_GetBoneIndex(fp, FtPart_RThumbNb), da->x10);
-            fp->u.lk.x14 = fv_x14;
+            Rogue_AbilityVars(fp, Ft_Kind_Link)->lk.x14 = fv_x14;
             if (fv_x14 != NULL) {
                 Fighter_SetDamageCallback(gobj, ftLk_800EAF58);
             } else {
@@ -169,7 +170,7 @@ static inline bool isDrawn(Fighter_GObj* gobj)
     Item_GObj* fv_x10;
 
     if (fp->cmd_vars[cmd_unk0_bool] == 1) {
-        if (fp->u.lk.arrow_gobj == NULL) {
+        if (Rogue_AbilityVars(fp, Ft_Kind_Link)->lk.arrow_gobj == NULL) {
             Vec3 pos;
 
             fp->cmd_vars[cmd_unk0_bool] = 0;
@@ -179,7 +180,7 @@ static inline bool isDrawn(Fighter_GObj* gobj)
             fv_x10 =
                 it_802A83E0(fp->facing_dir, gobj, &pos,
                             ftParts_GetBoneIndex(fp, FtPart_LThumbNb), da->xC);
-            fp->u.lk.arrow_gobj = fv_x10;
+            Rogue_AbilityVars(fp, Ft_Kind_Link)->lk.arrow_gobj = fv_x10;
             if (fv_x10 != NULL) {
                 Fighter_SetDamageCallback(gobj, ftLk_800EAF58);
             } else {
@@ -214,8 +215,8 @@ static inline void animate(Fighter_GObj* gobj)
         fp->mv.lk.specialn.x8.z = rpos.y - root.y;
         fp->mv.lk.specialn.x14 = 0.0f;
         fp->mv.lk.specialn.x8.x = atan2f(rpos.y - lpos.y, rpos.x - lpos.x);
-        if (fp->u.lk.arrow_gobj != NULL) {
-            it_802A8398(fp->u.lk.arrow_gobj, &rpos, &lpos);
+        if (Rogue_AbilityVars(fp, Ft_Kind_Link)->lk.arrow_gobj != NULL) {
+            it_802A8398(Rogue_AbilityVars(fp, Ft_Kind_Link)->lk.arrow_gobj, &rpos, &lpos);
         }
     }
 }
@@ -236,8 +237,8 @@ static inline void animate_nopad(Fighter_GObj* gobj)
     fp->mv.lk.specialn.x8.z = rpos.y - root.y;
     fp->mv.lk.specialn.x14 = 0.0f;
     fp->mv.lk.specialn.x8.x = atan2f(rpos.y - lpos.y, rpos.x - lpos.x);
-    if (fp->u.lk.arrow_gobj != NULL) {
-        it_802A8398(fp->u.lk.arrow_gobj, &rpos, &lpos);
+    if (Rogue_AbilityVars(fp, Ft_Kind_Link)->lk.arrow_gobj != NULL) {
+        it_802A8398(Rogue_AbilityVars(fp, Ft_Kind_Link)->lk.arrow_gobj, &rpos, &lpos);
     }
 }
 
@@ -504,7 +505,7 @@ static inline void doEndColl(Fighter_GObj* gobj)
     FORCE_PAD_STACK_8;
     FORCE_PAD_STACK_4;
 
-    if (fp->cmd_vars[cmd_unk1_bool] == true && fp->u.lk.arrow_gobj != NULL) {
+    if (fp->cmd_vars[cmd_unk1_bool] == true && Rogue_AbilityVars(fp, Ft_Kind_Link)->lk.arrow_gobj != NULL) {
         Vec3 rpos, lpos;
 
         fp->cmd_vars[cmd_unk1_bool] = false;
@@ -514,7 +515,7 @@ static inline void doEndColl(Fighter_GObj* gobj)
                     NULL, &lpos);
         rpos.z = lpos.z = 0;
         item_gobj = fp->item_gobj;
-        itLinkArrow_802A850C(fp->u.lk.arrow_gobj, &rpos, &lpos, MTXDegToRad(5),
+        itLinkArrow_802A850C(Rogue_AbilityVars(fp, Ft_Kind_Link)->lk.arrow_gobj, &rpos, &lpos, MTXDegToRad(5),
                              fp->mv.lk.specialn.x0.y, da->x0);
         ftLk_SpecialN_UnsetArrow(gobj);
         fp->item_gobj = item_gobj;

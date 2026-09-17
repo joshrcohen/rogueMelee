@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftyoshispecialn.h"
 
 #include <melee/ft/forward.h>
@@ -122,7 +123,7 @@ float ftYs_SpecialN_8012CDB4(void)
 HSD_Joint* ftYs_SpecialN_8012CDD4(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    ftData* ca = fp->ft_data;
+    ftData* ca = Rogue_AbilityData(fp);
     return ca->x48_items[3];
 }
 

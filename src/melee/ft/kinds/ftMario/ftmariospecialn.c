@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftmariospecialn.h"
 
 #include <Runtime/platform.h>
@@ -28,8 +29,8 @@ static MotionFlags const ftMr_MF_SpecialN_Coll =
 static int pickMegavitamin(Fighter* fp, const int* arr, int outpos)
 {
     int result = arr[HSD_Randi(outpos)];
-    fp->u.mr.x2230_vitaminPrev = fp->u.mr.x222C_vitaminCurr;
-    fp->u.mr.x222C_vitaminCurr = result;
+    Rogue_AbilityVars(fp, Ft_Kind_Mario)->mr.x2230_vitaminPrev = Rogue_AbilityVars(fp, Ft_Kind_Mario)->mr.x222C_vitaminCurr;
+    Rogue_AbilityVars(fp, Ft_Kind_Mario)->mr.x222C_vitaminCurr = result;
     return result;
 }
 
@@ -43,7 +44,7 @@ int ftMr_SpecialN_VitaminRandom(HSD_GObj* gobj)
     fp = gobj->user_data;
 
     for (i = r3 = 0; i < 9; i++) {
-        if (i != fp->u.mr.x222C_vitaminCurr && i != fp->u.mr.x2230_vitaminPrev)
+        if (i != Rogue_AbilityVars(fp, Ft_Kind_Mario)->mr.x222C_vitaminCurr && i != Rogue_AbilityVars(fp, Ft_Kind_Mario)->mr.x2230_vitaminPrev)
         {
             arr[r3] = i;
             r3++;
@@ -116,7 +117,7 @@ void ftMr_SpecialN_ItemFireSpawn(HSD_GObj* gobj)
     if (flag_res != 0) {
         lb_8000B1CC(fp->parts[ftParts_GetBoneIndex(fp, FtPart_L1stNb)].joint,
                     NULL, &coords);
-        if (fp->kind == Ft_Kind_Mario) {
+        if (Rogue_AbilitySourceKind(fp) == Ft_Kind_Mario) {
             it_8029B6F8(gobj, &coords, It_Kind_Mario_Fire, fp->facing_dir);
             efSync_Spawn(
                 1146, gobj,

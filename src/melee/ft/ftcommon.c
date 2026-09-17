@@ -1,4 +1,5 @@
 #include "ftcommon.h"
+#include <melee/rogue/rogue_ability.h>
 
 #include <melee/it/forward.h>
 #include <melee/mp/forward.h>
@@ -1259,6 +1260,7 @@ void ftCommon_8007EFC0(Fighter* fp, u32 val)
 
 void ftCommon_8007EFC8(HSD_GObj* gobj, void (*arg1)(HSD_GObj*))
 {
+    if (Rogue_BorrowedTransform(gobj, arg1)) return;
     Fighter* src = gobj->user_data;
     HSD_GObj* dst_gobj = Player_GetEntityAtIndex(src->player_id, 1);
     Fighter* dst = dst_gobj->user_data;
@@ -1388,6 +1390,7 @@ void ftCommon_8007EFC8(HSD_GObj* gobj, void (*arg1)(HSD_GObj*))
     }
     un_80322314();
     ftCo_800BFD04(gobj);
+    Rogue_AbilityTransformed(src, dst);
     arg1(dst_gobj);
 }
 

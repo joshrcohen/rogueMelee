@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftpeachspecials.h"
 
 #include <Runtime/platform.h>
@@ -340,7 +341,7 @@ static void doPostEnd(HSD_GObj* gobj)
     ftPe_DatAttrs* da = fp->dat_attrs;
     if (fp->cmd_vars[2]) {
         Vec3 vec;
-        lb_8000B1CC(fp->parts[FtPart_HipN].joint, NULL, &vec);
+        lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, FtPart_HipN)].joint, NULL, &vec);
         vec.z = 0;
         {
             float facing_dir = fp->facing_dir;
@@ -359,7 +360,7 @@ static void doPostEnd_SmallerStack(HSD_GObj* gobj)
     ftPe_DatAttrs* da = fp->dat_attrs;
     if (fp->cmd_vars[2]) {
         Vec3 vec;
-        lb_8000B1CC(fp->parts[FtPart_HipN].joint, NULL, &vec);
+        lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, FtPart_HipN)].joint, NULL, &vec);
         vec.z = 0;
         {
             float facing_dir = fp->facing_dir;

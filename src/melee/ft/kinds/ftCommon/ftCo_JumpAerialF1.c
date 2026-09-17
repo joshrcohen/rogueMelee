@@ -93,8 +93,12 @@ void ftCo_800D74A4(Fighter_GObj* gobj)
     p = ftCo_800D74A4_inline(fp);
     fp->cmd_vars[0] = 0;
     tmp = fp->x2D0;
+    /* Bonus jumps reuse the final authored multi-jump animation/velocity. */
+    int authored_jump = fp->x1968_jumpsUsed;
+    int native_jumps = ((ftCo_DatAttrs*)fp->ft_data->x0)->max_jumps;
+    if (authored_jump >= native_jumps) authored_jump = native_jumps - 1;
     msid =
-        fp->x1968_jumpsUsed +
+        authored_jump +
         (tmp = (struct Fighter_x2D0_t*) ((s32*) tmp + ftCo_800D7268(fp)))->x2C;
     msid2 = --msid;
     vel.x = fp->input.lstick[0].x * p->x8;

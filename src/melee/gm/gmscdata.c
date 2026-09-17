@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue.h>
 #include "gmscdata.h"
 
 #include "gm_1A33.h"
@@ -741,6 +742,7 @@ static GameMode modes[] = {
         gm_Mode_SingleButtonVs_OnInit,
         gm_Mode_SingleButtonVs_States,
     },
+    { false, GM_ROGUE, Rogue_ModeOnLoad, Rogue_ModeOnUnload, NULL, gm_Mode_Rogue_States },
     {
         false,
         GM_COUNT,

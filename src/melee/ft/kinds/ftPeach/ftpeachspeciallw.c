@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftpeachspeciallw.h"
 
 #include <Runtime/platform.h>
@@ -61,21 +62,21 @@ ItemKind pickVeg(HSD_GObj* gobj)
 void ftPe_SpecialLw_UnsetVeg(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    if (fp->u.pe.veg_gobj != NULL) {
-        fp->u.pe.veg_gobj = NULL;
+    if (Rogue_AbilityVars(fp, Ft_Kind_Peach)->pe.veg_gobj != NULL) {
+        Rogue_AbilityVars(fp, Ft_Kind_Peach)->pe.veg_gobj = NULL;
     }
 }
 
 void ftPe_SpecialLw_8011CFA0(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    HSD_GObj* veg_gobj = fp->u.pe.veg_gobj;
+    HSD_GObj* veg_gobj = Rogue_AbilityVars(fp, Ft_Kind_Peach)->pe.veg_gobj;
     if (veg_gobj != NULL) {
         HSD_GObj* item_gobj = fp->item_gobj;
         if (veg_gobj == item_gobj &&
             itGetKind(item_gobj) == It_Kind_Peach_Turnip)
         {
-            it_802BD45C(fp->u.pe.veg_gobj);
+            it_802BD45C(Rogue_AbilityVars(fp, Ft_Kind_Peach)->pe.veg_gobj);
             ftPe_SpecialLw_UnsetVeg(gobj);
         }
     }
@@ -96,9 +97,9 @@ static ItemKind getVeg(HSD_GObj* gobj)
 static void setupVeg(ItemKind kind, HSD_GObj* gobj, Fighter* fp, Vec3* pos)
 {
     HSD_GObj* veg_gobj =
-        it_802BD4AC(gobj, pos, fp->ft_data->x8->x10, kind, fp->facing_dir);
+        it_802BD4AC(gobj, pos, Rogue_AbilityData(fp)->x8->x10, kind, fp->facing_dir);
     fp->item_gobj = veg_gobj;
-    fp->u.pe.veg_gobj = veg_gobj;
+    Rogue_AbilityVars(fp, Ft_Kind_Peach)->pe.veg_gobj = veg_gobj;
     if (veg_gobj != NULL) {
         ftpickupitem_80094818(gobj, false);
         efSync_Spawn(1234, gobj, &fp->cur_pos);
@@ -117,7 +118,7 @@ static void spawnVeg(HSD_GObj* gobj)
     if (ftCheckThrowB0(fp)) {
         ItemKind kind;
 
-        lb_8000B1CC(fp->parts[FtPart_109].joint, NULL, &pos);
+        lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, FtPart_109)].joint, NULL, &pos);
         kind = getVeg(gobj);
         setupVeg(kind, gobj, fp, &pos);
     }

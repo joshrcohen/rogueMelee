@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftdonkeyspeciallw.h"
 
 #include <Runtime/platform.h>
@@ -97,7 +98,7 @@ static void ftDonkey_8010DE88_inner(HSD_GObj* gobj)
     Fighter* fp = GET_FIGHTER(gobj);
     u8 _[8];
     if (!fp->x2219_b0) {
-        efAsync_Spawn(gobj, &fp->x60C, 1, 1228, fp->parts[FtPart_TopN].joint);
+        efAsync_Spawn(gobj, &fp->x60C, 1, 1228, fp->parts[Rogue_AbilityMapBone(fp, FtPart_TopN)].joint);
         fp->x2219_b0 = true;
     }
     Fighter_SetEffectHitlagCallbacks(fp);
@@ -165,7 +166,7 @@ void ftDk_SpecialLw_8010E0CC(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
     if (!fp->x2219_b0) {
-        efSync_Spawn(1222, gobj, fp->parts[FtPart_TransN].joint);
+        efSync_Spawn(1222, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_TransN)].joint);
         fp->x2219_b0 = true;
     }
     Fighter_SetEffectHitlagCallbacks(fp);
@@ -176,7 +177,7 @@ void ftDk_SpecialLw_8010E148(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
     if (!fp->x2219_b0) {
-        efSync_Spawn(1223, gobj, fp->parts[FtPart_TransN].joint);
+        efSync_Spawn(1223, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_TransN)].joint);
         fp->x2219_b0 = true;
     }
     Fighter_SetEffectHitlagCallbacks(fp);

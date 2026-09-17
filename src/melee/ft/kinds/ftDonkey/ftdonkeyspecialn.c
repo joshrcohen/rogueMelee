@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftdonkeyspecialn.h"
 
 #include <Runtime/platform.h>
@@ -49,12 +50,12 @@ void ftDk_SpecialN_Enter(HSD_GObj* gobj)
     Fighter* fp = GET_FIGHTER(gobj);
     ftDonkeyAttributes* donkey_attr = fp->dat_attrs;
     u8 _[4];
-    if (fp->u.dk.x222C == donkey_attr->SpecialN.x2C_MAX_ARM_SWINGS) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_Donkey)->dk.x222C == donkey_attr->SpecialN.x2C_MAX_ARM_SWINGS) {
         Fighter_ChangeMotionState(gobj, ftDk_MS_SpecialNFull, 0, 0, 1, 0,
                                   NULL);
         fp->mv.dk.specialn.x8 = 1;
-        fp->mv.dk.specialn.xC = fp->u.dk.x222C;
-        fp->u.dk.x222C = 0;
+        fp->mv.dk.specialn.xC = Rogue_AbilityVars(fp, Ft_Kind_Donkey)->dk.x222C;
+        Rogue_AbilityVars(fp, Ft_Kind_Donkey)->dk.x222C = 0;
     } else {
         Fighter_ChangeMotionState(gobj, ftDk_MS_SpecialNStart, 0, 0, 1, 0,
                                   NULL);
@@ -77,12 +78,12 @@ void ftDk_SpecialAirN_Enter(HSD_GObj* gobj)
     Fighter* fp = GET_FIGHTER(gobj);
     ftDonkeyAttributes* donkey_attr = fp->dat_attrs;
     u8 _[4];
-    if (fp->u.dk.x222C == donkey_attr->SpecialN.x2C_MAX_ARM_SWINGS) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_Donkey)->dk.x222C == donkey_attr->SpecialN.x2C_MAX_ARM_SWINGS) {
         Fighter_ChangeMotionState(gobj, ftDk_MS_SpecialAirNFull, 0, 0, 1, 0,
                                   NULL);
         fp->mv.dk.specialn.x8 = 1;
-        fp->mv.dk.specialn.xC = fp->u.dk.x222C;
-        fp->u.dk.x222C = 0;
+        fp->mv.dk.specialn.xC = Rogue_AbilityVars(fp, Ft_Kind_Donkey)->dk.x222C;
+        Rogue_AbilityVars(fp, Ft_Kind_Donkey)->dk.x222C = 0;
     } else {
         Fighter_ChangeMotionState(gobj, ftDk_MS_SpecialAirNStart, 0, 0, 1, 0,
                                   NULL);
@@ -120,11 +121,11 @@ void ftDk_SpecialNLoop_Anim(HSD_GObj* gobj)
     Fighter* fp = GET_FIGHTER(gobj);
     ftDonkeyAttributes* donkey_attr = fp->dat_attrs;
     if (fp->cur_anim_frame == 0) {
-        fp->u.dk.x222C += 1;
-        if (fp->u.dk.x222C >= donkey_attr->SpecialN.x2C_MAX_ARM_SWINGS) {
+        Rogue_AbilityVars(fp, Ft_Kind_Donkey)->dk.x222C += 1;
+        if (Rogue_AbilityVars(fp, Ft_Kind_Donkey)->dk.x222C >= donkey_attr->SpecialN.x2C_MAX_ARM_SWINGS) {
             Fighter* fighter2 = fp;
             ftCo_800BFFD0(fighter2, 57, 0);
-            fighter2->u.dk.x222C = donkey_attr->SpecialN.x2C_MAX_ARM_SWINGS;
+            Rogue_AbilityVars(fighter2, Ft_Kind_Donkey)->dk.x222C = donkey_attr->SpecialN.x2C_MAX_ARM_SWINGS;
             clearCallbacks(gobj);
             ft_8008A2BC(gobj);
         }
@@ -151,10 +152,10 @@ void ftDk_SpecialN_Anim(HSD_GObj* gobj)
     if (fp->mv.dk.specialn.x8 == 1) {
         fp->mv.dk.specialn.x8++;
         if (fp->ground_or_air == GA_Air) {
-            efSync_Spawn(1225, gobj, fp->parts[FtPart_TopN].joint,
+            efSync_Spawn(1225, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_TopN)].joint,
                          &fp->facing_dir);
         } else {
-            efSync_Spawn(1224, gobj, fp->parts[FtPart_TopN].joint,
+            efSync_Spawn(1224, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_TopN)].joint,
                          &fp->facing_dir);
         }
     }
@@ -184,7 +185,7 @@ void ftDk_SpecialN_Anim(HSD_GObj* gobj)
         updateVelocity(gobj);
     }
     if (!ftAnim_IsFramesRemaining(gobj)) {
-        fp->u.dk.x222C = 0;
+        Rogue_AbilityVars(fp, Ft_Kind_Donkey)->dk.x222C = 0;
         clearCallbacks(gobj);
         ft_8008A2BC(gobj);
     }
@@ -202,10 +203,10 @@ void ftDk_SpecialNFull_Anim(HSD_GObj* gobj)
     if (fp->mv.dk.specialn.x8 == 1) {
         fp->mv.dk.specialn.x8++;
         if (fp->ground_or_air == GA_Air) {
-            efSync_Spawn(1225, gobj, fp->parts[FtPart_TopN].joint,
+            efSync_Spawn(1225, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_TopN)].joint,
                          &fp->facing_dir);
         } else {
-            efSync_Spawn(1224, gobj, fp->parts[FtPart_TopN].joint,
+            efSync_Spawn(1224, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_TopN)].joint,
                          &fp->facing_dir);
         }
     }
@@ -219,7 +220,7 @@ void ftDk_SpecialNFull_Anim(HSD_GObj* gobj)
         updateVelocity(gobj);
     }
     if (!ftAnim_IsFramesRemaining(gobj)) {
-        fp->u.dk.x222C = 0;
+        Rogue_AbilityVars(fp, Ft_Kind_Donkey)->dk.x222C = 0;
         clearCallbacks(gobj);
         ft_8008A2BC(gobj);
     }
@@ -239,11 +240,11 @@ void ftDk_SpecialAirNLoop_Anim(HSD_GObj* gobj)
     Fighter* fp = GET_FIGHTER(gobj);
     ftDonkeyAttributes* donkey_attr = fp->dat_attrs;
     if (fp->cur_anim_frame == 0) {
-        fp->u.dk.x222C += 1;
-        if (fp->u.dk.x222C >= donkey_attr->SpecialN.x2C_MAX_ARM_SWINGS) {
+        Rogue_AbilityVars(fp, Ft_Kind_Donkey)->dk.x222C += 1;
+        if (Rogue_AbilityVars(fp, Ft_Kind_Donkey)->dk.x222C >= donkey_attr->SpecialN.x2C_MAX_ARM_SWINGS) {
             Fighter* fighter2 = fp;
             ftCo_800BFFD0(fighter2, 57, 0);
-            fp->u.dk.x222C = donkey_attr->SpecialN.x2C_MAX_ARM_SWINGS;
+            Rogue_AbilityVars(fp, Ft_Kind_Donkey)->dk.x222C = donkey_attr->SpecialN.x2C_MAX_ARM_SWINGS;
             clearCallbacks(gobj);
             ftCo_Fall_Enter(gobj);
         }
@@ -272,10 +273,10 @@ void ftDk_SpecialAirN_Anim(HSD_GObj* gobj)
     if (fp->mv.dk.specialn.x8 == 1) {
         fp->mv.dk.specialn.x8++;
         if (fp->ground_or_air == GA_Air) {
-            efSync_Spawn(1225, gobj, fp->parts[FtPart_TopN].joint,
+            efSync_Spawn(1225, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_TopN)].joint,
                          &fp->facing_dir);
         } else {
-            efSync_Spawn(1224, gobj, fp->parts[FtPart_TopN].joint,
+            efSync_Spawn(1224, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_TopN)].joint,
                          &fp->facing_dir);
         }
     }
@@ -299,7 +300,7 @@ void ftDk_SpecialAirN_Anim(HSD_GObj* gobj)
     }
 
     if (!ftAnim_IsFramesRemaining(gobj)) {
-        fp->u.dk.x222C = 0;
+        Rogue_AbilityVars(fp, Ft_Kind_Donkey)->dk.x222C = 0;
         clearCallbacks(gobj);
         if (donkey_attr->SpecialN.x38_LANDING_LAG == 0) {
             ftCo_Fall_Enter(gobj);
@@ -323,15 +324,15 @@ void ftDk_SpecialAirNFull_Anim(HSD_GObj* gobj)
     if (fp->mv.dk.specialn.x8 == 1) {
         fp->mv.dk.specialn.x8++;
         if (fp->ground_or_air == GA_Air) {
-            efSync_Spawn(1225, gobj, fp->parts[FtPart_TopN].joint,
+            efSync_Spawn(1225, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_TopN)].joint,
                          &fp->facing_dir);
         } else {
-            efSync_Spawn(1224, gobj, fp->parts[FtPart_TopN].joint,
+            efSync_Spawn(1224, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_TopN)].joint,
                          &fp->facing_dir);
         }
     }
     if (!ftAnim_IsFramesRemaining(gobj)) {
-        fp->u.dk.x222C = 0;
+        Rogue_AbilityVars(fp, Ft_Kind_Donkey)->dk.x222C = 0;
         clearCallbacks(gobj);
         if (donkey_attr->SpecialN.x38_LANDING_LAG == 0) {
             ftCo_Fall_Enter(gobj);
@@ -352,8 +353,8 @@ void ftDk_SpecialNLoop_IASA(HSD_GObj* gobj)
         if ((fp->input.pressed_buttons & HSD_PAD_B)) {
             Fighter_ChangeMotionState(gobj, ftDk_MS_SpecialN, 0, 0, 1, 0,
                                       NULL);
-            fp->mv.dk.specialn.xC = fp->u.dk.x222C;
-            fp->u.dk.x222C = 0;
+            fp->mv.dk.specialn.xC = Rogue_AbilityVars(fp, Ft_Kind_Donkey)->dk.x222C;
+            Rogue_AbilityVars(fp, Ft_Kind_Donkey)->dk.x222C = 0;
             setCallbacks(gobj);
             ftAnim_8006EBA4(gobj);
         }
@@ -382,8 +383,8 @@ void ftDk_SpecialAirNLoop_IASA(HSD_GObj* gobj)
     u8 _[4];
     if (fp->input.pressed_buttons & HSD_PAD_B) {
         Fighter_ChangeMotionState(gobj, ftDk_MS_SpecialAirN, 0, 0, 1, 0, NULL);
-        fp->mv.dk.specialn.xC = fp->u.dk.x222C;
-        fp->u.dk.x222C = 0;
+        fp->mv.dk.specialn.xC = Rogue_AbilityVars(fp, Ft_Kind_Donkey)->dk.x222C;
+        Rogue_AbilityVars(fp, Ft_Kind_Donkey)->dk.x222C = 0;
         setCallbacks(gobj);
         ftAnim_8006EBA4(gobj);
     }
@@ -561,6 +562,6 @@ void ftDk_SpecialN_DestroyAllEffects(HSD_GObj* gobj)
 void ftDk_SpecialN_DestroyAllEffectsPlus(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    fp->u.dk.x222C = 0;
+    Rogue_AbilityVars(fp, Ft_Kind_Donkey)->dk.x222C = 0;
     efLib_DestroyAll(gobj);
 }

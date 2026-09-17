@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftlinkspeciallw.h"
 
 #include <Runtime/platform.h>
@@ -72,7 +73,7 @@ static void spawnBomb(HSD_GObj* gobj)
         {
             Fighter_Part part = da->x48;
             float facing_dir = fp->facing_dir;
-            HSD_GObj* igobj = it_8029DD58(gobj, &pos, fp->ft_data->x8->x10,
+            HSD_GObj* igobj = it_8029DD58(gobj, &pos, Rogue_AbilityData(fp)->x8->x10,
                                           part, facing_dir);
             fp->item_gobj = igobj;
             ftParts_80074A4C(gobj, 2, 1);

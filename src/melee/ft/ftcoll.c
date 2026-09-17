@@ -1,4 +1,7 @@
+#include <melee/rogue/rogue_effects.h>
 #include "ftcoll.h"
+#include <melee/rogue/rogue_hooks.h>
+#include <melee/rogue/rogue_ability.h>
 
 #include <Runtime/platform.h>
 
@@ -577,7 +580,7 @@ static inline float inlineB3(Fighter* fp0, HitCapsule* hit0, Fighter* fp1)
         ret *= p_ftCommonData->x714;
     }
 
-    return ret * fp1->dmg.x182c_behavior;
+    return Rogue_ModifyAttackDamage(fp0, fp1, ret * fp1->dmg.x182c_behavior, false);
 }
 
 bool ftColl_80076ED8(Fighter* fp0, HitCapsule* hit0, Fighter* fp1,
@@ -761,7 +764,7 @@ void ftColl_80077464(Item* item, HitCapsule* hit, Fighter* fp)
         damage = 0;
     }
 
-    if (damage > fp->ReflectAttr.x1A30_maxDamage) {
+    if (damage > fp->ReflectAttr.x1A30_maxDamage && !RogueEffects_CanMirror(fp)) {
         f32 dir;
 
         if (hit->x41_b5) {
@@ -817,12 +820,12 @@ void ftColl_80077464(Item* item, HitCapsule* hit, Fighter* fp)
         }
         item->xC68 = dir;
 
-        item->xC6C = fp->ReflectAttr.x1A34_damageMul;
-        item->xC70 = fp->ReflectAttr.x1A38_speedMul;
+        item->xC6C = RogueEffects_CanMirror(fp) ? 1.0f : fp->ReflectAttr.x1A34_damageMul;
+        item->xC70 = RogueEffects_CanMirror(fp) ? 1.0f : fp->ReflectAttr.x1A38_speedMul;
 
         item->xDCC_flag.b2 = fp->x2218_b5;
 
-        if (fp->x2218_b4) {
+        if (fp->x2218_b4 && !RogueEffects_CanMirror(fp)) {
             item->xDCC_flag.b1 = 1;
         }
 
@@ -1156,6 +1159,9 @@ bool ftColl_80077C60(Item* item, HitCapsule* hit, Fighter* fp,
             f3 *= p_ftCommonData->x714;
         }
         scaled_dmg = f3 * fp->dmg.x182c_behavior;
+        if (ftLib_80086960(item->owner)) {
+            scaled_dmg = Rogue_ModifyAttackDamage(GET_FIGHTER(item->owner), fp, scaled_dmg, true);
+        }
 
         if (inlineB1(hit)) {
             if (dmg_log0_idx == 0 && !fp->dmg.x189C_unk_num_frames) {
@@ -2232,7 +2238,11 @@ void ftColl_8007925C(Fighter_GObj* gobj)
                         }
                     }
 
+                    if (hurt->x41_b7 && RogueEffects_CanMirror(fp)) {
+                    ftColl_80077464(item, hurt, fp);
+                } else {
                     ftColl_80077688(item, hurt, fp, &coll_pos, coll_dist);
+                }
                     continue;
                 }
             }
@@ -2442,7 +2452,7 @@ float ftColl_80079C70(Fighter* fp, Fighter* attacker, HitCapsule* hit,
         result = ftd->x108;
     }
 
-    return result;
+    return Rogue_ModifyKnockback(attacker, fp, result);
 }
 
 float ftColl_80079EA8(Fighter* fp, HitCapsule* hit, u32 unk_count)
@@ -2773,6 +2783,17 @@ void ftColl_8007A06C(Fighter_GObj* gobj, void* dmg_ptr, void* log, size_t idx,
             break;
         }
 
+        /* Scale before selecting the strongest logged collision. */
+        {
+            Fighter* rogue_attacker = NULL;
+            if (entry->x0 == 1) rogue_attacker = entry->gobj->user_data;
+            else if (entry->x0 == 2) {
+                Item* projectile = entry->gobj->user_data;
+                if (ftLib_80086960(projectile->owner))
+                    rogue_attacker = GET_FIGHTER(projectile->owner);
+            }
+            kb = Rogue_ModifyKnockback(rogue_attacker, fp, kb);
+        }
         if (kb > best_kb.v) {
             if (entry->x0 == 1 && fp->victim_gobj != NULL && !fp->x221B_b5 &&
                 fp->victim_gobj == entry->gobj)
@@ -2877,6 +2898,7 @@ void ftColl_8007A06C(Fighter_GObj* gobj, void* dmg_ptr, void* log, size_t idx,
         Fighter* attacker_fp = (Fighter*) best_entry->gobj->user_data;
         Fighter_GObj* attacker_gobj = attacker_fp->gobj;
         attacker_fp = (Fighter*) attacker_gobj->user_data;
+        if (RogueEffects_OnHit(attacker_fp, fp, out->damage)) out->element = HitElement_Electric;
 
         ftColl_8007861C(attacker_gobj, gobj, 1, attacker_fp->kind,
                         attacker_fp->x2070.x2070_int, &attacker_fp->x2074,
@@ -2898,6 +2920,7 @@ void ftColl_8007A06C(Fighter_GObj* gobj, void* dmg_ptr, void* log, size_t idx,
         }
 
         if (ftLib_80086960(tail_owner_gobj)) {
+            if (RogueEffects_OnHit(GET_FIGHTER(tail_owner_gobj), fp, out->damage)) out->element = HitElement_Electric;
             ftColl_8007861C(tail_owner_gobj, gobj, 2, ip->kind,
                             ip->xD90.x2070_int, &ip->xD94, ip->xDA8_short,
                             dmg_ptr, 0);
@@ -3155,7 +3178,7 @@ void ftColl_CreateReflectHit(Fighter_GObj* gobj, ReflectDesc* reflect,
     fp->ReflectAttr.x1A34_damageMul = reflect->x18_damage_mul;
     fp->ReflectAttr.x1A38_speedMul = reflect->x1C_speed_mul;
     fp->x2218_b5 = reflect->x20_behavior;
-    fp->reflect_hit.bone = fp->parts[reflect->x0_bone_id].joint;
+    fp->reflect_hit.bone = fp->parts[Rogue_AbilityMapBone(fp, reflect->x0_bone_id)].joint;
     fp->reflect_hit.size = reflect->x14_size;
     fp->reflect_hit.offset = reflect->x8_offset;
 }
@@ -3165,7 +3188,7 @@ void ftColl_CreateAbsorbHit(Fighter_GObj* gobj, AbsorbDesc* absorb)
     Fighter* fp = GET_FIGHTER(gobj);
     fp->x2218_b6 = true;
     fp->x2218_b7 = false;
-    fp->absorb_hit.bone = fp->parts[absorb->x0_bone_id].joint;
+    fp->absorb_hit.bone = fp->parts[Rogue_AbilityMapBone(fp, absorb->x0_bone_id)].joint;
     fp->absorb_hit.size = absorb->x10_size;
     fp->absorb_hit.offset = absorb->x4_offset;
 }

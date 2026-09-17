@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftmariospeciallw.h"
 
 #include <Runtime/platform.h>
@@ -99,7 +100,7 @@ void ftMr_SpecialAirLw_Enter(HSD_GObj* gobj)
     setCmdVar2(gobj);
     Fighter_ChangeMotionState(gobj, ftMr_MS_SpecialAirLw, 0, 0, 1, 0, NULL);
     ftAnim_8006EBA4(gobj);
-    if ((s32) fp->u.mr.x2234_tornadoCharge != 0) {
+    if ((s32) Rogue_AbilityVars(fp, Ft_Kind_Mario)->mr.x2234_tornadoCharge != 0) {
         sub_val = 0;
     } else {
         sub_val = sa->speciallw.tap_y_vel_max;
@@ -136,7 +137,7 @@ void ftMr_SpecialAirLw_Anim(HSD_GObj* gobj)
 
     if (fp->cmd_vars[1] != 0U) {
         fp->cmd_vars[1] = 0U;
-        fp->u.mr.x2234_tornadoCharge = 1;
+        Rogue_AbilityVars(fp, Ft_Kind_Mario)->mr.x2234_tornadoCharge = 1;
     }
     if (!ftAnim_IsFramesRemaining(gobj)) {
         unsetCallbacks(gobj);
@@ -214,7 +215,7 @@ void ftMr_SpecialAirLw_Phys(HSD_GObj* gobj)
     fp = getFighter(gobj);
     sa = fp->dat_attrs;
 
-    if (((s32) fp->u.mr.x2234_tornadoCharge == false) &&
+    if (((s32) Rogue_AbilityVars(fp, Ft_Kind_Mario)->mr.x2234_tornadoCharge == false) &&
         (fp->cmd_vars[2] != 0U) &&
         ((fp->input.pressed_buttons & HSD_PAD_B) != 0))
     {
@@ -288,7 +289,7 @@ static void doAirCollIfUnk(HSD_GObj* gobj)
     fp->cmd_vars[2] = 0;
     ftCommon_8007D7FC(fp);
     fp->self_vel.y = 0;
-    fp->u.mr.x2234_tornadoCharge = 0;
+    Rogue_AbilityVars(fp, Ft_Kind_Mario)->mr.x2234_tornadoCharge = 0;
     Fighter_ChangeMotionState(gobj, ftMr_MS_SpecialLw, transition_flags,
                               fp->cur_anim_frame, 1, 0, NULL);
     ftCommon_ClampGroundVel(ft_tmp = fp, sa->speciallw.momentum_x);

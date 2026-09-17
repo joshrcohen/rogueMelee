@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftseakspeciallw.h"
 
 #include <melee/ft/forward.h>
@@ -26,7 +27,7 @@ static void fn_80114034(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
     if (!fp->x2219_b0) {
-        efSync_Spawn(0x4FC, gobj, fp->parts[FtPart_R2ndNb].joint);
+        efSync_Spawn(0x4FC, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_R2ndNb)].joint);
         fp->x2219_b0 = true;
     }
     Fighter_SetEffectHitlagCallbacks(fp);
@@ -37,7 +38,7 @@ static void fn_801140B0(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
     if (!fp->x2219_b0) {
-        efSync_Spawn(0x4FD, gobj, fp->parts[FtPart_HipN].joint);
+        efSync_Spawn(0x4FD, gobj, fp->parts[Rogue_AbilityMapBone(fp, FtPart_HipN)].joint);
         fp->x2219_b0 = true;
     }
     Fighter_SetEffectHitlagCallbacks(fp);
@@ -74,7 +75,7 @@ void ftSk_SpecialLw_Enter(Fighter_GObj* gobj)
     fp->self_vel.x /= attributes->x60;
     fp->self_vel.y /= attributes->x64;
     fp->gr_vel /= attributes->x60;
-    lb_8000B1CC(fp->parts[FtPart_TopN].joint, NULL, &sp20);
+    lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, FtPart_TopN)].joint, NULL, &sp20);
     ftSk_unk_inline(&sp20);
     fp->accessory4_cb = &fn_80114034;
 }
@@ -98,7 +99,7 @@ void ftSk_SpecialAirLw_Enter(Fighter_GObj* gobj)
     fp->self_vel.x /= attributes->x60;
     fp->self_vel.y /= attributes->x64;
     fp->gr_vel /= attributes->x60;
-    lb_8000B1CC(fp->parts[FtPart_TopN].joint, NULL, &sp20);
+    lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, FtPart_TopN)].joint, NULL, &sp20);
     ftSk_unk_inline(&sp20);
     fp->accessory4_cb = &fn_80114034;
 }

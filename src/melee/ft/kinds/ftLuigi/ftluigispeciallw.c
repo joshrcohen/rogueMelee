@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftluigispeciallw.h"
 
 #include <Runtime/platform.h>
@@ -100,7 +101,7 @@ void ftLg_SpecialAirLw_Enter(HSD_GObj* gobj)
     Fighter_ChangeMotionState(gobj, ftLg_MS_SpecialAirLw, 0, 0.0f, 1.0f, 0.0f,
                               NULL);
     ftAnim_8006EBA4(gobj);
-    if (fp2->u.lg.x222C_cycloneCharge != 0) {
+    if (Rogue_AbilityVars(fp2, Ft_Kind_Luigi)->lg.x222C_cycloneCharge != 0) {
         cycloneVar = 0.0f;
     } else {
         cycloneVar = luigiAttrs->x8C_LUIGI_CYCLONE_TAP_Y_VEL_MAX;
@@ -133,7 +134,7 @@ void ftLg_SpecialAirLw_Anim(HSD_GObj* gobj)
 
     if (fp->cmd_vars[1] != 0) {
         fp->cmd_vars[1] = 0;
-        fp->u.lg.x222C_cycloneCharge = true;
+        Rogue_AbilityVars(fp, Ft_Kind_Luigi)->lg.x222C_cycloneCharge = true;
     }
 
     if (!ftAnim_IsFramesRemaining(gobj)) {
@@ -212,7 +213,7 @@ void ftLg_SpecialAirLw_Phys(HSD_GObj* gobj)
     Fighter* fp = GET_FIGHTER(gobj);
     ftLuigiAttributes* attrs0 = fp->dat_attrs;
 
-    if (!fp->u.lg.x222C_cycloneCharge && fp->cmd_vars[2] != 0 &&
+    if (!Rogue_AbilityVars(fp, Ft_Kind_Luigi)->lg.x222C_cycloneCharge && fp->cmd_vars[2] != 0 &&
         (fp->input.pressed_buttons & HSD_PAD_B))
     {
         ftCommon_Ascend(fp, attrs0->x8C_LUIGI_CYCLONE_TAP_Y_VEL_MAX,
@@ -292,7 +293,7 @@ static inline void ftLuigi_SpecialAirLw_AirToGround(HSD_GObj* gobj)
     fp->cmd_vars[2] = 0;
     ftCommon_8007D7FC(fp);
     fp->self_vel.y = 0.0f;
-    fp->u.lg.x222C_cycloneCharge = false;
+    Rogue_AbilityVars(fp, Ft_Kind_Luigi)->lg.x222C_cycloneCharge = false;
     Fighter_ChangeMotionState(gobj, ftLg_MS_SpecialLw, FTLUIGI_SPECIALLW_FLAG,
                               fp->cur_anim_frame, 1.0f, 0.0f, NULL);
     ftCommon_ClampGroundVel(fp,

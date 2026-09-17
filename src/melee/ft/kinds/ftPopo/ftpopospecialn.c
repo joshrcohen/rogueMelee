@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftpopospecialn.h"
 
 #include <Runtime/platform.h>
@@ -121,17 +122,17 @@ void ftPp_SpecialAirN_Coll(Fighter_GObj* gobj)
     da = fp->dat_attrs;
     if (ft_80081D0C(gobj) != GA_Ground) {
         fp1 = gobj->user_data;
-        if (fp1->u.pp.x222C != NULL) {
-            it_802C17DC(fp1->u.pp.x222C);
+        if (Rogue_AbilityVars(fp1, Ft_Kind_Popo)->pp.x222C != NULL) {
+            it_802C17DC(Rogue_AbilityVars(fp1, Ft_Kind_Popo)->pp.x222C);
             fp2 = gobj->user_data;
-            if (fp1->u.pp.x222C == fp2->u.pp.x222C) {
-                fp2->u.pp.x222C = NULL;
+            if (Rogue_AbilityVars(fp1, Ft_Kind_Popo)->pp.x222C == Rogue_AbilityVars(fp2, Ft_Kind_Popo)->pp.x222C) {
+                Rogue_AbilityVars(fp2, Ft_Kind_Popo)->pp.x222C = NULL;
                 fp2->death2_cb = NULL;
                 fp2->take_dmg_cb = NULL;
             }
         }
-        fp->u.pp.x224C = 0;
-        fp->u.pp.x2250 = 0.0f;
+        Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x224C = 0;
+        Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x2250 = 0.0f;
         ftCo_LandingFallSpecial_Enter(gobj, false, da->x8);
     }
 }
@@ -139,8 +140,8 @@ void ftPp_SpecialAirN_Coll(Fighter_GObj* gobj)
 static inline void inlineA0(Fighter_GObj* gobj, Fighter* other_fp)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    if (other_fp->u.pp.x222C == fp->u.pp.x222C) {
-        fp->u.pp.x222C = NULL;
+    if (Rogue_AbilityVars(other_fp, Ft_Kind_Popo)->pp.x222C == Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x222C) {
+        Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x222C = NULL;
         fp->death2_cb = NULL;
         fp->take_dmg_cb = NULL;
     }
@@ -158,22 +159,22 @@ void ftPp_SpecialN_8011F500(Fighter_GObj* gobj)
         ftIceClimberAttributes* da = fp->dat_attrs;
         Vec3 pos;
         PAD_STACK(4 * 2);
-        lb_8000B1CC(fp->parts[0].joint, NULL, &pos);
+        lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, 0)].joint, NULL, &pos);
         pos.x = da->xC * fp->facing_dir + pos.x;
-        pos.y += da->x10 + fp->u.pp.x2250;
-        fp->u.pp.x222C =
+        pos.y += da->x10 + Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x2250;
+        Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x222C =
             it_802C1590(gobj, &pos, It_Kind_IceClimber_Ice, fp->facing_dir);
         ft_PlaySFX(fp, 130021, 127, 64);
-        if (fp->u.pp.x222C != NULL) {
+        if (Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x222C != NULL) {
             fp->death2_cb = ftPp_Init_8011F060;
             fp->take_dmg_cb = ftPp_Init_8011F060;
         }
         fp->cmd_vars[0] = 0;
     } else if (cmd_var0 == 2) {
-        if (fp->u.pp.x222C != NULL) {
-            it_802C16F8(fp->u.pp.x222C);
+        if (Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x222C != NULL) {
+            it_802C16F8(Rogue_AbilityVars(fp, Ft_Kind_Popo)->pp.x222C);
             fp->cmd_vars[0] = 0;
-            if (fp->kind == Ft_Kind_Popo) {
+            if (Rogue_AbilitySourceKind(fp) == Ft_Kind_Popo) {
                 ft_800881D8(fp, 130141, 127, 64);
             } else {
                 ft_800881D8(fp, 130090, 127, 64);

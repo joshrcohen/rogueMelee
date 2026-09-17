@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue_ability.h>
 #include "ftkirbyspecialpeach.h"
 
 #include <melee/ft/forward.h>
@@ -33,10 +34,10 @@ static void fn_8010C288(HSD_GObj* gobj)
     if (!fp->cmd_vars[2]) {
         Vec3 pos;
         fp->cmd_vars[2] = true;
-        lb_8000B1CC(fp->parts[FtPart_R3rdNa].joint, 0, &pos);
-        fp->u.kb.xD0 = it_802BDE18(gobj, &pos, FtPart_R3rdNa,
+        lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, FtPart_R3rdNa)].joint, 0, &pos);
+        Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xD0 = it_802BDE18(gobj, &pos, FtPart_R3rdNa,
                                    It_Kind_Kirby_PeachToad, fp->facing_dir);
-        if (fp->u.kb.xD0 != NULL) {
+        if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xD0 != NULL) {
             fp->death2_cb = &ftKb_Init_800EE74C;
             fp->take_dmg_cb = &ftKb_Init_800EE7B8;
         }
@@ -53,7 +54,7 @@ void fn_8010C344(HSD_GObj* arg0)
         Fighter* fp = arg0->user_data;
         Vec3 pos;
         PAD_STACK(4 * 2);
-        lb_8000B1CC(fp->parts[FtPart_R3rdNa].joint, 0, &pos);
+        lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, FtPart_R3rdNa)].joint, 0, &pos);
         pos.y += 2.5f;
         pos.z = 0;
         it_802BE214(arg0, &pos, It_Kind_Kirby_PeachToadSpore, fp->facing_dir);
@@ -65,14 +66,14 @@ void ftKb_SpecialNPe_8010C3C0(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
     ftKb_SpecialNPe_8010C47C(gobj);
-    fp->u.kb.xD0 = NULL;
+    Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xD0 = NULL;
 }
 
 void ftKb_SpecialNPe_8010C3F4(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    if (fp->u.kb.xD0 != NULL) {
-        it_802BDF40(fp->u.kb.xD0);
+    if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xD0 != NULL) {
+        it_802BDF40(Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xD0);
         ftKb_SpecialNPe_8010C3C0(gobj);
     }
 }
@@ -80,16 +81,16 @@ void ftKb_SpecialNPe_8010C3F4(Fighter_GObj* gobj)
 void fn_8010C44C(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    if (fp->u.kb.xD0 != NULL) {
-        it_802BDFA0(fp->u.kb.xD0);
+    if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xD0 != NULL) {
+        it_802BDFA0(Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xD0);
     }
 }
 
 void ftKb_SpecialNPe_8010C47C(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    if (fp->u.kb.xD0 != NULL) {
-        it_802BDFC0(fp->u.kb.xD0);
+    if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xD0 != NULL) {
+        it_802BDFC0(Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xD0);
     }
 }
 
@@ -188,8 +189,8 @@ void ftKb_PeSpecialAirLw_Phys(HSD_GObj* gobj)
     if (cmd_var0 >= 1) {
         if (cmd_var0 == 1) {
             fp->cmd_vars[0] = 2;
-            if (!fp->u.kb.xCC) {
-                fp->u.kb.xCC = true;
+            if (!Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xCC) {
+                Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xCC = true;
                 fp->self_vel.y = da->specialn_pe_air_initial_vertical_momentum;
             } else {
                 fp->self_vel.y = 0;
@@ -236,7 +237,7 @@ void ftKb_SpecialNPe_8010C8D8(HSD_GObj* gobj)
         ftKb_DatAttrs* da;
         Fighter* fp = GET_FIGHTER(gobj);
         da = fp->dat_attrs;
-        if (fp->u.kb.xD0 != NULL) {
+        if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xD0 != NULL) {
             fp->death2_cb = ftKb_Init_800EE74C;
             fp->take_dmg_cb = ftKb_Init_800EE7B8;
         }
@@ -260,7 +261,7 @@ void ftKb_SpecialNPe_8010C9CC(HSD_GObj* gobj)
                           (1 << 14) | (1 << 18) | (1 << 19) | (1 << 22) |
                           (1 << 26) | (1 << 27);
     Fighter* fp = GET_FIGHTER(gobj);
-    fp->u.kb.xCC = false;
+    Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xCC = false;
     ftCommon_AirToGroundStateChange(gobj, fp, ftKb_MS_PeSpecialLw, mf);
     {
         /// @todo @c da can't move below @c fp
@@ -268,7 +269,7 @@ void ftKb_SpecialNPe_8010C9CC(HSD_GObj* gobj)
         Fighter* fp = GET_FIGHTER(gobj);
         PAD_STACK(4 * 2);
         da = fp->dat_attrs;
-        if (fp->u.kb.xD0 != NULL) {
+        if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xD0 != NULL) {
             fp->death2_cb = ftKb_Init_800EE74C;
             fp->take_dmg_cb = ftKb_Init_800EE7B8;
         }
@@ -357,7 +358,7 @@ void ftKb_SpecialNGw_8010CCD4(HSD_GObj* gobj)
                           (1 << 14) | (1 << 18) | (1 << 19) | (1 << 22) |
                           (1 << 26) | (1 << 27);
     Fighter* fp = GET_FIGHTER(gobj);
-    fp->u.kb.xCC = false;
+    Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xCC = false;
     ftCommon_AirToGroundStateChange(gobj, fp, ftKb_MS_PeSpecialLwHit, mf);
     ftKb_SpecialNGw_8010CD44(gobj);
 }
@@ -365,7 +366,7 @@ void ftKb_SpecialNGw_8010CCD4(HSD_GObj* gobj)
 void ftKb_SpecialNGw_8010CD44(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    if (fp->u.kb.xD0 != NULL) {
+    if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xD0 != NULL) {
         fp->death2_cb = ftKb_Init_800EE74C;
         fp->take_dmg_cb = ftKb_Init_800EE7B8;
     }
@@ -387,8 +388,8 @@ void fn_8010CD88(HSD_GObj* gobj)
         Fighter_ChangeMotionState(gobj, msid, 0, 9, 1, 0, 0);
     }
     ftAnim_8006EBA4(gobj);
-    if (fp->u.kb.xD0 != NULL) {
-        it_802BE100(fp->u.kb.xD0);
+    if (Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xD0 != NULL) {
+        it_802BE100(Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xD0);
     }
     ftKb_SpecialNGw_8010CD44(gobj);
 }

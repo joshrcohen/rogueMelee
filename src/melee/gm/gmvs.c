@@ -1,3 +1,4 @@
+#include <melee/rogue/rogue.h>
 #include "gmvs.h"
 
 #include <Runtime/platform.h>
@@ -1562,7 +1563,7 @@ void gm_Scene_Vs_OnFrame(void)
         }
         break;
     case 3:
-        gm_801A4B60();
+        if (!Rogue_PostFight()) gm_801A4B60();
         break;
     }
     if (controller.start.on_frame_end != NULL) {
