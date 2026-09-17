@@ -4,41 +4,32 @@ FIRST INSTALL:
 1. Extract this ZIP.
 2. Run Apply Mod.exe, choose your US 1.02 Melee ISO/GCM, and choose where
    to save RogueMelee.iso. Your original image stays unchanged.
-3. Run Play in Slippi.exe. Select the patched ISO and your actual
-   Slippi Dolphin.exe (NOT Slippi Launcher.exe). It verifies the ISO,
-   places the mod recognition file in the correct Sys/GameSettings folder,
-   and starts Slippi. No installation or normal Melee settings changes.
+3. Run RogueMelee.exe.
+4. The first time, select RogueMelee.iso and your actual Slippi Dolphin.exe
+   (NOT Slippi Launcher.exe).
 
-UPDATING AN EXISTING ROGUEMELEE.ISO:
-Use the newest RogueMelee-Update.zip, extract every file together, run
-Update RogueMelee.exe, and select the RogueMelee.iso you already use.
-You do NOT need your original Melee ISO again. The updater verifies the clean
-US 1.02 executable preserved inside the image, generates the newest mod
-executable, appends it, verifies it, and only then switches the ISO to it.
-Keep using the same RogueMelee.iso afterward.
+AFTER THE FIRST INSTALL:
+Use RogueMelee.exe to play. It checks the latest GitHub Release, downloads only
+the current RogueMelee patch files, safely updates the same RogueMelee.iso when
+needed, updates the mod recognition file, and launches Slippi.
 
-Always use Play in Slippi.exe from the SAME release as the updater/ISO so its
-rogue.delta verification matches the installed build.
+You do NOT need your original Melee ISO for normal updates. The patched image
+preserves the clean US 1.02 main.dol so future updates can rebuild only the
+modded executable. Update RogueMelee.exe and Play in Slippi.exe remain included
+as manual fallback tools during the transition to the automatic launcher.
 
-IF THE GAME CLOSES: close existing Slippi windows, retry this launcher,
-and provide the Slippi version plus Launch diagnostic.txt from this folder.
-The diagnostic includes local file paths; you can redact your username.
-A process staying open is not proof that gameplay works.
+RogueMelee.exe stores only the selected ISO/emulator paths and cached update
+assets under %APPDATA%\RogueMelee. Run "RogueMelee.exe --reset" if you need to
+choose different paths.
 
-No emulator selection is needed by the patch/update tools. DolphinTool.exe is
-NOT required for friends using the portable ZIP. No installer, emulator,
-controller configuration or game is bundled. The included GRGE01.ini is only
-the mod-specific Slippi recognition file. If your source is RVZ, convert it to
-ISO in your emulator first. Requires Windows.
-
-Use the emulator directly for OFFLINE play, not Slippi matchmaking.
-The mod uses a separate disc ID (GRGE01) so the normal GALE01 Melee/Slippi
-code pack is not applied to the rebuilt executable. Existing Slippi settings
-and the original Melee image are not modified.
+Use the emulator directly for OFFLINE play if desired. The mod uses the separate
+disc ID GRGE01 so the normal GALE01 Melee/Slippi code pack is not applied to the
+rebuilt executable. Existing Slippi settings and the original Melee image are
+not modified.
 
 In-game: 1-P Mode > Regular Match > Rogue Mode.
-Camp: stand in an item's marked zone and press A. Use the glowing native
-exit to continue to the next fight.
+Camp: stand in an item's marked zone and press A. Use the glowing native exit
+to continue to the next fight.
 
-This is an unfinished playtest. Phillip AI is not enabled. Borrowed moves
-and full-run compatibility are still being tested. Online play is unsupported.
+This is an unfinished playtest. Phillip AI is not enabled. Borrowed moves and
+full-run compatibility are still being tested. Online play is unsupported.

@@ -14,14 +14,15 @@ echo [1/2] Building Rogue Melee...
 if errorlevel 1 goto :fail
 
 echo.
-echo [2/2] Building shareable packages...
+echo [2/2] Building local/test packages...
 %PY% tools\package\build_mod_zip.py
 if errorlevel 1 goto :fail
 
 echo.
 echo Done.
-echo Send dist\RogueMelee-Update.zip to friends who already have RogueMelee.iso.
-echo Use dist\RogueMelee-Mod.zip for a fresh install.
+echo.
+echo Local/test packages are in dist\.
+echo To publish an update for friends, run "Publish Update.bat".
 start "" explorer.exe "%CD%\dist"
 exit /b 0
 

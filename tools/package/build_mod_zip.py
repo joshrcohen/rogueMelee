@@ -50,6 +50,12 @@ subprocess.run([
     '/out:' + str(folder / 'Play in Slippi.exe'),
     str(ROOT / 'tools/package/LaunchMod.cs')
 ], check=True)
+subprocess.run([
+    compiler, '/nologo', '/target:winexe', '/main:RogueMelee', '/platform:x64', '/optimize+',
+    *common_refs,
+    '/out:' + str(folder / 'RogueMelee.exe'),
+    str(ROOT / 'tools/package/RogueMelee.cs'), str(ROOT / 'tools/package/PatchCore.cs')
+], check=True)
 
 dist = ROOT / 'dist'
 dist.mkdir(exist_ok=True)
@@ -58,14 +64,15 @@ update_output = dist / 'RogueMelee-Update.zip'
 
 with zipfile.ZipFile(full_output, 'w', zipfile.ZIP_DEFLATED) as archive:
     for name in (
-        'Apply Mod.exe', 'Update RogueMelee.exe', 'Play in Slippi.exe',
-        'rogue.delta', 'version.txt', 'READ ME.txt', 'UPDATE ME.txt', 'GRGE01.ini'
+        'Apply Mod.exe', 'RogueMelee.exe', 'Update RogueMelee.exe',
+        'Play in Slippi.exe', 'rogue.delta', 'version.txt',
+        'READ ME.txt', 'UPDATE ME.txt', 'GRGE01.ini'
     ):
         archive.write(folder / name, name)
 
 with zipfile.ZipFile(update_output, 'w', zipfile.ZIP_DEFLATED) as archive:
     for name in (
-        'Update RogueMelee.exe', 'Play in Slippi.exe',
+        'RogueMelee.exe', 'Update RogueMelee.exe', 'Play in Slippi.exe',
         'rogue.delta', 'version.txt', 'UPDATE ME.txt', 'GRGE01.ini'
     ):
         archive.write(folder / name, name)

@@ -1,26 +1,24 @@
-ROGUE MELEE UPDATE
+ROGUE MELEE AUTOMATIC UPDATES
 
-For friends who already have a RogueMelee.iso:
+If you already have RogueMelee.iso:
 
-1. Extract every file from RogueMelee-Update.zip into one folder.
-2. Double-click "Update RogueMelee.exe".
-3. Select your existing RogueMelee.iso.
-4. When it says the update succeeded, keep using that same ISO.
+1. Keep RogueMelee.exe somewhere convenient.
+2. Double-click RogueMelee.exe.
+3. The first time only, select your existing RogueMelee.iso and your actual
+   Slippi Dolphin.exe.
+4. From then on, use RogueMelee.exe whenever you want to play.
 
-The updater does not need your original Melee ISO. RogueMelee keeps the clean US 1.02
-main.dol inside the image, and the updater rebuilds only the latest mod executable.
-It appends and verifies the new executable before switching the ISO to it.
+RogueMelee.exe checks joshrcohen/rogueMelee GitHub Releases for the newest build.
+When a newer build exists it downloads rogue.delta, version.txt, GRGE01.ini and
+the newest launcher, verifies the generated executable, updates your existing ISO
+transactionally, then launches Slippi.
 
-You can jump from an older Rogue Melee build straight to the newest update package.
-Very old RogueMelee ISOs made before updater metadata existed are supported by a
-fallback scan. If that scan cannot identify the clean executable, recreate the ISO
-once using the newest Apply Mod.exe; updates after that are direct.
+You do not need the original Melee ISO again for normal updates, and you do not
+need Git, Python, Ninja, or future update ZIPs.
 
-Do not rename or separate rogue.delta from Update RogueMelee.exe.
-The updater does not touch Dolphin/Slippi saves or settings.
+If the internet is unavailable, RogueMelee.exe can launch a previously cached
+installed build. Run "RogueMelee.exe --reset" to forget the saved ISO/emulator
+paths and choose them again.
 
-After updating, use the "Play in Slippi.exe" included with the SAME update ZIP.
-That launcher verifies the ISO against the new patch and installs/verifies GRGE01.ini.
-
-If the updater is interrupted before the final switch, it restores the previous ISO
-header and length so the old build remains selected.
+Update RogueMelee.exe and Play in Slippi.exe remain in the package as manual
+fallback tools.

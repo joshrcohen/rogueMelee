@@ -6,10 +6,12 @@ This repository contains only the mod. The build fetches the pinned upstream
 
 ## Contents
 
-- `mod/` � Rogue mode source.
-- `patches/engine.patch` � changes to native Melee and its build configuration.
-- `tools/` � build and portable ZIP packaging tools.
-- `tests/` � regression tests.
+- `mod/` — Rogue mode source.
+- `patches/engine.patch` — changes to native Melee and its build configuration.
+- `tools/` — build and portable packaging/update tools.
+- `tests/` — regression tests.
+- `Make Update Package.bat` — local build/package helper.
+- `Publish Update.bat` — one-click GitHub Release publisher for friend updates.
 
 ## Build
 
@@ -22,44 +24,100 @@ python tools/build.py --image "C:\path\Melee.iso" --dolphin "C:\path\Dolphin.exe
 python tools/package/build_mod_zip.py
 ```
 
-After the first setup, the quickest release flow is to double-click
-`Make Update Package.bat`. It rebuilds the mod, creates both ZIPs, and opens
-`dist/`. The equivalent commands are `python tools/build.py` followed by
-`python tools/package/build_mod_zip.py`.
+After the first setup, `Make Update Package.bat` rebuilds the mod and creates
+local/test packages in `dist/`.
 
-Packaging creates two shareable artifacts:
+Packaging creates:
 
-- `dist/RogueMelee-Mod.zip` — full package for a first install.
-- `dist/RogueMelee-Update.zip` — small update package for friends who already
-  have `RogueMelee.iso`.
+- `dist/RogueMelee-Mod.zip` — first-install package.
+- `dist/RogueMelee-Update.zip` — manual fallback update package.
+- `build/package/RogueMelee.exe` — self-updating friend launcher.
+- `build/package/rogue.delta`, `version.txt`, and `GRGE01.ini` — release assets.
 
-No game image, emulator, compiler, or save is committed. The Windows .NET
-Framework compiler builds the portable patch, updater, and launch tools.
-Set `ROGUEMELEE_VERSION` before packaging if you want a friendly version name;
-otherwise the package uses the current short Git commit.
+No game image, emulator, compiler, save, DOL, or delta is committed. The Windows
+.NET Framework compiler builds the portable patch/update/launch tools. By
+default package versions use the current short Git commit.
 
 The upstream baseline is `11749c9ccbaf73bfc28a569650dfec5e18665a74`.
 It is downloaded into ignored `.cache/`; extracted assets and build output are
 also ignored. `python tools/build.py --prepare-only` verifies the upstream patch
-without a game image. Preserve `build/dolphin-user` if using local saved settings.
+without a game image.
+
+## Friend install and automatic updates
+
+For a first install, a friend extracts `RogueMelee-Mod.zip`, runs
+**Apply Mod.exe** on their own clean US 1.02 image, and saves `RogueMelee.iso`.
+They then run **RogueMelee.exe** and select:
+
+1. that `RogueMelee.iso`;
+2. their actual `Slippi Dolphin.exe` or `Dolphin.exe`.
+
+After that, they only run **RogueMelee.exe**.
+
+The launcher checks the repository's latest GitHub Release. If a newer build is
+available, it downloads the tagged release's `rogue.delta`, `GRGE01.ini`, and
+launcher, rebuilds the newest mod executable from the clean US 1.02 executable
+preserved inside the Rogue Melee ISO, verifies it, appends it transactionally,
+updates the disc metadata, refreshes the Slippi recognition file, and launches
+the emulator.
+
+The launcher stores selected paths and cached release assets under
+`%APPDATA%\RogueMelee`. Run:
+
+```text
+RogueMelee.exe --reset
+```
+
+to select different ISO/emulator paths.
+
+If GitHub is temporarily unavailable, a cached installed build can still launch.
+The old **Update RogueMelee.exe** and **Play in Slippi.exe** are kept as manual
+fallback tools.
+
+## Publishing updates
+
+The automatic launcher expects GitHub Releases tagged as:
+
+```text
+build-<version>
+```
+
+with these assets:
+
+```text
+rogue.delta
+version.txt
+GRGE01.ini
+RogueMelee.exe
+```
+
+`Publish Update.bat` automates this. It requires the GitHub CLI (`gh`) to be
+installed and authenticated. One-time setup:
+
+```powershell
+winget install --id GitHub.cli
+gh auth login
+```
+
+Then, after committing changes on `main`, double-click:
+
+```text
+Publish Update.bat
+```
+
+The publisher:
+
+1. refuses to publish a dirty working tree or non-`main` branch;
+2. pushes `main`;
+3. builds Rogue Melee;
+4. generates `rogue.delta` and the Windows launcher;
+5. uses the current 8-character commit SHA as the version;
+6. creates/updates `build-<sha>` on GitHub Releases;
+7. marks that release as Latest.
+
+Friends receive it automatically the next time they run `RogueMelee.exe`.
 
 ## Play
-
-For a first install, extract `RogueMelee-Mod.zip`, run **Apply Mod.exe** on your
-original ISO, then run **Play in Slippi.exe** with the patched ISO and your
-emulator. The launcher handles Slippi's separate mod-recognition file.
-
-For updates, send `RogueMelee-Update.zip`. Your friend extracts it, runs
-**Update RogueMelee.exe**, selects their existing `RogueMelee.iso`, and keeps
-using that same ISO. The updater rebuilds the latest mod executable from the
-clean US 1.02 executable already preserved inside the Rogue Melee image, verifies
-it, appends it, and only then switches the disc header to the new executable.
-It does not need the original ISO again and does not touch Dolphin/Slippi saves.
-
-Newly-created Rogue Melee ISOs record the clean executable location for fast
-future updates. Older Rogue Melee ISOs are supported by a verified fallback scan;
-if a very old image cannot be identified, recreate it once with the latest
-**Apply Mod.exe** and future updates are direct.
 
 Choose **1-P Mode > Regular Match > Rogue Mode**. Camp choices use floor zones
 and A; the native glowing exit starts the next fight.
@@ -70,11 +128,11 @@ and A; the native glowing exit starts the next fight.
 python -m unittest discover -s tests -p "test_*.py" -v
 ```
 
-CI checks packaging tests and compiles the portable patch, update, and launch
-tools. The two C regression sources require the PC port's host compatibility
-headers and are not run by CI.
+CI checks packaging tests and compiles the portable patch, manual updater,
+manual launcher, and automatic `RogueMelee.exe` launcher. The C regression
+sources require the PC port's host compatibility headers and are not run by CI.
 
 This is an unfinished offline playtest. Physical adapter validation, full-run
 compatibility and borrowed-special compatibility remain outstanding. Phillip AI
-and online play are not enabled. Controller routing follows the port that selects
-Rogue Mode. See the ZIP instructions for current playtest limitations.
+and online play are not enabled. Controller routing follows the port that
+selects Rogue Mode.

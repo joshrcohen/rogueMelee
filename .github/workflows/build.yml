@@ -15,7 +15,7 @@ jobs:
           python-version: '3.11'
       - name: Test delta format
         run: python -m unittest discover -s tests -p "test_*.py" -v
-      - name: Compile portable patch, update, and launch tools
+      - name: Compile portable patch, update, launch, and auto-update tools
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force build/package | Out-Null
@@ -25,4 +25,6 @@ jobs:
           & $compiler /nologo /target:winexe /main:UpdateMod /platform:x64 /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.IO.Compression.dll /reference:System.IO.Compression.FileSystem.dll /out:"build/package/Update RogueMelee.exe" (Resolve-Path tools/package/UpdateMod.cs).Path (Resolve-Path tools/package/PatchCore.cs).Path
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & $compiler /nologo /target:winexe /platform:x64 /reference:System.Windows.Forms.dll /out:"build/package/Play in Slippi.exe" (Resolve-Path tools/package/LaunchMod.cs).Path
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $compiler /nologo /target:winexe /main:RogueMelee /platform:x64 /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.IO.Compression.dll /reference:System.IO.Compression.FileSystem.dll /out:"build/package/RogueMelee.exe" (Resolve-Path tools/package/RogueMelee.cs).Path (Resolve-Path tools/package/PatchCore.cs).Path
           exit $LASTEXITCODE
