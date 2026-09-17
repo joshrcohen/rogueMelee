@@ -137,7 +137,9 @@ void RogueUI_HudFrame(void)
 {
     const RogueEncounter* encounter;
     const RogueStats* stats;
+    HSD_Text* shadow;
     HSD_Text* panel;
+    HSD_Text* accent;
     char raw[128], encoded[128];
     int fight;
 
@@ -152,22 +154,36 @@ void RogueUI_HudFrame(void)
             encounter->act_floor;
 
     /*
-     * Keep the in-fight HUD glanceable. The full build inspector owns the
-     * detailed stats and ability list; gameplay gets a small status strip.
+     * Melee-like compact HUD:
+     * - subtle drop shadow
+     * - dark body
+     * - gold accent tab
+     * - only the information you can use at a glance during gameplay
      */
-    panel = ui_object(-18.7f, -13.75f, .0115f, ui_gold);
-    panel->bg_color = ui_dark;
-    panel->box_size_x = 11.7f / .0115f;
-    panel->box_size_y = 2.55f / .0115f;
+    shadow = ui_object(-18.92f, -13.86f, .0112f, ui_black);
+    shadow->bg_color = ui_black;
+    shadow->box_size_x = 12.55f / .0112f;
+    shadow->box_size_y = 3.15f / .0112f;
 
-    snprintf(raw, sizeof(raw), "FIGHT %d / %d   %.18s",
+    panel = ui_object(-18.78f, -13.72f, .0112f, ui_white);
+    panel->bg_color = ui_dark;
+    panel->box_size_x = 12.25f / .0112f;
+    panel->box_size_y = 2.85f / .0112f;
+
+    accent = ui_object(-18.78f, -13.72f, .0108f, ui_black);
+    accent->bg_color = ui_gold;
+    accent->box_size_x = 2.35f / .0108f;
+    accent->box_size_y = 0.92f / .0108f;
+    ui_encode(encoded, "ROGUE");
+    HSD_SisLib_803A6B98(accent, 10.0f, 6.0f, "%s", encoded);
+
+    snprintf(raw, sizeof(raw), "FIGHT %d/%d   %.18s",
              fight, ROGUE_RUN_ENCOUNTERS,
              encounter->name ? encounter->name : "Encounter");
-    ui_encode(encoded, raw);
-    HSD_SisLib_803A6B98(panel, 12.0f, 7.0f, "%s", encoded);
+    ui_at(-16.15f, -13.15f, .0105f, ui_white, "%s", raw);
 
-    ui_at(-18.35f, -12.45f, .0095f, ui_muted,
-          "A%d-%d  G%d    DMG %+.0f%%  RUN %+.0f%%  SH %+.0f%%",
+    ui_at(-18.42f, -12.12f, .0093f, ui_muted,
+          "A%d-%d  G%d  DMG %+.0f%%  RUN %+.0f%%  SH %+.0f%%",
           encounter->act, encounter->act_floor, g_rogue_run.currency,
           (stats->damage_dealt - 1.0f) * 100,
           (stats->run_speed - 1.0f) * 100,
