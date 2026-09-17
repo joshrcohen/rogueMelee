@@ -47,6 +47,9 @@ def main():
     parser.add_argument('--image', type=Path, help='Original US 1.02 ISO/RVZ, required for initial asset extraction')
     parser.add_argument('--dolphin', type=Path, help='Local Dolphin.exe; sibling DolphinTool.exe extracts assets')
     parser.add_argument('--jobs', type=int, default=8)
+    parser.add_argument(
+        '--qa-abilities', action='store_true',
+        help='Build the host-driven borrowed-special compatibility harness')
     args = parser.parse_args()
     checkout = prepare()
     if args.prepare_only:
@@ -72,7 +75,11 @@ def main():
     target_original = checkout / 'orig/GALE01/sys/main.dol'
     target_original.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(original, target_original)
-    os.environ.pop('ROGUE_QA', None)
+    if args.qa_abilities:
+        os.environ['ROGUE_QA'] = '3'
+        print('QA mode: borrowed-special compatibility matrix')
+    else:
+        os.environ.pop('ROGUE_QA', None)
     run([sys.executable, 'configure.py', '--non-matching'], checkout)
     ninja = shutil.which('ninja') or ROOT.parent / '.tools/bin/ninja.exe'
     run([ninja, '-j', str(args.jobs)], checkout)

@@ -23,7 +23,7 @@ typedef struct RogueEncounter {
     int enemy_count;
     int act, act_floor;
     const char* name;
-    /* Primary opponent is also the ability reward source. */
+    /* Primary opponent used for encounter identity and themed rewards. */
     CharacterKind enemy_kind;
     StKind stage;
     u8 cpu_level;

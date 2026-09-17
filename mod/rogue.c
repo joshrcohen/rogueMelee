@@ -139,6 +139,12 @@ static void encounterFrame(void)
 {
     RogueEffects_OnFrame();
     RogueAI_OnFrame();
+#ifdef ROGUE_QA
+    if (Rogue_DebugMatrixFrame()) {
+        gm_8016B328();
+        return;
+    }
+#endif
     if (gm_GetFrameCount() >= 30) RogueUI_HudFrame();
     if (Rogue_IsActive() && g_rogue_run.current_encounter.enemy_kind == CKind_MasterH) {
         HSD_GObj* entity = Player_GetEntity(1);
@@ -213,17 +219,24 @@ void Rogue_ModeOnLoad(void)
      * remains the human; its physical controller port can be any of 0..3. */
     controller_port = gm_801677F0();
     if (controller_port >= 4) controller_port = 0;
+#if !(defined(ROGUE_QA) && ROGUE_QA == 3)
     RogueHistory_Load();
+#endif
     pending_seed = OSGetTick();
     Rogue_NewRun(CKind_Mario, pending_seed);
     gm_SetGameModeStateId(0);
 #ifdef ROGUE_QA
+#if ROGUE_QA == 3
+    /* Host-driven borrowed-special compatibility matrix. */
+    Rogue_DebugMatrixModeLoad();
+    gm_SetGameModeStateId(2);
+#elif ROGUE_QA == 1
     Rogue_NewRun(CKind_Mario, 314159);
-#if ROGUE_QA == 1
     g_rogue_run.floor=4;g_rogue_run.wins=3;g_rogue_run.currency=180;
     Rogue_GenerateEncounter(&g_rogue_run.current_encounter,&g_rogue_run.rng,4);
     Rogue_BeginCamp();gm_SetGameModeStateId(3);
 #else
+    Rogue_NewRun(CKind_Mario, 314159);
     gm_SetGameModeStateId(1);
 #endif
 #endif
@@ -236,6 +249,10 @@ void Rogue_ModeOnUnload(void)
 }
 bool Rogue_PostFight(void)
 {
+#ifdef ROGUE_QA
+    /* Matrix cases intentionally terminate/rebuild scenes without awarding wins. */
+    if (Rogue_DebugMatrixEnabled()) return false;
+#endif
     if (gm_GetCurrentGameMode() != GM_ROGUE || in_camp ||
         g_rogue_run.phase == ROGUE_PHASE_REST || g_rogue_run.phase == ROGUE_PHASE_SHOP)
         return false;
@@ -271,6 +288,14 @@ bool Rogue_PostFight(void)
 static void exitEncounter(GameModeState* state)
 {
     (void)state;
+#ifdef ROGUE_QA
+    if (Rogue_DebugMatrixConsumeReload()) {
+        resolved = false;
+        destination = 2;
+        gm_SetNextGameModeStateId(2);
+        return;
+    }
+#endif
     if (!resolved) { Rogue_ResetRun(); destination = -1; }
     if (destination < 0) gm_ChangeGameModeAfterCurrentScene(GM_MENU);
     else gm_SetNextGameModeStateId(destination);

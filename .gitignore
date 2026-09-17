@@ -31,3 +31,7 @@ __pycache__/
 *.log
 !/Make Update Package.bat
 !/Publish Update.bat
+!/tools/qa/
+!/tools/qa/**
+!/Run Ability Matrix.bat
+/qa-results/

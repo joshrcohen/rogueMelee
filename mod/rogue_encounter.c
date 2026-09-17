@@ -58,14 +58,33 @@ void Rogue_GenerateEncounter(RogueEncounter* encounter, RogueRng* rng,
             encounter->name = variant == 1 ? "Swarm" : "Tag Team";
         }
     }
-    variant = RogueRng_Bounded(rng, 5);
+    variant = RogueRng_Bounded(rng, 8);
     if (encounter->type == ROGUE_ENCOUNTER_ELITE) {
-        static const char* names[] = { "Metal Mario & Luigi", "Giant Donkey Kong", "Giant Bowser", "Armored Samus", "Kirby Brigade" };
-        static const CharacterKind kinds[] = { CKind_Mario, CKind_Donkey, CKind_Koopa, CKind_Samus, CKind_Kirby };
-        encounter->name = names[variant];
-        encounter->enemy_kind = kinds[variant];
-        encounter->enemy_count = variant == 0 ? 2 : variant == 4 ? 3 : 1;
-        encounter->stage = variant == 4 ? St_Kind_Story : St_Kind_Battle;
+        static const char* names[] = {
+            "Metal Mario & Luigi", "Giant Donkey Kong", "Giant Bowser",
+            "Armored Samus", "Kirby Brigade"
+        };
+        static const CharacterKind kinds[] = {
+            CKind_Mario, CKind_Donkey, CKind_Koopa, CKind_Samus, CKind_Kirby
+        };
+        if (variant < 5) {
+            encounter->name = names[variant];
+            encounter->enemy_kind = kinds[variant];
+            encounter->enemy_count = variant == 0 ? 2 : variant == 4 ? 3 : 1;
+            encounter->stage = variant == 4 ? St_Kind_Story : St_Kind_Battle;
+        } else {
+            /*
+             * Generic elites can use the entire playable roster instead of
+             * repeatedly drawing from five hard-coded characters.
+             */
+            encounter->name = variant == 5 ? "Champion" :
+                              variant == 6 ? "Juggernaut" : "Glass Cannon";
+            encounter->enemy_kind =
+                enemies[RogueRng_Bounded(rng, sizeof(enemies) / sizeof(enemies[0]))];
+            encounter->enemy_count = 1;
+            encounter->stage =
+                stages[RogueRng_Bounded(rng, sizeof(stages) / sizeof(stages[0]))];
+        }
     }
     for (i = 0; i < encounter->enemy_count; ++i) {
         RogueEnemy* enemy = &encounter->enemies[i];
@@ -97,9 +116,23 @@ void Rogue_GenerateEncounter(RogueEncounter* encounter, RogueRng* rng,
                 enemy->metal = true;
                 enemy->defense_ratio += 0.20f;
                 enemy->stocks = 2;
-            } else {
+            } else if (variant == 4) {
                 enemy->model_scale = 0.8f;
                 enemy->stocks = 2;
+            } else if (variant == 5) {
+                enemy->stocks = 2;
+                enemy->attack_ratio += 0.10f;
+                enemy->defense_ratio += 0.08f;
+            } else if (variant == 6) {
+                enemy->stocks = 2;
+                enemy->model_scale = 1.25f;
+                enemy->attack_ratio += 0.05f;
+                enemy->defense_ratio += 0.18f;
+            } else {
+                enemy->stocks = 2;
+                enemy->model_scale = 0.95f;
+                enemy->attack_ratio += 0.28f;
+                enemy->defense_ratio -= 0.05f;
             }
         } else if (encounter->type == ROGUE_ENCOUNTER_BOSS) {
             enemy->attack_ratio += 0.15f;

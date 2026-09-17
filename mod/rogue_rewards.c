@@ -155,25 +155,45 @@ void Rogue_GenerateRewards(void)
             g_rogue_run.current_encounter.type == ROGUE_ENCOUNTER_ELITE,
             g_rogue_run.current_encounter.type == ROGUE_ENCOUNTER_BOSS));
     }
-    /* Defeated opponents offer one of their actual specials in its native slot. */
-    if (g_rogue_run.current_encounter.enemy_kind != g_rogue_run.player_kind) {
+    /*
+     * Any actual fighter defeated in the encounter may donate a special.
+     * This matters for Tag Team encounters, where the secondary opponent used
+     * to be invisible to the ability reward system.
+     */
+    if (g_rogue_run.current_encounter.enemy_count > 0) {
         static const char* descriptions[4] = {
             "Replace Neutral-B with this fighter's neutral special.",
             "Replace Side-B with this fighter's side special.",
             "Replace Up-B with this fighter's recovery special.",
             "Replace Down-B with this fighter's down special."
         };
-        int first = RogueRng_Bounded(&g_rogue_run.rng, 4);
-        for (i = 0; i < 4; ++i) {
-            int slot = (first + i) % 4;
-            RogueAbilityID id = Rogue_AbilityForOpponent(g_rogue_run.current_encounter.enemy_kind, slot);
-            const RogueAbilityDefinition* def = Rogue_GetAbility(id);
-            if (!def || id == g_rogue_run.ability[slot]) continue;
-            g_rogue_run.current_rewards[0] = (RogueReward) {
-                ROGUE_REWARD_ABILITY, def->name, descriptions[slot], 0, id,
-                g_rogue_run.current_rewards[0].rarity
-            };
-            break;
+        int enemy_first = RogueRng_Bounded(
+            &g_rogue_run.rng, g_rogue_run.current_encounter.enemy_count);
+        bool offered = false;
+        for (int enemy_i = 0;
+             enemy_i < g_rogue_run.current_encounter.enemy_count && !offered;
+             ++enemy_i) {
+            CharacterKind source =
+                g_rogue_run.current_encounter.enemies[
+                    (enemy_first + enemy_i) %
+                    g_rogue_run.current_encounter.enemy_count].kind;
+            int first;
+            if (source < 0 || source >= CKind_Playable_Count ||
+                source == g_rogue_run.player_kind)
+                continue;
+            first = RogueRng_Bounded(&g_rogue_run.rng, 4);
+            for (i = 0; i < 4; ++i) {
+                int slot = (first + i) % 4;
+                RogueAbilityID id = Rogue_AbilityForOpponent(source, slot);
+                const RogueAbilityDefinition* def = Rogue_GetAbility(id);
+                if (!def || id == g_rogue_run.ability[slot]) continue;
+                g_rogue_run.current_rewards[0] = (RogueReward) {
+                    ROGUE_REWARD_ABILITY, def->name, descriptions[slot], 0, id,
+                    g_rogue_run.current_rewards[0].rarity
+                };
+                offered = true;
+                break;
+            }
         }
     }
     g_rogue_run.reward_pending = true;
