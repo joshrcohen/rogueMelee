@@ -133,22 +133,12 @@ static void openCanvas(void)
     ready = true;
 }
 
-static const char* hudAbilityName(int slot)
-{
-    RogueAbilityID id = g_rogue_run.ability[slot];
-    const RogueAbilityDefinition* ability;
-    if (id == ROGUE_ABILITY_NATIVE)
-        id = Rogue_AbilityForOpponent(g_rogue_run.player_kind, slot);
-    ability = Rogue_GetAbility(id);
-    return ability ? ability->name : "Native";
-}
-
 void RogueUI_HudFrame(void)
 {
     const RogueEncounter* encounter;
     const RogueStats* stats;
     HSD_Text* panel;
-    char encoded[128];
+    char raw[128], encoded[128];
     int fight;
 
     if (hud_ready || !Rogue_IsActive() ||
@@ -161,28 +151,27 @@ void RogueUI_HudFrame(void)
     fight = (encounter->act - 1) * ROGUE_FLOORS_PER_ACT +
             encounter->act_floor;
 
-    /* Compact, Melee-style run HUD in the upper-left safe area. */
-    panel = ui_object(-13.7f, -13.3f, .017f, ui_gold);
+    /*
+     * Keep the in-fight HUD glanceable. The full build inspector owns the
+     * detailed stats and ability list; gameplay gets a small status strip.
+     */
+    panel = ui_object(-18.7f, -13.75f, .0115f, ui_gold);
     panel->bg_color = ui_dark;
-    panel->box_size_x = 17.3f / .017f;
-    panel->box_size_y = 7.2f / .017f;
-    ui_encode(encoded, "ROGUE RUN");
-    HSD_SisLib_803A6B98(panel, 18.0f, 8.0f, "%s", encoded);
+    panel->box_size_x = 11.7f / .0115f;
+    panel->box_size_y = 2.55f / .0115f;
 
-    ui_at(-13.25f, -11.85f, .015f, ui_white,
-          "Fight %d / %d   Act %d-%d   Gold %d",
-          fight, ROGUE_RUN_ENCOUNTERS, encounter->act,
-          encounter->act_floor, g_rogue_run.currency);
-    ui_at(-13.25f, -10.65f, .015f, ui_gold, "%.28s",
-          encounter->name ? encounter->name : "Encounter");
-    ui_at(-13.25f, -9.45f, .014f, ui_muted,
-          "DMG %.0f%%   RUN %.0f%%   SH %.0f%%",
-          stats->damage_dealt * 100, stats->run_speed * 100,
-          stats->shield_health * 100);
-    ui_at(-13.25f, -8.25f, .014f, ui_white,
-          "N %.11s   S %.11s", hudAbilityName(0), hudAbilityName(1));
-    ui_at(-13.25f, -7.05f, .014f, ui_white,
-          "U %.11s   D %.11s", hudAbilityName(2), hudAbilityName(3));
+    snprintf(raw, sizeof(raw), "FIGHT %d / %d   %.18s",
+             fight, ROGUE_RUN_ENCOUNTERS,
+             encounter->name ? encounter->name : "Encounter");
+    ui_encode(encoded, raw);
+    HSD_SisLib_803A6B98(panel, 12.0f, 7.0f, "%s", encoded);
+
+    ui_at(-18.35f, -12.45f, .0095f, ui_muted,
+          "A%d-%d  G%d    DMG %+.0f%%  RUN %+.0f%%  SH %+.0f%%",
+          encounter->act, encounter->act_floor, g_rogue_run.currency,
+          (stats->damage_dealt - 1.0f) * 100,
+          (stats->run_speed - 1.0f) * 100,
+          (stats->shield_health - 1.0f) * 100);
 
     hud_ready = true;
 }
