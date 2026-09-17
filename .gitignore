@@ -30,3 +30,4 @@ __pycache__/
 *.delta
 *.log
 !/Make Update Package.bat
+!/Make Update Package.bat
