@@ -15,6 +15,22 @@ static class PatchMod
     static void WriteBE(Stream s, long offset, uint n) {
         s.Position=offset; s.Write(new byte[]{(byte)(n>>24),(byte)(n>>16),(byte)(n>>8),(byte)n},0,4);
     }
+    static string Version() {
+        string path=Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"version.txt");
+        if(!File.Exists(path)) return "latest";
+        string text=File.ReadAllText(path).Trim();
+        return text.Length==0 ? "latest" : text;
+    }
+    static void WriteMetadata(Stream s, uint originalOffset, int originalLength, string version) {
+        byte[] data=new byte[64];
+        Encoding.ASCII.GetBytes("RGMETA01").CopyTo(data,0);
+        data[8]=(byte)(originalOffset>>24);data[9]=(byte)(originalOffset>>16);data[10]=(byte)(originalOffset>>8);data[11]=(byte)originalOffset;
+        uint length=(uint)originalLength;
+        data[12]=(byte)(length>>24);data[13]=(byte)(length>>16);data[14]=(byte)(length>>8);data[15]=(byte)length;
+        byte[] v=Encoding.ASCII.GetBytes(version);
+        Array.Copy(v,0,data,16,Math.Min(v.Length,data.Length-17));
+        s.Position=0x3a0;s.Write(data,0,data.Length);
+    }
     static void MakeISO(string image, string output) {
         if(File.Exists(output)) throw new IOException("Output already exists. Choose another name to preserve your previous copy.");
         string folder=Path.GetDirectoryName(Path.GetFullPath(output));
@@ -49,9 +65,13 @@ static class PatchMod
                     // Slippi/Gecko patches from targeting this relocated DOL.
                     dest.Position=0;byte[] id=Encoding.ASCII.GetBytes("GRGE01");dest.Write(id,0,id.Length);
                     dest.Position=7;dest.WriteByte(0);
+                    string version=Version();
                     byte[] title=new byte[0x3e0];
-                    Encoding.ASCII.GetBytes("Rogue Melee Playtest").CopyTo(title,0);
+                    Encoding.ASCII.GetBytes("Rogue Melee "+version).CopyTo(title,0);
                     dest.Position=0x20;dest.Write(title,0,title.Length);
+                    // Preserve the clean DOL location so future update packages can
+                    // jump from any installed Rogue Melee version to the newest one.
+                    WriteMetadata(dest,dolOffset,(int)length,version);
                 }
                 File.Move(staged,output);
             }
@@ -77,7 +97,7 @@ static class PatchMod
             }
             MakeISO(image,output);
             Console.WriteLine("Ready: "+output);
-            if(!headless)MessageBox.Show("Ready! Open this ISO in Slippi Dolphin or Dolphin:\n\n"+output+"\n\nFor Slippi, first copy the included GRGE01.ini into its Sys/GameSettings folder. Then use File > Open for offline play.","Rogue Melee");
+            if(!headless)MessageBox.Show("Ready! Open this ISO in Slippi Dolphin or Dolphin:\n\n"+output+"\n\nFuture releases can update this same ISO with Update RogueMelee.exe.","Rogue Melee");
             return 0;
         } catch(Exception e) {
             Console.Error.WriteLine(e.Message);
