@@ -2,7 +2,7 @@
 import hashlib
 import subprocess
 import zipfile
-from delta import delta, ROOT, WORK
+from delta import delta, ROOT
 
 folder = ROOT / 'build/package'
 folder.mkdir(parents=True, exist_ok=True)
@@ -19,7 +19,7 @@ subprocess.run([
     '/reference:System.IO.Compression.dll', '/reference:System.IO.Compression.FileSystem.dll',
     '/out:' + str(folder / 'Apply Mod.exe'),
     str(ROOT / 'tools/package/PatchMod.cs'), str(ROOT / 'tools/package/PatchCore.cs')], check=True)
-output = WORK / 'dist/RogueMelee-Mod.zip'
+output = ROOT / 'dist/RogueMelee-Mod.zip'
 subprocess.run([
     'C:/Windows/Microsoft.NET/Framework64/v4.0.30319/csc.exe', '/nologo',
     '/target:winexe', '/platform:x64', '/optimize+',
