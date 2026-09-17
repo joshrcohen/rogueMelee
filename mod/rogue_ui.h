@@ -5,6 +5,7 @@ enum { ROGUE_UI_WAIT, ROGUE_UI_CONTINUE, ROGUE_UI_NEW, ROGUE_UI_REPLAY, ROGUE_UI
 void RogueUI_Reset(void);
 void RogueUI_Clear(void);
 void RogueUI_OpenResults(void);
+void RogueUI_HudFrame(void);
 void RogueUI_IntroFrame(void);
 int RogueUI_Frame(void);
 bool RogueUI_CampFrame(void);

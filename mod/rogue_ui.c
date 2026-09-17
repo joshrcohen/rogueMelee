@@ -110,7 +110,7 @@ static void ui_card(float y, float height, int selected, const char* title,
 }
 
 static int cursor, page, delay, camp_zone = -2, camp_branch;
-static bool ready, inspect, history_open;
+static bool ready, inspect, history_open, hud_ready;
 static int history_cursor;
 static const RogueHistoryEntry* viewed_record;
 static HSD_Text* markers[5];
@@ -123,6 +123,7 @@ void RogueUI_Reset(void)
     camp_zone = -2; inspect = false;
     RogueCamp_Reset();
     history_open=false;history_cursor=0;viewed_record=NULL;
+    hud_ready = false;
     memset(markers, 0, sizeof(markers));
 }
 static void openCanvas(void)
@@ -131,6 +132,61 @@ static void openCanvas(void)
     overlay_canvas = HSD_SisLib_803A611C(0, NULL, 9, 13, 0, 20, 0, 15);
     ready = true;
 }
+
+static const char* hudAbilityName(int slot)
+{
+    RogueAbilityID id = g_rogue_run.ability[slot];
+    const RogueAbilityDefinition* ability;
+    if (id == ROGUE_ABILITY_NATIVE)
+        id = Rogue_AbilityForOpponent(g_rogue_run.player_kind, slot);
+    ability = Rogue_GetAbility(id);
+    return ability ? ability->name : "Native";
+}
+
+void RogueUI_HudFrame(void)
+{
+    const RogueEncounter* encounter;
+    const RogueStats* stats;
+    HSD_Text* panel;
+    char encoded[128];
+    int fight;
+
+    if (hud_ready || !Rogue_IsActive() ||
+        g_rogue_run.phase != ROGUE_PHASE_ENCOUNTER)
+        return;
+
+    openCanvas();
+    encounter = &g_rogue_run.current_encounter;
+    stats = &g_rogue_run.stats;
+    fight = (encounter->act - 1) * ROGUE_FLOORS_PER_ACT +
+            encounter->act_floor;
+
+    /* Compact, Melee-style run HUD in the upper-left safe area. */
+    panel = ui_object(-13.7f, -13.3f, .017f, ui_gold);
+    panel->bg_color = ui_dark;
+    panel->box_size_x = 17.3f / .017f;
+    panel->box_size_y = 7.2f / .017f;
+    ui_encode(encoded, "ROGUE RUN");
+    HSD_SisLib_803A6B98(panel, 18.0f, 8.0f, "%s", encoded);
+
+    ui_at(-13.25f, -11.85f, .015f, ui_white,
+          "Fight %d / %d   Act %d-%d   Gold %d",
+          fight, ROGUE_RUN_ENCOUNTERS, encounter->act,
+          encounter->act_floor, g_rogue_run.currency);
+    ui_at(-13.25f, -10.65f, .015f, ui_gold, "%.28s",
+          encounter->name ? encounter->name : "Encounter");
+    ui_at(-13.25f, -9.45f, .014f, ui_muted,
+          "DMG %.0f%%   RUN %.0f%%   SH %.0f%%",
+          stats->damage_dealt * 100, stats->run_speed * 100,
+          stats->shield_health * 100);
+    ui_at(-13.25f, -8.25f, .014f, ui_white,
+          "N %.11s   S %.11s", hudAbilityName(0), hudAbilityName(1));
+    ui_at(-13.25f, -7.05f, .014f, ui_white,
+          "U %.11s   D %.11s", hudAbilityName(2), hudAbilityName(3));
+
+    hud_ready = true;
+}
+
 static void buildPage(void)
 {
     const RogueStats* s = viewed_record ? &viewed_record->stats : &g_rogue_run.stats;

@@ -139,6 +139,7 @@ static void encounterFrame(void)
 {
     RogueEffects_OnFrame();
     RogueAI_OnFrame();
+    if (gm_GetFrameCount() >= 30) RogueUI_HudFrame();
     if (Rogue_IsActive() && g_rogue_run.current_encounter.enemy_kind == CKind_MasterH) {
         HSD_GObj* entity = Player_GetEntity(1);
         Fighter* boss = entity ? entity->user_data : NULL;
