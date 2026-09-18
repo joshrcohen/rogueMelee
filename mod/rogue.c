@@ -329,16 +329,6 @@ static void routeFrame(void)
     if (choice < 0)
         return;
 
-    /*
-     * A reward after Match 4 prepares the already-generated act boss.
-     * RogueUI_RouteFrame returns this sentinel so we leave this one route
-     * scene and continue into the existing shop/boss flow.
-     */
-    if (choice == ROGUE_ROUTE_CHOICES) {
-        gm_8016B328();
-        return;
-    }
-
     if (RogueRoute_Select(&g_rogue_run.route, choice,
                           &g_rogue_run.current_encounter))
     {
@@ -571,39 +561,6 @@ bool Rogue_PostFight(void)
         }
 
         RogueHistory_Record();
-
-        /*
-         * GmRegClr STAGE CLEAR remains completely vanilla. Once its normal
-         * flow has finished, ordinary wins enter the existing Rogue Route
-         * scene and select the reward there.
-         */
-        if (g_rogue_run.phase == ROGUE_PHASE_REWARD) {
-            int next_floor = g_rogue_run.floor + 1;
-            int next_act_floor =
-                ((next_floor - 1) % ROGUE_FLOORS_PER_ACT) + 1;
-
-            /*
-             * Prepare the next ordinary route round BEFORE state 4 starts.
-             * enterRoute preloads fighter assets from RogueRoute_Current().
-             * If the round is generated only after the upgrade is selected,
-             * the new opponent portrait assets were never loaded for this
-             * live Rest Area scene.
-             */
-            if (next_act_floor < ROGUE_FLOORS_PER_ACT) {
-                if (!RogueRoute_Prepare(&g_rogue_run.route,
-                                        &g_rogue_run.route_rng,
-                                        next_floor))
-                {
-                    gm_ChangeGameModeAfterCurrentScene(GM_MENU);
-                    return false;
-                }
-            }
-
-            RogueUI_Clear();
-            destination = 4;
-            return false;
-        }
-
         RogueUI_OpenResults();
     }
     int action = RogueUI_Frame();
