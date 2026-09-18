@@ -19,7 +19,7 @@ class UiPortraitShopWrapTests(unittest.TestCase):
         self.assertIn("static void ui_wrapped_at", self.ui)
         # Native GmRegClr has a smaller SPECIAL BONUS text region than the
         # old full-screen Rogue reward panel.
-        self.assertIn("detail, 44, 3", self.ui)
+        self.assertIn("detail, 30, 2", self.ui)
         self.assertIn('"CHOOSE UPGRADE"', self.ui)
 
     def test_shop_visible(self):

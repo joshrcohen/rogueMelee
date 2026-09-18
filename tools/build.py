@@ -31,7 +31,6 @@ def prepare():
         ROOT / 'tools/postpatch_ability_fixes_round12.py',
         ROOT / 'tools/postpatch_ability_production_cleanup.py',
         ROOT / 'tools/postpatch_native_1p_flow.py',
-        ROOT / 'tools/postpatch_native_stage_clear_rewards.py',
     ]
     digest = hashlib.sha256()
     digest.update(patch.read_bytes())

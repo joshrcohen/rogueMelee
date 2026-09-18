@@ -465,39 +465,43 @@ static void drawStageClear(void)
     char detail[256];
 
     /*
-     * GmRegClr owns every panel, frame, SCORE element and background here.
-     * Rogue only adds text to the existing native result regions.
+     * The entire right half of GmRegClr stays retail Melee:
+     * SCORE, SPECIAL BONUS, PRESS START, frames and animations.
+     * Rogue only fills the native left-side result regions.
      */
     ui_clear_native_icons();
 
-    /* Left result area: three upgrade choices. */
+    /* Upper-left native result area: the three upgrade choices. */
     ui_at(-14.95f, -4.45f, .0108f, ui_gold, "CHOOSE UPGRADE");
 
     for (i = 0; i < 3; ++i) {
         RogueReward* choice = &g_rogue_run.current_rewards[i];
 
-        ui_at(-14.45f, -2.55f + i * 1.75f, .0140f,
+        ui_at(-14.45f, -2.85f + i * 1.55f, .0138f,
               cursor == i ? ui_gold : ui_white,
               "%s %s", cursor == i ? ">" : " ", choice->name);
     }
 
-    /* Existing lower-left result box: currency summary. */
-    ui_at(-14.25f, 4.75f, .0108f, ui_muted, "GOLD");
-    ui_at(-11.75f, 4.65f, .0155f, ui_gold, "+%d", earned);
-    ui_at(-8.80f, 4.75f, .0108f, ui_muted, "TOTAL");
-    ui_at(-5.85f, 4.65f, .0155f, ui_white, "%d",
-          g_rogue_run.currency);
-
-    /* Existing SPECIAL BONUS area: selected reward details. */
+    /* Second left result area: details for the highlighted upgrade. */
     Rogue_DescribeReward(reward, detail, sizeof(detail));
 
-    ui_at(-3.10f, -2.85f, .0150f, ui_gold, "%s", reward->name);
-    ui_at(-3.10f, -1.30f, .0105f, ui_muted, "%s   %s",
+    ui_at(-14.95f, 1.85f, .0098f, ui_gold, "UPGRADE DETAILS");
+    ui_at(-14.45f, 2.80f, .0128f, ui_white, "%s", reward->name);
+    ui_at(-14.45f, 3.65f, .0095f, ui_muted, "%s   %s",
           rewardCategory(reward), Rogue_RarityName(reward->rarity));
-    ui_wrapped_at(-3.10f, .25f, .0108f, ui_white, detail, 44, 3);
+    ui_wrapped_at(-14.45f, 4.45f, .0094f, ui_white, detail, 30, 2);
 
-    ui_at(-3.10f, 4.55f, .0108f, ui_white,
-          "A / START: TAKE    B: BUILD");
+    /* Existing yellow lower-left result box: run currency only. */
+    ui_at(-14.10f, 6.35f, .0100f, ui_muted, "GOLD");
+    ui_at(-11.95f, 6.25f, .0148f, ui_gold, "+%d", earned);
+    ui_at(-9.10f, 6.35f, .0100f, ui_muted, "TOTAL");
+    ui_at(-6.15f, 6.25f, .0148f, ui_white, "%d",
+          g_rogue_run.currency);
+
+    /*
+     * Do not draw anything into the right SCORE / SPECIAL BONUS side.
+     * A or Start still confirms the highlighted reward in RogueUI_Frame.
+     */
 }
 
 static void drawRunEnd(void)

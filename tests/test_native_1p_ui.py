@@ -11,9 +11,9 @@ class NativeOnePlayerUiTests(unittest.TestCase):
 
     def test_stage_clear_reward_screen(self):
         self.assertIn('"CHOOSE UPGRADE"', self.ui)
+        self.assertIn('"UPGRADE DETAILS"', self.ui)
         self.assertIn('"GOLD"', self.ui)
         self.assertIn('"TOTAL"', self.ui)
-        self.assertIn('"A / START: TAKE    B: BUILD"', self.ui)
         self.assertIn("start->rules.x4_4 = true", self.rogue)
         self.assertIn("start->rules.x18", self.rogue)
 
