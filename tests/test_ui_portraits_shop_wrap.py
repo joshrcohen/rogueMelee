@@ -20,8 +20,11 @@ class UiPortraitShopWrapTests(unittest.TestCase):
         self.assertIn("Rogue_DescribeReward", self.progress)
         self.assertIn("split_description", self.progress)
 
-    def test_build_strip_has_abilities_and_stats(self):
+    def test_build_strip_has_all_abilities_and_stats(self):
         self.assertIn("ability_name(ROGUE_ABILITY_NEUTRAL)", self.progress)
+        self.assertIn("ability_name(ROGUE_ABILITY_SIDE)", self.progress)
+        self.assertIn("ability_name(ROGUE_ABILITY_UP)", self.progress)
+        self.assertIn("ability_name(ROGUE_ABILITY_DOWN)", self.progress)
         self.assertIn('"GOLD +%d   TOTAL %d   SCORE %d   DMG %.0f%%   DEF %.0f%%"', self.progress)
         self.assertIn('"CURRENT CHARACTER BUILD / UPGRADES"', self.progress)
 
