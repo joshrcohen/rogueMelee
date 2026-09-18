@@ -78,6 +78,30 @@ RogueMelee.exe --reset
 
 to select different ISO/emulator paths.
 
+### Automatic crash/session reports
+
+`RogueMelee.exe` remains in the background while Dolphin is running and writes
+a diagnostic report after every session to:
+
+```text
+%APPDATA%\RogueMelee\Crash Reports\Last session report.txt
+```
+
+The report includes the RogueMelee build, Dolphin/Slippi version, process exit
+code, captured stdout/stderr, recent Dolphin log tails when available, and a
+matching Windows Error Reporting record when Windows created one. A timestamped
+`RogueMelee-crash-*.txt` copy is created automatically for abnormal/early
+emulator exits.
+
+Run:
+
+```text
+RogueMelee.exe --crash-reports
+```
+
+to open the report folder. When reporting an in-game crash, send
+`Last session report.txt` even if Dolphin itself eventually closed normally.
+
 If GitHub is temporarily unavailable, a cached installed build can still launch.
 The old **Update RogueMelee.exe** and **Play in Slippi.exe** are kept as manual
 fallback tools.

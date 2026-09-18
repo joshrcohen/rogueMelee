@@ -86,7 +86,7 @@ if errorlevel 1 (
       "dist\RogueMelee-Update.zip" ^
       --target "%COMMIT%" ^
       --title "RogueMelee %VERSION%" ^
-      --notes "Rogue UI polish: native character portraits in VS/route/results, fixed reward text wrapping, and restored the Shop/Rest Area between Match 4 and each act boss." ^
+      --notes "Adds automatic RogueMelee crash/session reports with Dolphin logs, process output, exit status, and Windows crash details for playtest debugging." ^
       --latest
     if errorlevel 1 goto :fail
 ) else (

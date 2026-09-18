@@ -33,3 +33,12 @@ to continue to the next fight.
 
 This is an unfinished playtest. Phillip AI is not enabled. Borrowed moves and
 full-run compatibility are still being tested. Online play is unsupported.
+
+CRASH REPORTS:
+RogueMelee.exe automatically writes the latest session diagnostic to:
+%APPDATA%\RogueMelee\Crash Reports\Last session report.txt
+
+If the emulator exits abnormally it also creates a timestamped
+RogueMelee-crash-*.txt file and tells you where it was saved. Run
+"RogueMelee.exe --crash-reports" to open the report folder. Send the latest
+report when a playtest crashes, even if Dolphin later closes normally.

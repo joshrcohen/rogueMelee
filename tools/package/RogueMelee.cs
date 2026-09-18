@@ -576,44 +576,397 @@ static class RogueMelee
         File.Copy(iniPath, dest, true);
     }
 
+
+    static string ReportsDir {
+        get {
+            string path = Path.Combine(AppDir, "Crash Reports");
+            Directory.CreateDirectory(path);
+            return path;
+        }
+    }
+
+    static string LastSessionReport {
+        get { return Path.Combine(ReportsDir, "Last session report.txt"); }
+    }
+
+    static void AppendReport(string path, string text)
+    {
+        try {
+            File.AppendAllText(path, text, Encoding.UTF8);
+        } catch {
+            // Diagnostics must never prevent the game from launching.
+        }
+    }
+
+    static string ReadTail(string path, int maxBytes)
+    {
+        try {
+            using (FileStream stream = new FileStream(
+                   path, FileMode.Open, FileAccess.Read,
+                   FileShare.ReadWrite | FileShare.Delete)) {
+                long start = Math.Max(0, stream.Length - maxBytes);
+                stream.Position = start;
+                int length = checked((int)(stream.Length - start));
+                byte[] data = new byte[length];
+                int done = 0;
+                while (done < data.Length) {
+                    int n = stream.Read(data, done, data.Length - done);
+                    if (n == 0) break;
+                    done += n;
+                }
+                string value = Encoding.UTF8.GetString(data, 0, done);
+                if (start > 0)
+                    value = "[... earlier log content omitted ...]\r\n" + value;
+                return value;
+            }
+        } catch (Exception e) {
+            return "[Could not read " + path + ": " + e.Message + "]";
+        }
+    }
+
+    static bool SeenPath(System.Collections.Generic.List<string> seen,
+                         string path)
+    {
+        foreach (string item in seen)
+            if (String.Equals(
+                    item, path, StringComparison.OrdinalIgnoreCase))
+                return true;
+        seen.Add(path);
+        return false;
+    }
+
+    static void AppendRecentLogFolder(
+        StringBuilder report, string folder, DateTime started,
+        System.Collections.Generic.List<string> seen)
+    {
+        if (String.IsNullOrEmpty(folder) || !Directory.Exists(folder))
+            return;
+
+        string[] files;
+        try { files = Directory.GetFiles(folder); }
+        catch { return; }
+
+        foreach (string file in files) {
+            try {
+                string ext = Path.GetExtension(file).ToLowerInvariant();
+                if (ext != ".txt" && ext != ".log")
+                    continue;
+                if (File.GetLastWriteTime(file) < started.AddMinutes(-2))
+                    continue;
+                if (SeenPath(seen, file))
+                    continue;
+
+                report.AppendLine();
+                report.AppendLine("===== Emulator log: " + file + " =====");
+                report.AppendLine(ReadTail(file, 192 * 1024));
+            } catch { }
+        }
+    }
+
+    static void AppendDolphinLogs(
+        StringBuilder report, string emulator, DateTime started)
+    {
+        System.Collections.Generic.List<string> seen =
+            new System.Collections.Generic.List<string>();
+        string emulatorDir = Path.GetDirectoryName(emulator);
+
+        report.AppendLine();
+        report.AppendLine("===== Dolphin/Slippi logs =====");
+
+        AppendRecentLogFolder(
+            report, Path.Combine(emulatorDir, "User", "Logs"),
+            started, seen);
+
+        string parent = null;
+        try {
+            DirectoryInfo info = Directory.GetParent(emulatorDir);
+            if (info != null) parent = info.FullName;
+        } catch { }
+        if (!String.IsNullOrEmpty(parent))
+            AppendRecentLogFolder(
+                report, Path.Combine(parent, "User", "Logs"),
+                started, seen);
+
+        AppendRecentLogFolder(
+            report,
+            Path.Combine(
+                Environment.GetFolderPath(
+                    Environment.SpecialFolder.MyDocuments),
+                "Dolphin Emulator", "Logs"),
+            started, seen);
+
+        AppendRecentLogFolder(
+            report,
+            Path.Combine(
+                Environment.GetFolderPath(
+                    Environment.SpecialFolder.ApplicationData),
+                "Dolphin Emulator", "Logs"),
+            started, seen);
+
+        AppendRecentLogFolder(
+            report,
+            Path.Combine(
+                Environment.GetFolderPath(
+                    Environment.SpecialFolder.LocalApplicationData),
+                "Dolphin Emulator", "Logs"),
+            started, seen);
+
+        if (seen.Count == 0)
+            report.AppendLine(
+                "No recently modified Dolphin/Slippi .txt or .log files " +
+                "were found in the standard log folders.");
+    }
+
+    static void AppendWerReports(
+        StringBuilder report, string emulator, DateTime started)
+    {
+        string root = Path.Combine(
+            Environment.GetFolderPath(
+                Environment.SpecialFolder.LocalApplicationData),
+            "Microsoft", "Windows", "WER", "ReportArchive");
+
+        if (!Directory.Exists(root))
+            return;
+
+        string emulatorName = Path.GetFileNameWithoutExtension(emulator);
+        string[] files;
+        try {
+            files = Directory.GetFiles(
+                root, "Report.wer", SearchOption.AllDirectories);
+        } catch {
+            return;
+        }
+
+        bool heading = false;
+        foreach (string file in files) {
+            try {
+                if (File.GetLastWriteTime(file) < started.AddMinutes(-2))
+                    continue;
+
+                string text = ReadTail(file, 128 * 1024);
+                if (text.IndexOf(
+                        emulatorName,
+                        StringComparison.OrdinalIgnoreCase) < 0 &&
+                    text.IndexOf(
+                        "Dolphin",
+                        StringComparison.OrdinalIgnoreCase) < 0)
+                    continue;
+
+                if (!heading) {
+                    report.AppendLine();
+                    report.AppendLine("===== Windows Error Reporting =====");
+                    heading = true;
+                }
+                report.AppendLine("--- " + file + " ---");
+                report.AppendLine(text);
+            } catch { }
+        }
+    }
+
+    static string SessionHeader(string emulator, string iso)
+    {
+        FileVersionInfo version = FileVersionInfo.GetVersionInfo(emulator);
+        string installed = "unknown";
+        try { installed = InstalledVersion(iso); } catch { }
+
+        StringBuilder report = new StringBuilder();
+        report.AppendLine("RogueMelee automatic session/crash report");
+        report.AppendLine("Started: " + DateTime.Now.ToString("O"));
+        report.AppendLine("Mod build: " + installed);
+        report.AppendLine("Launcher: " + Application.ExecutablePath);
+        report.AppendLine("Emulator: " + emulator);
+        report.AppendLine("Emulator version: " + version.FileVersion);
+        report.AppendLine("ISO: " + iso);
+        try {
+            report.AppendLine(
+                "ISO bytes: " + new FileInfo(iso).Length.ToString());
+        } catch { }
+        report.AppendLine("OS: " + Environment.OSVersion.ToString());
+        report.AppendLine(
+            "64-bit OS: " + Environment.Is64BitOperatingSystem.ToString());
+        report.AppendLine(
+            "Processor count: " + Environment.ProcessorCount.ToString());
+        report.AppendLine("Mod recognition file verified.");
+        report.AppendLine("State: launching emulator...");
+        return report.ToString();
+    }
+
+    static void CaptureProcessLine(
+        StringBuilder capture, string source, string line)
+    {
+        if (line == null)
+            return;
+
+        lock (capture) {
+            if (capture.Length >= 256 * 1024)
+                return;
+            capture.Append("[");
+            capture.Append(source);
+            capture.Append("] ");
+            capture.AppendLine(line);
+        }
+    }
+
+    static string SaveCrashCopy(string lastReport)
+    {
+        string name =
+            "RogueMelee-crash-" +
+            DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".txt";
+        string destination = Path.Combine(ReportsDir, name);
+        try {
+            File.Copy(lastReport, destination, true);
+            return destination;
+        } catch {
+            return lastReport;
+        }
+    }
+
     static int Launch(string emulator, string iso)
     {
-        string log = Path.Combine(AppDir, "Launch diagnostic.txt");
-        FileVersionInfo version = FileVersionInfo.GetVersionInfo(emulator);
-        File.WriteAllText(
-            log,
-            "RogueMelee automatic launcher\r\n" +
-            "Emulator: " + emulator + "\r\n" +
-            "Version: " + version.FileVersion + "\r\n" +
-            "ISO: " + iso + "\r\n" +
-            "ISO bytes: " + new FileInfo(iso).Length + "\r\n" +
-            "Mod recognition file verified.\r\n");
+        DateTime started = DateTime.Now;
+        string reportPath = LastSessionReport;
+        StringBuilder processOutput = new StringBuilder();
+
+        try {
+            File.WriteAllText(
+                reportPath, SessionHeader(emulator, iso), Encoding.UTF8);
+        } catch {
+            // Keep launch working even if diagnostics cannot be written.
+        }
 
         ProcessStartInfo start = new ProcessStartInfo(
             emulator, "-e " + Q(iso));
         start.UseShellExecute = false;
         start.WorkingDirectory = Path.GetDirectoryName(emulator);
-        using (Process process = Process.Start(start)) {
-            if (process.WaitForExit(10000)) {
-                File.AppendAllText(
-                    log,
-                    "Emulator exited within 10 seconds. Exit code: " +
-                    process.ExitCode + "\r\n");
-                MessageBox.Show(
-                    "Slippi exited before startup could be confirmed.\n\n" +
-                    "Close existing Slippi windows and try again. If it " +
-                    "still closes, send Launch diagnostic.txt from:\n" +
-                    AppDir,
-                    "Launch did not stay open",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return 1;
+        start.RedirectStandardOutput = true;
+        start.RedirectStandardError = true;
+
+        try {
+            using (Process process = new Process()) {
+                process.StartInfo = start;
+                process.OutputDataReceived += delegate(
+                    object sender, DataReceivedEventArgs e) {
+                    CaptureProcessLine(
+                        processOutput, "stdout", e.Data);
+                };
+                process.ErrorDataReceived += delegate(
+                    object sender, DataReceivedEventArgs e) {
+                    CaptureProcessLine(
+                        processOutput, "stderr", e.Data);
+                };
+
+                if (!process.Start())
+                    throw new IOException(
+                        "The emulator process could not be started.");
+
+                AppendReport(
+                    reportPath,
+                    "Process ID: " + process.Id + "\r\n");
+
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+
+                bool exitedEarly = process.WaitForExit(10000);
+                if (exitedEarly) {
+                    AppendReport(
+                        reportPath,
+                        "Emulator exited within 10 seconds.\r\n");
+                } else {
+                    AppendReport(
+                        reportPath,
+                        "Emulator remained open past startup. " +
+                        "Monitoring until it exits.\r\n");
+                    process.WaitForExit();
+                }
+
+                // Drain redirected asynchronous output before reading ExitCode.
+                process.WaitForExit();
+
+                int exitCode = process.ExitCode;
+                TimeSpan runtime = DateTime.Now - started;
+
+                StringBuilder final = new StringBuilder();
+                final.AppendLine();
+                final.AppendLine("===== Session result =====");
+                final.AppendLine("Ended: " + DateTime.Now.ToString("O"));
+                final.AppendLine(
+                    "Runtime seconds: " +
+                    ((int)runtime.TotalSeconds).ToString());
+                final.AppendLine("Emulator exit code: " + exitCode.ToString());
+
+                lock (processOutput) {
+                    if (processOutput.Length > 0) {
+                        final.AppendLine();
+                        final.AppendLine(
+                            "===== Emulator stdout/stderr =====");
+                        final.Append(processOutput.ToString());
+                    } else {
+                        final.AppendLine(
+                            "No emulator stdout/stderr was captured.");
+                    }
+                }
+
+                AppendDolphinLogs(final, emulator, started);
+                AppendWerReports(final, emulator, started);
+
+                bool probableCrash = exitCode != 0 || exitedEarly;
+                final.AppendLine();
+                final.AppendLine(
+                    "Classification: " +
+                    (probableCrash
+                        ? "probable crash / abnormal exit"
+                        : "normal or user-initiated emulator exit"));
+                final.AppendLine(
+                    "This report is created after every session so an " +
+                    "emulated-game crash can still be diagnosed even if " +
+                    "Dolphin itself later exits with code 0.");
+
+                AppendReport(reportPath, final.ToString());
+
+                try {
+                    File.WriteAllText(
+                        Path.Combine(AppDir, "Launch diagnostic.txt"),
+                        "RogueMelee now creates full session/crash reports.\r\n" +
+                        "Latest report:\r\n" + reportPath + "\r\n",
+                        Encoding.UTF8);
+                } catch { }
+
+                if (probableCrash) {
+                    string crashPath = SaveCrashCopy(reportPath);
+                    MessageBox.Show(
+                        "RogueMelee detected an abnormal emulator exit.\n\n" +
+                        "A crash report was created automatically:\n" +
+                        crashPath + "\n\n" +
+                        "Send that text file when reporting the crash.",
+                        "RogueMelee crash report created",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                    return 1;
+                }
             }
-            File.AppendAllText(
-                log,
-                "Emulator process remained open for 10 seconds. " +
-                "This does not verify gameplay.\r\n");
+
+            return 0;
         }
-        return 0;
+        catch (Exception e) {
+            StringBuilder failed = new StringBuilder();
+            failed.AppendLine();
+            failed.AppendLine("===== Launcher exception =====");
+            failed.AppendLine(DateTime.Now.ToString("O"));
+            failed.AppendLine(e.ToString());
+            AppendDolphinLogs(failed, emulator, started);
+            AppendWerReports(failed, emulator, started);
+            AppendReport(reportPath, failed.ToString());
+
+            string crashPath = SaveCrashCopy(reportPath);
+            MessageBox.Show(
+                "RogueMelee could not complete the launch.\n\n" +
+                "A crash report was created automatically:\n" +
+                crashPath,
+                "RogueMelee crash report created",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+            return 1;
+        }
     }
 
     static bool SameFile(string a, string b)
@@ -663,6 +1016,12 @@ static class RogueMelee
     {
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
+
+        if (HasArg(args, "--crash-reports")) {
+            Directory.CreateDirectory(ReportsDir);
+            Process.Start("explorer.exe", Q(ReportsDir));
+            return 0;
+        }
 
         StatusForm status = null;
         try {
