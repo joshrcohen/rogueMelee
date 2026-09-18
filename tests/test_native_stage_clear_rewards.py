@@ -30,13 +30,27 @@ class NativeStageClearRewardTests(unittest.TestCase):
         self.assertIn('"CHOOSE UPGRADE"', route)
         self.assertIn('"CHOOSE AN UPGRADE FIRST"', route)
 
-    def test_reward_selection_prepares_next_match_flow(self):
+    def test_reward_selection_exits_before_mutating_route(self):
         route = self.ui.split("int RogueUI_RouteFrame(void)", 1)[1].split(
             "/* Camp signs are projected", 1
         )[0]
-        self.assertIn("Rogue_SelectReward(route_reward_cursor)", route)
-        self.assertIn("route_reward_mode = false;", route)
-        self.assertIn("return ROGUE_ROUTE_CHOICES;", route)
+        self.assertNotIn("Rogue_SelectReward(route_reward_cursor)", route)
+        self.assertIn(
+            "return ROGUE_UI_ROUTE_REWARD_BASE + route_reward_cursor;",
+            route,
+        )
+
+        frame = self.rogue.split("static void routeFrame(void)", 1)[1].split(
+            "static void enterRoute", 1
+        )[0]
+        self.assertIn("route_reward_choice =", frame)
+        self.assertIn("gm_8016B328();", frame)
+
+        exit_route = self.rogue.split("static void exitRoute", 1)[1].split(
+            "static void encounterFrame", 1
+        )[0]
+        self.assertIn("Rogue_SelectReward(reward_choice)", exit_route)
+        self.assertIn("gm_SetNextGameModeStateId(4);", exit_route)
 
 
 if __name__ == "__main__":

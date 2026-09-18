@@ -17,7 +17,14 @@ class NativeOnePlayerUiTests(unittest.TestCase):
         self.assertIn('"CHOOSE UPGRADE"', route)
         self.assertIn("routeRewardBox", route)
         self.assertIn("g_rogue_run.current_rewards[i]", route)
-        self.assertIn("Rogue_SelectReward(route_reward_cursor)", route)
+        self.assertIn(
+            "ROGUE_UI_ROUTE_REWARD_BASE + route_reward_cursor",
+            route,
+        )
+        self.assertNotIn(
+            "Rogue_SelectReward(route_reward_cursor)",
+            route,
+        )
         self.assertNotIn("static void drawStageClear(void)", self.ui)
 
     def test_upgrade_row_precedes_next_match(self):

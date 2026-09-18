@@ -640,6 +640,7 @@ int RogueUI_Frame(void)
 static int route_cursor;
 static int route_reward_cursor;
 static int route_reward_taken = -1;
+static int route_reward_floor = -1;
 static int route_confirm;
 static int route_locked = -1;
 static bool route_reward_mode;
@@ -868,12 +869,27 @@ static void routeDraw(void)
 void RogueUI_OpenRoute(void)
 {
     openCanvas();
-    route_had_reward =
+
+    route_reward_mode =
         g_rogue_run.phase == ROGUE_PHASE_REWARD &&
         g_rogue_run.reward_pending;
-    route_reward_mode = route_had_reward;
-    route_reward_cursor = 0;
-    route_reward_taken = -1;
+
+    if (route_reward_mode) {
+        route_had_reward = true;
+        route_reward_cursor = 0;
+        route_reward_taken = -1;
+        route_reward_floor = -1;
+    } else {
+        /*
+         * Reward confirmation intentionally tears down and re-enters this
+         * same route scene. Keep the selected card visible after that reload.
+         */
+        route_had_reward =
+            route_reward_taken >= 0 &&
+            route_reward_floor == g_rogue_run.floor;
+        route_reward_cursor = 0;
+    }
+
     route_cursor = 0;
     route_confirm = 0;
     route_locked = -1;
@@ -942,21 +958,14 @@ int RogueUI_RouteFrame(void)
         }
 
         if (input & (MenuInput_Confirm | MenuInput_StartButton)) {
-            if (!Rogue_SelectReward(route_reward_cursor))
-                return -1;
-
+            /*
+             * Emit the reward choice only. routeFrame will end the scene,
+             * then exitRoute applies it and prepares the next round.
+             */
             route_reward_taken = route_reward_cursor;
-            route_reward_mode = false;
-            route_cursor = 0;
-            route_locked = -1;
-            route_confirm = 0;
+            route_reward_floor = g_rogue_run.floor + 1;
             sfxForward();
-
-            /* Match 4 reward prepares the boss; preserve shop-before-boss. */
-            if (g_rogue_run.phase == ROGUE_PHASE_ENCOUNTER)
-                return ROGUE_ROUTE_CHOICES;
-
-            routeDraw();
+            return ROGUE_UI_ROUTE_REWARD_BASE + route_reward_cursor;
         }
         return -1;
     }
