@@ -39,11 +39,10 @@ class NativeOnePlayerUiTests(unittest.TestCase):
     def test_native_continue_screen_remains(self):
         self.assertIn("GS_GAMEOVER, &game_over_data, &game_over_data", self.rogue)
 
-    def test_clean_target_render_pass(self):
-        self.assertIn("CLEAN / READABLE TARGET-RENDER PASS", self.progress)
-        self.assertIn("text_group(", self.progress)
-        self.assertIn("ui_blue", self.progress)
-        self.assertIn("ui_purple", self.progress)
+    def test_v3_uses_absolute_global_text(self):
+        self.assertIn("PROGRESSION LAYOUT V3", self.progress)
+        self.assertIn('ui_at(-4.75f, -11.55f', self.progress)
+        self.assertIn('ui_at(-14.25f, 10.18f', self.progress)
         self.assertIn("ui_glass", self.progress)
 
 
