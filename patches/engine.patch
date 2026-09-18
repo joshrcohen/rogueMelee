@@ -2,7 +2,7 @@ diff --git a/configure.py b/configure.py
 index 1bd612513..a974e6666 100755
 --- a/configure.py
 +++ b/configure.py
-@@ -573,6 +573,24 @@ config.warn_missing_source = True
+@@ -573,6 +573,25 @@ config.warn_missing_source = True
  
  
  config.libs = [
@@ -12,6 +12,7 @@ index 1bd612513..a974e6666 100755
 +        Object(Equivalent, "melee/rogue/rogue_rng.c"),
 +        Object(Equivalent, "melee/rogue/rogue_rewards.c"),
 +        Object(Equivalent, "melee/rogue/rogue_encounter.c"),
++        Object(Equivalent, "melee/rogue/rogue_route.c"),
 +        Object(Equivalent, "melee/rogue/rogue_hooks.c"),
 +        Object(Equivalent, "melee/rogue/rogue_effects.c"),
 +        Object(Equivalent, "melee/rogue/rogue_ability.c"),

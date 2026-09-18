@@ -2,6 +2,7 @@
 #define MELEE_ROGUE_STATE_H
 
 #include "rogue_encounter.h"
+#include "rogue_route.h"
 #include "rogue_rewards.h"
 #include "rogue_ability.h"
 #include <melee/gm/forward.h>
@@ -12,6 +13,7 @@
 
 typedef enum RoguePhase {
     ROGUE_PHASE_NONE,
+    ROGUE_PHASE_ROUTE,
     ROGUE_PHASE_ENCOUNTER,
     ROGUE_PHASE_REWARD,
     ROGUE_PHASE_SHOP,
@@ -24,6 +26,7 @@ typedef struct RogueRun {
     bool active;
     u32 seed;
     RogueRng rng;
+    RogueRng route_rng;
     RoguePhase phase;
     CharacterKind player_kind;
     u8 player_costume;
@@ -42,6 +45,7 @@ typedef struct RogueRun {
     bool shop_sold[2];
     int camp_floor;
     bool reward_pending;
+    RogueRoute route;
     RogueEncounter current_encounter;
 } RogueRun;
 

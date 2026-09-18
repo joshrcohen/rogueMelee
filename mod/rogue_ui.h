@@ -7,6 +7,8 @@ void RogueUI_Clear(void);
 void RogueUI_OpenResults(void);
 void RogueUI_HudFrame(void);
 void RogueUI_IntroFrame(void);
+void RogueUI_OpenRoute(void);
+int RogueUI_RouteFrame(void);
 int RogueUI_Frame(void);
 bool RogueUI_CampFrame(void);
 #endif

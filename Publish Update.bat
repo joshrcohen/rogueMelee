@@ -86,7 +86,7 @@ if errorlevel 1 (
       "dist\RogueMelee-Update.zip" ^
       --target "%COMMIT%" ^
       --title "RogueMelee %VERSION%" ^
-      --notes "Full-roster RogueMelee release: all 26 playable fighters, all 104 borrowed specials, and expanded 16-profile elite encounters with metal, giant, tiny, invisible, starting-damage, duo, and mixed-effect fights." ^
+      --notes "Rogue Bracket update: adds native-style route choice between fights, seeded encounter branches, act history, boss previews, and Tournament/All-Star-inspired presentation while retaining the full 26-fighter / 104-special system." ^
       --latest
     if errorlevel 1 goto :fail
 ) else (

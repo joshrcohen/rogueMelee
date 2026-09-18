@@ -20,12 +20,14 @@ void Rogue_NewRun(CharacterKind kind, u32 seed)
     g_rogue_run.active = true;
     g_rogue_run.seed = seed;
     RogueRng_Seed(&g_rogue_run.rng, seed);
-    g_rogue_run.phase = ROGUE_PHASE_ENCOUNTER;
+    RogueRng_Seed(&g_rogue_run.route_rng, seed ^ 0x524F5554U);
+    RogueRoute_Reset(&g_rogue_run.route);
+    g_rogue_run.phase = ROGUE_PHASE_ROUTE;
     g_rogue_run.player_kind = kind;
     g_rogue_run.floor = 1;
     Rogue_ResetStats(&g_rogue_run.stats);
-    Rogue_GenerateEncounter(&g_rogue_run.current_encounter,
-                             &g_rogue_run.rng, g_rogue_run.floor);
+    RogueRoute_Prepare(&g_rogue_run.route, &g_rogue_run.route_rng,
+                       g_rogue_run.floor);
 }
 
 bool Rogue_IsActive(void)

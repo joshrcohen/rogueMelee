@@ -305,6 +305,205 @@ int RogueUI_Frame(void)
     }
     return ROGUE_UI_WAIT;
 }
+
+/* Rogue Bracket: Tournament/1-P-styled route selection over Rest Area. */
+static int route_cursor;
+static int route_confirm;
+static int route_locked = -1;
+
+static void routeNode(float x, float y, int active, int complete,
+                      const char* label)
+{
+    char encoded[128];
+    HSD_Text* t = ui_object(x, y, .0125f,
+                            active ? ui_black : ui_white);
+    t->bg_color = active ? ui_gold : complete ? ui_dark : ui_black;
+    t->box_size_x = 5.15f / .0125f;
+    t->box_size_y = 1.55f / .0125f;
+    ui_encode(encoded, label);
+    HSD_SisLib_803A6B98(t, 12.0f, 8.0f, "%s", encoded);
+}
+
+static void routeOpponent(char* out, unsigned size,
+                          const RogueEncounter* encounter)
+{
+    if (encounter->enemy_count <= 1) {
+        snprintf(out, size, "%s",
+                 RogueRoute_CharacterName(encounter->enemy_kind));
+    } else if (encounter->enemy_count == 2) {
+        snprintf(out, size, "%s + %s",
+                 RogueRoute_CharacterName(encounter->enemies[0].kind),
+                 RogueRoute_CharacterName(encounter->enemies[1].kind));
+    } else {
+        snprintf(out, size, "%s SQUAD",
+                 RogueRoute_CharacterName(encounter->enemy_kind));
+    }
+}
+
+static void routeDraw(void)
+{
+    const RogueRoute* route = &g_rogue_run.route;
+    const RogueRouteRound* current = RogueRoute_Current(route);
+    static const float node_x[5] = {
+        -16.0f, -9.1f, -2.2f, 4.7f, 11.6f
+    };
+    int i;
+
+    ui_begin();
+    ui_at(-16.2f, -12.2f, .032f, ui_gold, "ROGUE BRACKET");
+    ui_at(8.8f, -12.0f, .018f, ui_white, "ACT %d", route->act);
+    ui_at(-16.0f, -9.8f, .0135f, ui_muted,
+          "MATCH 1        MATCH 2        ELITE          MATCH 4        BOSS");
+
+    for (i = 0; i < 5; ++i) {
+        char node[48];
+        int active = i == route->current_round;
+        int complete = i < route->current_round;
+
+        if (i == 4) {
+            snprintf(node, sizeof(node), "B  %s",
+                     RogueRoute_CharacterName(route->boss.enemy_kind));
+            active = false;
+            complete = false;
+        } else if (complete && route->rounds[i].selected >= 0) {
+            const RogueEncounter* picked =
+                &route->rounds[i].choices[route->rounds[i].selected];
+            snprintf(node, sizeof(node), "%d  %s", i + 1,
+                     RogueRoute_CharacterName(picked->enemy_kind));
+        } else if (active) {
+            snprintf(node, sizeof(node), "%d  SELECT", i + 1);
+        } else {
+            snprintf(node, sizeof(node), "%d  ???", i + 1);
+        }
+
+        routeNode(node_x[i], -8.15f, active, complete, node);
+        if (i < 4)
+            ui_at(node_x[i] + 5.2f, -7.72f, .0105f,
+                  complete ? ui_gold : ui_muted, "-----");
+    }
+
+    if (!current || !current->generated) {
+        ui_at(-13.2f, -1.0f, .022f, ui_white,
+              "Preparing next match...");
+        return;
+    }
+
+    for (i = 0; i < ROGUE_ROUTE_CHOICES; ++i) {
+        const RogueEncounter* encounter = &current->choices[i];
+        char title[100];
+        char detail[120];
+        char extra[120];
+        char opponent[80];
+        int selected = route_locked >= 0 ? route_locked == i :
+                       route_cursor == i;
+
+        routeOpponent(opponent, sizeof(opponent), encounter);
+        snprintf(title, sizeof(title), "%s  -  %s",
+                 opponent, RogueRoute_TypeName(encounter->type));
+        snprintf(detail, sizeof(detail), "%s   %s",
+                 RogueRoute_StageName(encounter->stage),
+                 encounter->name ? encounter->name : "MATCH");
+
+        if (encounter->modifier && *encounter->modifier) {
+            snprintf(extra, sizeof(extra), "%s", encounter->modifier);
+        } else if (encounter->enemy_count > 0) {
+            snprintf(extra, sizeof(extra), "%d STOCK%s",
+                     encounter->enemies[0].stocks,
+                     encounter->enemies[0].stocks == 1 ? "" : "S");
+        } else {
+            extra[0] = 0;
+        }
+
+        ui_card(-4.8f + i * 4.45f, 3.8f, selected,
+                title, detail, extra);
+    }
+
+    ui_at(-13.2f, 6.7f, .015f, ui_muted,
+          "Boss: %s   %s",
+          route->boss.name ? route->boss.name : "Boss",
+          RogueRoute_StageName(route->boss.stage));
+
+    if (route_confirm > 0)
+        ui_at(7.7f, 9.1f, .018f, ui_gold, "MATCH SET");
+    else
+        ui_at(-13.2f, 9.1f, .018f, ui_white,
+              "Control Stick: choose     A: select     B: build");
+}
+
+void RogueUI_OpenRoute(void)
+{
+    openCanvas();
+    route_cursor = 0;
+    route_confirm = 0;
+    route_locked = -1;
+    inspect = false;
+    page = 0;
+    delay = 30;
+    routeDraw();
+}
+
+int RogueUI_RouteFrame(void)
+{
+    u32 input;
+
+    if (route_confirm > 0) {
+        --route_confirm;
+        if (route_confirm == 0) {
+            int choice = route_locked;
+            route_locked = -1;
+            return choice;
+        }
+        return -1;
+    }
+
+    input = mn_80229624(Rogue_ControllerPort());
+
+    if (input & MenuInput_Back) {
+        if (inspect) {
+            inspect = false;
+            routeDraw();
+        } else {
+            inspect = true;
+            page = 0;
+            ui_begin();
+            buildPage();
+        }
+        sfxBack();
+        return -1;
+    }
+
+    if (inspect) {
+        if (input & (MenuInput_Left | MenuInput_LTrigger)) {
+            page = (page + 3) % 4;
+            ui_begin();
+            buildPage();
+            sfxMove();
+        }
+        if (input & (MenuInput_Right | MenuInput_RTrigger)) {
+            page = (page + 1) % 4;
+            ui_begin();
+            buildPage();
+            sfxMove();
+        }
+        return -1;
+    }
+
+    if (input & (MenuInput_Up | MenuInput_Down)) {
+        route_cursor ^= 1;
+        routeDraw();
+        sfxMove();
+    }
+
+    if (input & MenuInput_Confirm) {
+        route_locked = route_cursor;
+        route_confirm = 12;
+        routeDraw();
+        sfxForward();
+    }
+
+    return -1;
+}
+
 /* Camp signs are projected from world coordinates every frame. Walking and
  * jumping continue normally; only grounded contact with a zone permits A. */
 

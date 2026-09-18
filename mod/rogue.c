@@ -1,5 +1,6 @@
 #include "rogue.h"
 #include "rogue_state.h"
+#include "rogue_route.h"
 #include "rogue_debug.h"
 #include "rogue_effects.h"
 #include "rogue_ai.h"
@@ -72,7 +73,7 @@ static void exitCharacterSelect(GameModeState* state)
     }
     Rogue_NewRun(kind, pending_seed);
     g_rogue_run.player_costume = costume;
-    gm_SetNextGameModeStateId(1);
+    gm_SetNextGameModeStateId(4);
 }
 
 static void enterStageIntro(GameModeState* state)
@@ -88,6 +89,8 @@ static void enterStageIntro(GameModeState* state)
 }
 
 static bool in_camp;
+static bool in_route;
+static bool route_ui_open;
 static void campFrame(void)
 {
     if (gm_GetFrameCount() >= 60 && RogueUI_CampFrame()) gm_8016B328();
@@ -98,6 +101,7 @@ static void enterCamp(GameModeState* state)
     RogueUI_Reset();
     resolved = false;
     in_camp = true;
+    in_route = false;
     RogueEncounter room = g_rogue_run.current_encounter;
     room.enemy_count = 0;
     room.stage = St_Kind_Heal;
@@ -135,6 +139,99 @@ static void exitCamp(GameModeState* state)
     gm_SetNextGameModeStateId(1);
 }
 
+
+static void routeFrame(void)
+{
+    int choice;
+
+    if (gm_GetFrameCount() < 30)
+        return;
+
+    if (!route_ui_open) {
+        RogueUI_OpenRoute();
+        route_ui_open = true;
+    }
+
+    choice = RogueUI_RouteFrame();
+    if (choice < 0)
+        return;
+
+    if (RogueRoute_Select(&g_rogue_run.route, choice,
+                          &g_rogue_run.current_encounter))
+    {
+        g_rogue_run.phase = ROGUE_PHASE_ENCOUNTER;
+        gm_8016B328();
+    }
+}
+
+static void enterRoute(GameModeState* state)
+{
+    StartMeleeData* start = gm_GetGameModeStateEnterData(state);
+    const RogueRouteRound* round = RogueRoute_Current(&g_rogue_run.route);
+    RogueEncounter room;
+    int act;
+    int act_floor;
+    int i;
+
+    RogueUI_Reset();
+    resolved = false;
+    in_camp = false;
+    in_route = true;
+    route_ui_open = false;
+
+    memset(&room, 0, sizeof(room));
+    act = (g_rogue_run.floor - 1) / ROGUE_FLOORS_PER_ACT + 1;
+    act_floor = (g_rogue_run.floor - 1) % ROGUE_FLOORS_PER_ACT + 1;
+    room.act = act;
+    room.act_floor = act_floor;
+    room.enemy_count = 0;
+    room.stage = St_Kind_Heal;
+    room.stocks = 3;
+    room.name = "Rogue Bracket";
+
+    Rogue_SetupEncounter(&encounter_data, &room, g_rogue_run.player_kind);
+    *start = encounter_data.start;
+    start->players[0].color = g_rogue_run.player_costume;
+    start->players[0].slot = controller_port + 1;
+    start->players[0].xD_b2 = 1;
+    start->rules.x5_0 = 1;
+    start->rules.x5_1 = 1;
+    start->rules.x7 = 9;
+    start->rules.on_frame_end = routeFrame;
+
+    memset(&exit_data, 0, sizeof(exit_data));
+    memset(&gm_80473A18, 0, sizeof(gm_80473A18));
+    memset(gm_80473A18.x76, 33, sizeof(gm_80473A18.x76));
+    gm_80473A18._94[0] = (u8) act;
+    gm_80473A18._94[1] = round && round->generated ? 2 : 0;
+    if (round && round->generated) {
+        for (i = 0; i < 2; ++i)
+            gm_80473A18.x96[i] = round->choices[i].enemy_kind;
+    }
+
+    gm_LoadRumbleEnabled(start);
+    lbAudioAx_80026F2C(20);
+    lbAudioAx_8002702C(4, lbAudioAx_80026E84(g_rogue_run.player_kind));
+    lbAudioAx_80027168();
+    lbAudioAx_80026F2C(24);
+    lbAudioAx_8002702C(8, lbAudioAx_80026EBC(St_Kind_Heal));
+    lbAudioAx_80027168();
+}
+
+static void exitRoute(GameModeState* state)
+{
+    (void) state;
+    RogueUI_Clear();
+    in_route = false;
+
+    if (g_rogue_run.phase != ROGUE_PHASE_ENCOUNTER) {
+        gm_ChangeGameModeAfterCurrentScene(GM_MENU);
+        return;
+    }
+
+    gm_SetNextGameModeStateId(Rogue_BeginCamp() ? 3 : 1);
+}
+
 static void encounterFrame(void)
 {
     RogueEffects_OnFrame();
@@ -170,6 +267,7 @@ static void enterEncounter(GameModeState* state)
     resolved = false;
     destination = 1;
     in_camp = false;
+    in_route = false;
 
     Rogue_SetupEncounter(&encounter_data, &g_rogue_run.current_encounter,
                           g_rogue_run.player_kind);
@@ -234,9 +332,12 @@ void Rogue_ModeOnLoad(void)
     Rogue_NewRun(CKind_Mario, 314159);
     g_rogue_run.floor=4;g_rogue_run.wins=3;g_rogue_run.currency=180;
     Rogue_GenerateEncounter(&g_rogue_run.current_encounter,&g_rogue_run.rng,4);
+    g_rogue_run.phase=ROGUE_PHASE_ENCOUNTER;
     Rogue_BeginCamp();gm_SetGameModeStateId(3);
 #else
     Rogue_NewRun(CKind_Mario, 314159);
+    RogueRoute_Select(&g_rogue_run.route, 0, &g_rogue_run.current_encounter);
+    g_rogue_run.phase = ROGUE_PHASE_ENCOUNTER;
     gm_SetGameModeStateId(1);
 #endif
 #endif
@@ -253,8 +354,10 @@ bool Rogue_PostFight(void)
     /* Matrix cases intentionally terminate/rebuild scenes without awarding wins. */
     if (Rogue_DebugMatrixEnabled()) return false;
 #endif
-    if (gm_GetCurrentGameMode() != GM_ROGUE || in_camp ||
-        g_rogue_run.phase == ROGUE_PHASE_REST || g_rogue_run.phase == ROGUE_PHASE_SHOP)
+    if (gm_GetCurrentGameMode() != GM_ROGUE || in_camp || in_route ||
+        g_rogue_run.phase == ROGUE_PHASE_ROUTE ||
+        g_rogue_run.phase == ROGUE_PHASE_REST ||
+        g_rogue_run.phase == ROGUE_PHASE_SHOP)
         return false;
     if (!resolved) {
         MatchEnd result;
@@ -277,7 +380,9 @@ bool Rogue_PostFight(void)
     }
     int action = RogueUI_Frame();
     if (action == ROGUE_UI_WAIT) return true;
-    if (action == ROGUE_UI_CONTINUE) destination = Rogue_BeginCamp() ? 3 : 1;
+    if (action == ROGUE_UI_CONTINUE)
+        destination = g_rogue_run.phase == ROGUE_PHASE_ROUTE ? 4 :
+                      Rogue_BeginCamp() ? 3 : 1;
     else if (action == ROGUE_UI_NEW || action == ROGUE_UI_REPLAY) {
         if (action == ROGUE_UI_NEW) pending_seed = OSGetTick();
         destination = 0;
@@ -315,6 +420,10 @@ GameModeState gm_Mode_Rogue_States[] = {
     },
     {
         3, lbDvdPreload_2, 0, enterCamp, exitCamp,
+        { GS_VS, &start_data, &exit_data },
+    },
+    {
+        4, lbDvdPreload_2, 0, enterRoute, exitRoute,
         { GS_VS, &start_data, &exit_data },
     },
     { GM_GAMEMODESTATE_TERMINATE },

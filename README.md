@@ -10,6 +10,7 @@ This repository contains only the mod. The build fetches the pinned upstream
 - All **104 character specials** (Neutral-B, Side-B, Up-B, Down-B for all 26 fighters) are in the borrowed-special registry and can be offered as post-fight rewards.
 - Elite encounters now draw from **16 profiles** including metal, giant, tiny, invisible, starting-damage, duo, and mixed-effect squad fights.
 - Runs remain 3 acts / 15 encounters with elites, bosses, rewards, shops, rest/training rooms, build inspection, and run history.
+- Route choice uses a seeded **Rogue Bracket** between fights: two opponent/stage choices presented in a Tournament/All-Star-style Melee screen.
 
 ## Contents
 

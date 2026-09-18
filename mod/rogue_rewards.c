@@ -264,9 +264,21 @@ bool Rogue_SelectReward(int index)
     if (!applyReward(&g_rogue_run.current_rewards[index])) return false;
     g_rogue_run.reward_pending = false;
     ++g_rogue_run.floor;
-    Rogue_GenerateEncounter(&g_rogue_run.current_encounter,
-                             &g_rogue_run.rng, g_rogue_run.floor);
-    g_rogue_run.phase = ROGUE_PHASE_ENCOUNTER;
+
+    if (((g_rogue_run.floor - 1) % ROGUE_FLOORS_PER_ACT) + 1 ==
+        ROGUE_FLOORS_PER_ACT)
+    {
+        if (!RogueRoute_UseBoss(&g_rogue_run.route,
+                                &g_rogue_run.current_encounter))
+            return false;
+        g_rogue_run.phase = ROGUE_PHASE_ENCOUNTER;
+    } else {
+        if (!RogueRoute_Prepare(&g_rogue_run.route,
+                                &g_rogue_run.route_rng,
+                                g_rogue_run.floor))
+            return false;
+        g_rogue_run.phase = ROGUE_PHASE_ROUTE;
+    }
     return true;
 }
 
