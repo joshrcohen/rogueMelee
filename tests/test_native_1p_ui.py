@@ -7,47 +7,37 @@ ROOT = Path(__file__).resolve().parents[1]
 class NativeOnePlayerUiTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.ui = (ROOT / "mod/rogue_ui.c").read_text(encoding="utf-8")
+        cls.progress = (ROOT / "mod/rogue_progression.c").read_text(encoding="utf-8")
         cls.rogue = (ROOT / "mod/rogue.c").read_text(encoding="utf-8")
 
-    def test_combined_stage_clear_progression_popup(self):
-        section = self.ui.split("static void drawStageClear(void)", 1)[1]
-        section = section.split("static void drawRunEnd(void)", 1)[0]
-        self.assertIn('"ROGUE PROGRESSION"', section)
-        self.assertIn('"ROUTE   1  >  2  >  ELITE  >  4  >  SHOP  >  BOSS"', section)
-        self.assertIn('"CHOOSE UPGRADE"', section)
-        self.assertIn('"CHOOSE NEXT FIGHT"', section)
-        self.assertIn('"RUN STATS"', section)
+    def test_render_matches_target_sections(self):
+        self.assertIn('"CHOOSE UPGRADE"', self.progress)
+        self.assertIn('"CHOOSE NEXT FIGHT"', self.progress)
+        self.assertIn('"CURRENT CHARACTER BUILD / UPGRADES"', self.progress)
+        self.assertIn('"GOLD GAINED +%d', self.progress)
+        self.assertIn("draw_node(", self.progress)
 
-    def test_stage_clear_renderer_is_lightweight(self):
-        section = self.ui.split("static void drawStageClear(void)", 1)[1]
-        section = section.split("static void drawRunEnd(void)", 1)[0]
-        self.assertNotIn("ui_panel_box(", section)
-        self.assertNotIn("ui_backdrop(", section)
-        self.assertNotIn("ui_fighter_icon(", section)
-        self.assertNotIn("stageProgressNode", section)
-        self.assertNotIn("stageRewardBox", section)
-        self.assertNotIn("stageFightBox", section)
+    def test_three_upgrade_cards_across_middle(self):
+        self.assertIn("for (i = 0; i < 3; ++i)", self.progress)
+        self.assertIn("-14.75f + i * 9.80f", self.progress)
+        self.assertIn("draw_reward_card(", self.progress)
 
-    def test_stage_clear_has_three_upgrade_entries(self):
-        section = self.ui.split("static void drawStageClear(void)", 1)[1]
-        section = section.split("static void drawRunEnd(void)", 1)[0]
-        self.assertIn("for (i = 0; i < 3; ++i)", section)
-        self.assertIn("g_rogue_run.current_rewards[i]", section)
-        self.assertIn("Rogue_DescribeReward", section)
+    def test_cards_disappear_after_upgrade(self):
+        self.assertIn("has_reward && !upgrade_chosen", self.progress)
+        self.assertIn('"UPGRADE LOCKED: %s"', self.progress)
 
-    def test_native_classic_matchup_intro(self):
+    def test_fight_choice_uses_native_intro_models(self):
+        self.assertIn("left = &round->choices[0];", self.progress)
+        self.assertIn("right = &round->choices[1];", self.progress)
+        self.assertIn("g_rogue_progression_intro.allies", self.progress)
+        self.assertIn("g_rogue_progression_intro.enemies", self.progress)
+        self.assertNotIn("ifStock_802F96D0", self.progress)
+
+    def test_native_real_matchup_intro_remains(self):
         self.assertIn("GS_INTRO_EASY, &stage_intro", self.rogue)
 
-    def test_initial_route_screen_still_exists(self):
-        self.assertIn('"ROGUE ROUTE"', self.ui)
-        self.assertIn('"CHOOSE NEXT MATCH"', self.ui)
-
-    def test_native_continue_screen(self):
+    def test_native_continue_screen_remains(self):
         self.assertIn("GS_GAMEOVER, &game_over_data, &game_over_data", self.rogue)
-
-    def test_hud_is_simplified(self):
-        self.assertIn('"ACT %d-%d   G%d   %s"', self.ui)
 
 
 if __name__ == "__main__":

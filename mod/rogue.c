@@ -1,6 +1,7 @@
 #include "rogue.h"
 #include "rogue_state.h"
 #include "rogue_route.h"
+#include "rogue_progression.h"
 #include "rogue_debug.h"
 #include "rogue_effects.h"
 #include "rogue_ai.h"
@@ -131,7 +132,9 @@ static void exitCharacterSelect(GameModeState* state)
     g_rogue_run.player_stocks = stocks ? stocks : 3;
     g_rogue_run.difficulty = difficulty > 4 ? 4 : difficulty;
     g_rogue_run.continues = 1;
-    gm_SetNextGameModeStateId(4);
+
+    /* First route choice uses the same native VS progression scene. */
+    gm_SetNextGameModeStateId(ROGUE_STATE_PROGRESSION);
 }
 
 static void enterStageIntro(GameModeState* state)
@@ -562,26 +565,15 @@ bool Rogue_PostFight(void)
         RogueHistory_Record();
 
         /*
-         * Keep post-fight progression on the native Stage Clear scene.
-         * Generate the next ordinary route round before opening the popup so
-         * the two fight choices are available immediately.
+         * Vanilla STAGE CLEAR finishes completely before progression.
+         * Reward + next-fight selection lives in dedicated Rogue state 7.
          */
         if (g_rogue_run.phase == ROGUE_PHASE_REWARD) {
-            int next_floor = g_rogue_run.floor + 1;
-            int next_act_floor =
-                ((next_floor - 1) % ROGUE_FLOORS_PER_ACT) + 1;
-
-            if (next_act_floor < ROGUE_FLOORS_PER_ACT) {
-                if (!RogueRoute_Prepare(&g_rogue_run.route,
-                                        &g_rogue_run.route_rng,
-                                        next_floor))
-                {
-                    destination = -1;
-                    return false;
-                }
-            }
+            destination = ROGUE_STATE_PROGRESSION;
+            return false;
         }
 
+        /* Run-complete menu keeps the existing result UI. */
         RogueUI_OpenResults();
     }
     int action = RogueUI_Frame();
@@ -676,6 +668,11 @@ GameModeState gm_Mode_Rogue_States[] = {
     {
         6, lbDvdPreload_3, 0, enterGameOver, exitGameOver,
         { GS_GAMEOVER, &game_over_data, &game_over_data },
+    },
+    {
+        ROGUE_STATE_PROGRESSION, lbDvdPreload_3, 0,
+        RogueProgression_Enter, RogueProgression_Exit,
+        { GS_INTRO_EASY, &g_rogue_progression_intro, NULL },
     },
     { GM_GAMEMODESTATE_TERMINATE },
 };

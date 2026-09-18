@@ -54,6 +54,49 @@ if new not in text:
 
 path.write_text(text, encoding="utf-8")
 
+
+# ---------------------------------------------------------------------------
+# Rogue progression: hold only Rogue state 7's retail Classic intro scene.
+# ---------------------------------------------------------------------------
+path = root / "src" / "melee" / "gm" / "gm_1832.c"
+text = path.read_text(encoding="utf-8")
+
+old = '#include "gmscene.h"\n#include <melee/cm/camera.h>'
+new = '#include "gmscene.h"\n#include <melee/rogue/rogue_progression.h>\n#include <melee/cm/camera.h>'
+if new not in text:
+    if old not in text:
+        raise SystemExit("native Rogue flow: gm_1832 include anchor changed")
+    text = text.replace(old, new, 1)
+
+old = (
+    'void gm_Scene_IntroEasy_OnFrame(void)\n'
+    '{\n'
+    '    if (lbl_804735A8.x0 != 0) {\n'
+    '        lbAudioAx_800236DC();\n'
+    '        gm_801A4B60();\n'
+    '    }\n'
+    '}\n'
+)
+new = (
+    'void gm_Scene_IntroEasy_OnFrame(void)\n'
+    '{\n'
+    '    /* Rogue state 7 holds the real Classic VS presentation for input. */\n'
+    '    if (Rogue_ProgressionIntroFrame())\n'
+    '        return;\n'
+    '\n'
+    '    if (lbl_804735A8.x0 != 0) {\n'
+    '        lbAudioAx_800236DC();\n'
+    '        gm_801A4B60();\n'
+    '    }\n'
+    '}\n'
+)
+if new not in text:
+    if old not in text:
+        raise SystemExit("native Rogue flow: IntroEasy frame anchor changed")
+    text = text.replace(old, new, 1)
+
+path.write_text(text, encoding="utf-8")
+
 # ---------------------------------------------------------------------------
 # Wii 1.7 + -lang c99 compatibility for modified vanilla translation units.
 # ---------------------------------------------------------------------------
