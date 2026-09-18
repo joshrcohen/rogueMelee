@@ -8,42 +8,35 @@ class NativeStageClearRewardTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.ui = (ROOT / "mod/rogue_ui.c").read_text(encoding="utf-8")
-        cls.build = (ROOT / "tools/build.py").read_text(encoding="utf-8")
+        cls.rogue = (ROOT / "mod/rogue.c").read_text(encoding="utf-8")
 
-    def test_reward_text_reuses_native_regclear_canvas(self):
-        section = self.ui.split("void RogueUI_OpenResults(void)", 1)[1]
-        section = section.split("int RogueUI_Frame(void)", 1)[0]
-        self.assertIn("RogueUI_Clear();", section)
-        self.assertIn("overlay_sis = 0;", section)
-        self.assertIn("overlay_canvas = 0;", section)
-        self.assertIn("ready = true;", section)
-        self.assertNotIn("openCanvas();", section)
+    def test_stage_clear_stays_vanilla(self):
+        self.assertIn("start->rules.x4_4 = true;", self.rogue)
+        self.assertIn("start->rules.x18", self.rogue)
+        self.assertNotIn("static void drawStageClear(void)", self.ui)
 
-    def test_left_side_is_upgrade_picker(self):
-        section = self.ui.split("static void drawStageClear(void)", 1)[1]
-        section = section.split("static void drawRunEnd(void)", 1)[0]
-        self.assertIn('"CHOOSE UPGRADE"', section)
-        self.assertIn('"UPGRADE DETAILS"', section)
-        self.assertIn("g_rogue_run.current_rewards[i]", section)
-        self.assertIn("Rogue_DescribeReward", section)
+    def test_postfight_reward_goes_to_existing_route_state(self):
+        post = self.rogue.split("bool Rogue_PostFight(void)", 1)[1]
+        post = post.split("static void enterGameOver", 1)[0]
+        self.assertIn("g_rogue_run.phase == ROGUE_PHASE_REWARD", post)
+        self.assertIn("destination = 4;", post)
 
-    def test_left_side_shows_currency(self):
-        section = self.ui.split("static void drawStageClear(void)", 1)[1]
-        section = section.split("static void drawRunEnd(void)", 1)[0]
-        self.assertIn('"GOLD"', section)
-        self.assertIn('"TOTAL"', section)
-        self.assertIn('"+%d", earned', section)
+    def test_route_contains_three_reward_boxes(self):
+        route = self.ui.split("/* Rogue Bracket:", 1)[1].split(
+            "/* Camp signs are projected", 1
+        )[0]
+        self.assertIn("for (i = 0; i < 3; ++i)", route)
+        self.assertIn("routeRewardBox", route)
+        self.assertIn('"CHOOSE UPGRADE"', route)
+        self.assertIn('"CHOOSE AN UPGRADE FIRST"', route)
 
-    def test_right_side_is_left_to_vanilla_melee(self):
-        section = self.ui.split("static void drawStageClear(void)", 1)[1]
-        section = section.split("static void drawRunEnd(void)", 1)[0]
-        self.assertNotIn('"REWARD DETAILS"', section)
-        self.assertNotIn('"SPECIAL BONUS"', section)
-        self.assertNotIn('"RUN FLOOR"', section)
-        self.assertNotIn(
-            "postpatch_native_stage_clear_rewards.py",
-            self.build,
-        )
+    def test_reward_selection_prepares_next_match_flow(self):
+        route = self.ui.split("int RogueUI_RouteFrame(void)", 1)[1].split(
+            "/* Camp signs are projected", 1
+        )[0]
+        self.assertIn("Rogue_SelectReward(route_reward_cursor)", route)
+        self.assertIn("route_reward_mode = false;", route)
+        self.assertIn("return ROGUE_ROUTE_CHOICES;", route)
 
 
 if __name__ == "__main__":

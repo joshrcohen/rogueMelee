@@ -3,6 +3,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
+
 class UiPortraitShopWrapTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -15,11 +16,10 @@ class UiPortraitShopWrapTests(unittest.TestCase):
         self.assertIn("ui_fighter_icon(g_rogue_run.player_kind", self.ui)
         self.assertIn("ui_fighter_icon(encounter->enemy_kind", self.ui)
 
-    def test_reward_wrapping(self):
+    def test_reward_wrapping_is_on_route_cards(self):
         self.assertIn("static void ui_wrapped_at", self.ui)
-        # Native GmRegClr has a smaller SPECIAL BONUS text region than the
-        # old full-screen Rogue reward panel.
-        self.assertIn("detail, 30, 2", self.ui)
+        self.assertIn("routeRewardBox", self.ui)
+        self.assertIn("detail, 25, 1", self.ui)
         self.assertIn('"CHOOSE UPGRADE"', self.ui)
 
     def test_shop_visible(self):
@@ -32,6 +32,7 @@ class UiPortraitShopWrapTests(unittest.TestCase):
     def test_intro_cleanup(self):
         self.assertIn("exitStageIntro", self.rogue)
         self.assertIn("enterStageIntro, exitStageIntro", self.rogue)
+
 
 if __name__ == "__main__":
     unittest.main()

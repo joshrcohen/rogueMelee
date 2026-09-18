@@ -329,6 +329,16 @@ static void routeFrame(void)
     if (choice < 0)
         return;
 
+    /*
+     * Reward selection can prepare the act boss directly. In that case the
+     * UI returns one value beyond the normal left/right route choices so the
+     * existing route scene exits into the normal shop/boss flow.
+     */
+    if (choice == ROGUE_ROUTE_CHOICES) {
+        gm_8016B328();
+        return;
+    }
+
     if (RogueRoute_Select(&g_rogue_run.route, choice,
                           &g_rogue_run.current_encounter))
     {
@@ -561,6 +571,18 @@ bool Rogue_PostFight(void)
         }
 
         RogueHistory_Record();
+
+        /*
+         * GmRegClr STAGE CLEAR remains completely vanilla. Once its normal
+         * flow has finished, ordinary wins enter the existing Rogue Route
+         * scene and select the reward there.
+         */
+        if (g_rogue_run.phase == ROGUE_PHASE_REWARD) {
+            RogueUI_Clear();
+            destination = 4;
+            return false;
+        }
+
         RogueUI_OpenResults();
     }
     int action = RogueUI_Frame();

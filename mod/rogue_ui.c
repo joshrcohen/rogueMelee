@@ -456,54 +456,6 @@ static void drawHistory(void)
               "Memory card unavailable. Recent history is in memory.");
 }
 
-static void drawStageClear(void)
-{
-    const RogueEncounter* encounter = &g_rogue_run.current_encounter;
-    RogueReward* reward = &g_rogue_run.current_rewards[cursor];
-    int earned = encounterGold(encounter);
-    int i;
-    char detail[256];
-
-    /*
-     * The entire right half of GmRegClr stays retail Melee:
-     * SCORE, SPECIAL BONUS, PRESS START, frames and animations.
-     * Rogue only fills the native left-side result regions.
-     */
-    ui_clear_native_icons();
-
-    /* Upper-left native result area: the three upgrade choices. */
-    ui_at(-14.95f, -4.45f, .0108f, ui_gold, "CHOOSE UPGRADE");
-
-    for (i = 0; i < 3; ++i) {
-        RogueReward* choice = &g_rogue_run.current_rewards[i];
-
-        ui_at(-14.45f, -2.85f + i * 1.55f, .0138f,
-              cursor == i ? ui_gold : ui_white,
-              "%s %s", cursor == i ? ">" : " ", choice->name);
-    }
-
-    /* Second left result area: details for the highlighted upgrade. */
-    Rogue_DescribeReward(reward, detail, sizeof(detail));
-
-    ui_at(-14.95f, 1.85f, .0098f, ui_gold, "UPGRADE DETAILS");
-    ui_at(-14.45f, 2.80f, .0128f, ui_white, "%s", reward->name);
-    ui_at(-14.45f, 3.65f, .0095f, ui_muted, "%s   %s",
-          rewardCategory(reward), Rogue_RarityName(reward->rarity));
-    ui_wrapped_at(-14.45f, 4.45f, .0094f, ui_white, detail, 30, 2);
-
-    /* Existing yellow lower-left result box: run currency only. */
-    ui_at(-14.10f, 6.35f, .0100f, ui_muted, "GOLD");
-    ui_at(-11.95f, 6.25f, .0148f, ui_gold, "+%d", earned);
-    ui_at(-9.10f, 6.35f, .0100f, ui_muted, "TOTAL");
-    ui_at(-6.15f, 6.25f, .0148f, ui_white, "%d",
-          g_rogue_run.currency);
-
-    /*
-     * Do not draw anything into the right SCORE / SPECIAL BONUS side.
-     * A or Start still confirms the highlighted reward in RogueUI_Frame.
-     */
-}
-
 static void drawRunEnd(void)
 {
     static const char* names[] = {
@@ -570,10 +522,7 @@ static void draw(void)
         return;
     }
 
-    if (g_rogue_run.phase == ROGUE_PHASE_REWARD)
-        drawStageClear();
-    else
-        drawRunEnd();
+    drawRunEnd();
 }
 
 void RogueUI_OpenResults(void)
@@ -655,7 +604,7 @@ int RogueUI_Frame(void)
         return ROGUE_UI_WAIT;
     }
 
-    count = g_rogue_run.phase == ROGUE_PHASE_REWARD ? 3 : 4;
+    count = 4;
 
     if (input & (MenuInput_Left | MenuInput_Up)) {
         cursor = (cursor + count - 1) % count;
@@ -669,13 +618,6 @@ int RogueUI_Frame(void)
     }
 
     if (input & (MenuInput_Confirm | MenuInput_StartButton)) {
-        if (g_rogue_run.phase == ROGUE_PHASE_REWARD) {
-            if (!Rogue_SelectReward(cursor))
-                return ROGUE_UI_WAIT;
-            sfxForward();
-            return ROGUE_UI_CONTINUE;
-        }
-
         if (cursor == 2) {
             history_open = true;
             history_cursor = 0;
@@ -693,10 +635,15 @@ int RogueUI_Frame(void)
     return ROGUE_UI_WAIT;
 }
 
-/* Rogue Bracket: Tournament/1-P-styled route selection over Rest Area. */
+/* Rogue Bracket: route + post-fight upgrade + next-match selection.
+ * This still runs on the original working Rest Area-backed route scene. */
 static int route_cursor;
+static int route_reward_cursor;
+static int route_reward_taken = -1;
 static int route_confirm;
 static int route_locked = -1;
+static bool route_reward_mode;
+static bool route_had_reward;
 
 static void routeNode(float x, float y, float width,
                       int active, int complete,
@@ -711,6 +658,59 @@ static void routeNode(float x, float y, float width,
     if (detail && *detail)
         ui_at(x + .05f, y + 1.55f, .0085f,
               complete ? ui_muted : ui_white, "%.12s", detail);
+}
+
+static void routeRewardBox(float x, RogueReward* reward,
+                           int selected, int chosen)
+{
+    char detail[160];
+    char meta[72];
+    GXColor bg = selected ? ui_gold : ui_panel;
+    GXColor fg = selected ? ui_black : ui_white;
+    GXColor sub = selected ? ui_black : ui_muted;
+    float title_size;
+
+    Rogue_DescribeReward(reward, detail, sizeof(detail));
+    snprintf(meta, sizeof(meta), "%s   %s%s",
+             rewardCategory(reward),
+             Rogue_RarityName(reward->rarity),
+             chosen ? "   SELECTED" : "");
+
+    ui_panel_box(x, -4.45f, 8.55f, 3.45f, bg);
+
+    title_size = strlen(reward->name) > 18 ? .0135f :
+                 strlen(reward->name) > 14 ? .0150f : .0170f;
+    ui_at(x + .38f, -4.05f, title_size, fg, "%s", reward->name);
+    ui_at(x + .38f, -2.92f, .0088f, sub, "%s", meta);
+    ui_wrapped_at(x + .38f, -2.05f, .0084f, fg,
+                  detail, 25, 1);
+}
+
+static void routeDrawRewards(void)
+{
+    int i;
+
+    if (!route_had_reward) {
+        ui_at(-13.6f, -5.25f, .0140f, ui_muted, "UPGRADES");
+        ui_at(-13.05f, -3.15f, .0120f, ui_muted,
+              "WIN A MATCH TO EARN AN UPGRADE");
+        return;
+    }
+
+    ui_at(-13.6f, -5.25f, .0145f,
+          route_reward_mode ? ui_gold : ui_muted,
+          route_reward_mode ? "CHOOSE UPGRADE" : "UPGRADE SELECTED");
+
+    for (i = 0; i < 3; ++i) {
+        int selected = route_reward_mode
+                           ? route_reward_cursor == i
+                           : route_reward_taken == i;
+        int chosen = !route_reward_mode && route_reward_taken == i;
+
+        routeRewardBox(-13.6f + i * 9.15f,
+                       &g_rogue_run.current_rewards[i],
+                       selected, chosen);
+    }
 }
 
 static void routeDraw(void)
@@ -739,8 +739,10 @@ static void routeDraw(void)
         char label[32];
         const char* detail = node_name[i];
         int round_index = i < 4 ? i : -1;
-        int active = round_index == route->current_round;
-        int complete = round_index >= 0 && round_index < route->current_round;
+        int complete = round_index >= 0 &&
+                       route->rounds[round_index].selected >= 0;
+        int active = round_index >= 0 &&
+                     round_index == route->current_round && !complete;
 
         if (i == 4) {
             snprintf(label, sizeof(label), "SHOP");
@@ -748,7 +750,7 @@ static void routeDraw(void)
         } else if (i == 5) {
             snprintf(label, sizeof(label), "BOSS");
             detail = RogueRoute_CharacterName(route->boss.enemy_kind);
-        } else if (complete && route->rounds[round_index].selected >= 0) {
+        } else if (complete) {
             const RogueEncounter* picked =
                 &route->rounds[round_index]
                     .choices[route->rounds[round_index].selected];
@@ -759,10 +761,7 @@ static void routeDraw(void)
             detail = node_name[i];
         } else {
             snprintf(label, sizeof(label), "%s", node_name[i]);
-            if (round_index == 2)
-                detail = "ELITE";
-            else
-                detail = "PENDING";
+            detail = round_index == 2 ? "ELITE" : "PENDING";
         }
 
         routeNode(node_x[i], -7.9f, 3.55f,
@@ -773,13 +772,28 @@ static void routeDraw(void)
                     complete ? ui_red : ui_muted);
     }
 
+    /* Reward row sits between route track and next-match choices. */
+    routeDrawRewards();
+
+    if (route_reward_mode) {
+        ui_at(-13.6f, -.15f, .0145f, ui_muted, "CHOOSE NEXT MATCH");
+        ui_panel_box(-13.6f, .65f, 26.8f, 4.10f, ui_panel);
+        ui_at(-7.65f, 2.45f, .0150f, ui_muted,
+              "CHOOSE AN UPGRADE FIRST");
+        ui_at(-13.2f, 8.75f, .016f, ui_white,
+              "Left / Right: upgrade     A: select     B: build");
+        return;
+    }
+
+    current = RogueRoute_Current(route);
     if (!current || !current->generated) {
-        ui_at(-13.2f, -1.0f, .022f, ui_white,
+        ui_at(-13.6f, -.15f, .0145f, ui_muted, "CHOOSE NEXT MATCH");
+        ui_at(-13.2f, 2.15f, .022f, ui_white,
               "Preparing next match...");
         return;
     }
 
-    ui_at(-13.6f, -3.45f, .017f, ui_muted, "CHOOSE NEXT MATCH");
+    ui_at(-13.6f, -.15f, .0145f, ui_muted, "CHOOSE NEXT MATCH");
 
     for (i = 0; i < ROGUE_ROUTE_CHOICES; ++i) {
         const RogueEncounter* encounter = &current->choices[i];
@@ -802,12 +816,11 @@ static void routeDraw(void)
         }
 
         if (encounter->modifier && *encounter->modifier) {
-            if (stock[0]) {
+            if (stock[0])
                 snprintf(tag, sizeof(tag), "%s   %s",
                          encounter->modifier, stock);
-            } else {
+            else
                 snprintf(tag, sizeof(tag), "%s", encounter->modifier);
-            }
         } else if (stock[0]) {
             snprintf(tag, sizeof(tag), "%s", stock);
         } else {
@@ -816,53 +829,51 @@ static void routeDraw(void)
 
         if (route_confirm > 0 && route_locked == i) {
             snprintf(preview, sizeof(preview), "VS %s", opponent);
-            ui_tile(-13.6f + i * 13.85f, -2.05f, 12.95f, 6.4f,
+            ui_tile(-13.6f + i * 13.85f, .65f, 12.95f, 4.10f,
                     true, ui_gold, player, preview, tag);
 
             ui_fighter_icon(g_rogue_run.player_kind,
                             g_rogue_run.player_costume,
-                            center_x - 2.9f, 0.15f, 1.85f);
+                            center_x - 2.9f, 2.70f, 1.55f);
             ui_fighter_icon(encounter->enemy_kind,
                             encounter->enemy_count ?
                                 encounter->enemies[0].costume : 0,
-                            center_x + 2.9f, 0.15f, 1.85f);
-            ui_at(center_x, 0.15f, .026f, ui_orange, "VS");
-            ui_at(center_x - 5.1f, 2.55f, .0118f, ui_muted, "YOU");
-            ui_at(center_x - 5.1f, 3.35f, .0108f, ui_white, "%s",
-                  tag[0] ? tag : "STANDARD");
+                            center_x + 2.9f, 2.70f, 1.55f);
+            ui_at(center_x, 2.55f, .024f, ui_orange, "VS");
         } else {
-            ui_tile(-13.6f + i * 13.85f, -2.05f, 12.95f, 6.4f,
+            ui_tile(-13.6f + i * 13.85f, .65f, 12.95f, 4.10f,
                     selected, ui_gold, opponent, subtitle, tag);
 
             ui_fighter_icon(encounter->enemy_kind,
                             encounter->enemy_count ?
                                 encounter->enemies[0].costume : 0,
-                            center_x, 0.35f, 2.35f);
-
-            if (encounter->modifier && *encounter->modifier) {
-                ui_at(center_x - 5.45f, 2.55f, .0105f, ui_orange,
-                      "MOD: %s", encounter->modifier);
-            }
+                            center_x, 2.75f, 1.80f);
         }
     }
 
-    ui_panel_box(-13.6f, 5.25f, 26.8f, 2.25f, ui_panel);
-    ui_at(-12.9f, 5.85f, .0135f, ui_muted,
+    ui_panel_box(-13.6f, 5.30f, 26.8f, 1.85f, ui_panel);
+    ui_at(-12.9f, 5.80f, .0115f, ui_muted,
           "AFTER MATCH 4: SHOP / REST AREA");
-    ui_at(2.4f, 5.75f, .0145f, ui_white, "FINAL: %s",
+    ui_at(2.4f, 5.75f, .0125f, ui_white, "FINAL: %s",
           route->boss.name ? route->boss.name : "Boss");
 
     if (route_confirm > 0)
-        ui_at(4.75f, 9.35f, .018f, ui_gold,
+        ui_at(4.75f, 8.75f, .016f, ui_gold,
               "MATCH SET  -  STARTING ENCOUNTER");
     else
-        ui_at(-13.2f, 9.35f, .016f, ui_white,
+        ui_at(-13.2f, 8.75f, .016f, ui_white,
               "Stick: choose     A: select     B: build");
 }
 
 void RogueUI_OpenRoute(void)
 {
     openCanvas();
+    route_had_reward =
+        g_rogue_run.phase == ROGUE_PHASE_REWARD &&
+        g_rogue_run.reward_pending;
+    route_reward_mode = route_had_reward;
+    route_reward_cursor = 0;
+    route_reward_taken = -1;
     route_cursor = 0;
     route_confirm = 0;
     route_locked = -1;
@@ -914,6 +925,38 @@ int RogueUI_RouteFrame(void)
             ui_begin();
             buildPage();
             sfxMove();
+        }
+        return -1;
+    }
+
+    if (route_reward_mode) {
+        if (input & (MenuInput_Left | MenuInput_Up)) {
+            route_reward_cursor = (route_reward_cursor + 2) % 3;
+            routeDraw();
+            sfxMove();
+        }
+        if (input & (MenuInput_Right | MenuInput_Down)) {
+            route_reward_cursor = (route_reward_cursor + 1) % 3;
+            routeDraw();
+            sfxMove();
+        }
+
+        if (input & (MenuInput_Confirm | MenuInput_StartButton)) {
+            if (!Rogue_SelectReward(route_reward_cursor))
+                return -1;
+
+            route_reward_taken = route_reward_cursor;
+            route_reward_mode = false;
+            route_cursor = 0;
+            route_locked = -1;
+            route_confirm = 0;
+            sfxForward();
+
+            /* Match 4 reward prepares the boss; preserve shop-before-boss. */
+            if (g_rogue_run.phase == ROGUE_PHASE_ENCOUNTER)
+                return ROGUE_ROUTE_CHOICES;
+
+            routeDraw();
         }
         return -1;
     }
