@@ -14,17 +14,24 @@ class NativeOnePlayerUiTests(unittest.TestCase):
         self.assertIn('"CHOOSE UPGRADE"', self.progress)
         self.assertIn('"CHOOSE NEXT FIGHT"', self.progress)
         self.assertIn('"CURRENT CHARACTER BUILD / UPGRADES"', self.progress)
-        self.assertIn('"GOLD GAINED +%d', self.progress)
+        self.assertIn('"GOLD +%d  TOTAL %d  SCORE %d', self.progress)
         self.assertIn("draw_node(", self.progress)
 
     def test_three_upgrade_cards_across_middle(self):
         self.assertIn("for (i = 0; i < 3; ++i)", self.progress)
-        self.assertIn("-14.75f + i * 9.80f", self.progress)
+        self.assertIn("-14.75f + i * 9.78f", self.progress)
         self.assertIn("draw_reward_card(", self.progress)
 
     def test_cards_disappear_after_upgrade(self):
         self.assertIn("has_reward && !upgrade_chosen", self.progress)
-        self.assertIn('"UPGRADE LOCKED: %s"', self.progress)
+
+        draw = self.progress.split("static void draw_progression", 1)[1]
+        draw = draw.split("static int copy_encounter", 1)[0]
+
+        branch = draw.split("if (has_reward && !upgrade_chosen)", 1)[1]
+        before_else = branch.split("} else {", 1)[0]
+        self.assertIn("draw_reward_card(", before_else)
+        self.assertIn('"CHOOSE NEXT FIGHT"', draw)
 
     def test_fight_choice_uses_native_intro_models(self):
         self.assertIn("left = &round->choices[0];", self.progress)
@@ -39,24 +46,14 @@ class NativeOnePlayerUiTests(unittest.TestCase):
     def test_native_continue_screen_remains(self):
         self.assertIn("GS_GAMEOVER, &game_over_data, &game_over_data", self.rogue)
 
-    def test_reference_readability_pass(self):
-        self.assertIn("READABILITY / REFERENCE PASS", self.progress)
-        self.assertIn(
-            "HSD_SisLib_803A7548(text, entry, 1.60f, 1.60f)",
-            self.progress,
-        )
-        self.assertIn(
-            "HSD_SisLib_803A7548(text, entry, 1.62f, 1.62f)",
-            self.progress,
-        )
-        self.assertIn(
-            "HSD_SisLib_803A7548(text, entry, 1.68f, 1.68f)",
-            self.progress,
-        )
-        self.assertIn(
-            "GXColor bg = selected ? ui_dark : ui_panel_color",
-            self.progress,
-        )
+    def test_target_render_polish_pass(self):
+        self.assertIn("TARGET-RENDER POLISH PASS", self.progress)
+        self.assertIn("draw_panel_frame", self.progress)
+        self.assertIn("selected ? ui_gold : ui_border", self.progress)
+        self.assertIn("ui_blue", self.progress)
+        self.assertIn("ui_purple", self.progress)
+        self.assertIn("draw_center_vs();", self.progress)
+        self.assertIn(".0208f", self.progress)
 
 
 if __name__ == "__main__":
