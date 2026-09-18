@@ -329,6 +329,13 @@ static void routeFrame(void)
     if (choice < 0)
         return;
 
+    /* Sentinel 2 means Rogue_SelectReward already prepared the boss. */
+    if (choice >= ROGUE_ROUTE_CHOICES) {
+        if (g_rogue_run.phase == ROGUE_PHASE_ENCOUNTER)
+            gm_8016B328();
+        return;
+    }
+
     if (RogueRoute_Select(&g_rogue_run.route, choice,
                           &g_rogue_run.current_encounter))
     {
@@ -340,7 +347,10 @@ static void routeFrame(void)
 static void enterRoute(GameModeState* state)
 {
     StartMeleeData* start = gm_GetGameModeStateEnterData(state);
-    const RogueRouteRound* round = RogueRoute_Current(&g_rogue_run.route);
+    const RogueRouteRound* round =
+        g_rogue_run.phase == ROGUE_PHASE_REWARD
+            ? NULL
+            : RogueRoute_Current(&g_rogue_run.route);
     RogueEncounter room;
     int act;
     int act_floor;
@@ -538,20 +548,25 @@ bool Rogue_PostFight(void)
         g_rogue_run.phase == ROGUE_PHASE_REST ||
         g_rogue_run.phase == ROGUE_PHASE_SHOP)
         return false;
+
     if (!resolved) {
         MatchEnd result;
         int i;
         bool won = Player_GetStocks(0) > 0;
+
         memset(&result, 0, sizeof(result));
         result.outcome = gmVs_GetSceneController()->state.match_result;
         for (i = 1; i <= g_rogue_run.current_encounter.enemy_count; ++i)
-            if (Player_GetStocks(i) > 0) won = false;
+            if (Player_GetStocks(i) > 0)
+                won = false;
+
         result.is_teams = g_rogue_run.current_encounter.enemy_count > 1;
         result.player_standings[0].pkind = Gm_PKind_Human;
         if (won) {
             result.n_winners = result.n_team_winners = 1;
             result.winners[0] = result.team_winners[0] = 0;
         }
+
         Rogue_OnMatchEnd(&result);
         resolved = true;
 
@@ -561,20 +576,44 @@ bool Rogue_PostFight(void)
         }
 
         RogueHistory_Record();
+
+        /*
+         * Retail GmRegClr has already completed. Ordinary wins now move to
+         * the route scene, where upgrade selection and next-fight selection
+         * happen together.
+         */
+        if (g_rogue_run.phase == ROGUE_PHASE_REWARD) {
+            RogueUI_Clear();
+            destination = 4;
+            return false;
+        }
+
+        /* Final victory keeps the existing run-complete UI. */
         RogueUI_OpenResults();
     }
-    int action = RogueUI_Frame();
-    if (action == ROGUE_UI_WAIT) return true;
-    if (action == ROGUE_UI_CONTINUE)
-        destination = g_rogue_run.phase == ROGUE_PHASE_ROUTE ? 4 :
-                      Rogue_BeginCamp() ? 3 : Rogue_IntroState();
-    else if (action == ROGUE_UI_NEW || action == ROGUE_UI_REPLAY) {
-        if (action == ROGUE_UI_NEW) pending_seed = OSGetTick();
-        destination = 0;
-    } else destination = -1;
+
+    {
+        int action = RogueUI_Frame();
+
+        if (action == ROGUE_UI_WAIT)
+            return true;
+
+        if (action == ROGUE_UI_CONTINUE)
+            destination = g_rogue_run.phase == ROGUE_PHASE_ROUTE ? 4 :
+                          Rogue_BeginCamp() ? 3 : Rogue_IntroState();
+        else if (action == ROGUE_UI_NEW || action == ROGUE_UI_REPLAY) {
+            if (action == ROGUE_UI_NEW)
+                pending_seed = OSGetTick();
+            destination = 0;
+        } else {
+            destination = -1;
+        }
+    }
+
     RogueUI_Clear();
     return false;
 }
+
 static void enterGameOver(GameModeState* state)
 {
     DebugGameOverData* data = gm_GetGameModeStateEnterData(state);

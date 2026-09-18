@@ -13,7 +13,7 @@ class NativeOnePlayerFlowTests(unittest.TestCase):
         cls.encounter = (ROOT / "mod/rogue_encounter.c").read_text(encoding="utf-8")
         cls.ui = (ROOT / "mod/rogue_ui.c").read_text(encoding="utf-8")
         cls.build = (ROOT / "tools/build.py").read_text(encoding="utf-8")
-        cls.fixer = (ROOT / "tools/postpatch_native_1p_flow.py").read_text(
+        cls.fixer = (ROOT / "tools/postpatch_ability_native_rogue_flow.py").read_text(
             encoding="utf-8"
         )
 
@@ -44,10 +44,12 @@ class NativeOnePlayerFlowTests(unittest.TestCase):
         self.assertIn("overlay_canvas = 0;", self.ui)
         self.assertIn("RogueUI_Clear();", self.ui)
 
-    def test_reward_selection_happens_inside_regclear(self):
-        self.assertIn("case 2:", self.fixer)
-        self.assertIn("gm_GetCurrentGameMode() == GM_ROGUE", self.fixer)
-        self.assertIn("Rogue_PostFight()", self.fixer)
+    def test_stage_clear_finishes_before_progression_screen(self):
+        patch = (ROOT / "patches/engine.patch").read_text(encoding="utf-8")
+        self.assertIn("case 3:", patch)
+        self.assertIn("if (!Rogue_PostFight()) gm_801A4B60();", patch)
+        self.assertNotIn("gmvs.c", self.fixer)
+        self.assertIn("destination = 4;", self.rogue)
 
     def test_real_continue_screen_is_used(self):
         self.assertIn("static DebugGameOverData game_over_data;", self.rogue)
@@ -68,7 +70,7 @@ class NativeOnePlayerFlowTests(unittest.TestCase):
         self.assertIn("game_mode = GM_CLASSIC;", self.fixer)
 
     def test_build_runs_native_flow_postpatch(self):
-        self.assertIn("postpatch_native_1p_flow.py", self.build)
+        self.assertIn("postpatch_ability_native_rogue_flow.py", self.build)
 
     def test_pinned_nametag_name(self):
         self.assertIn("GM_NAMETAG_NONE", self.rogue)

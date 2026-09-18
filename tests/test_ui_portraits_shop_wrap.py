@@ -24,7 +24,8 @@ class UiPortraitShopWrapTests(unittest.TestCase):
 
     def test_shop_visible(self):
         self.assertIn('"SHOP"', self.ui)
-        self.assertIn('"AFTER MATCH 4: SHOP / REST AREA"', self.ui)
+        self.assertIn('"SHOP"', self.ui)
+        self.assertIn('"REST AREA"', self.ui)
 
     def test_shop_before_boss(self):
         self.assertIn("act_floor != ROGUE_FLOORS_PER_ACT", self.rewards)

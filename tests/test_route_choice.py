@@ -29,4 +29,7 @@ class RouteChoiceTests(unittest.TestCase):
         c=(ROOT/'mod/rogue_ui.c').read_text(encoding='utf-8')
         self.assertIn('"ROGUE ROUTE"',c)
         self.assertIn("MATCH SET  -  STARTING ENCOUNTER", c)
+        self.assertIn('"CHOOSE UPGRADE"', c)
+        self.assertIn('"TOTAL SCORE"', c)
+        self.assertIn("Rogue_SelectReward(route_reward_cursor)", c)
 if __name__=='__main__': unittest.main()
