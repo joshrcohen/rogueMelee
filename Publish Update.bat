@@ -86,7 +86,7 @@ if errorlevel 1 (
       "dist\RogueMelee-Update.zip" ^
       --target "%COMMIT%" ^
       --title "RogueMelee %VERSION%" ^
-      --notes "Native 1-P UI pass: All-Star-inspired Rogue Route, Adventure-style VS intros, Stage Clear reward presentation, Continue-style run results, and a simplified combat HUD." ^
+      --notes "Rogue UI polish: native character portraits in VS/route/results, fixed reward text wrapping, and restored the Shop/Rest Area between Match 4 and each act boss." ^
       --latest
     if errorlevel 1 goto :fail
 ) else (

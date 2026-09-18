@@ -88,6 +88,12 @@ static void enterStageIntro(GameModeState* state)
     stage_intro.stage = encounter->stage;
 }
 
+static void exitStageIntro(GameModeState* state)
+{
+    (void) state;
+    RogueUI_Clear();
+}
+
 static bool in_camp;
 static bool in_route;
 static bool route_ui_open;
@@ -411,7 +417,7 @@ GameModeState gm_Mode_Rogue_States[] = {
         { GS_CSS, &character_select, &character_select },
     },
     {
-        1, lbDvdPreload_2, 0, enterStageIntro, NULL,
+        1, lbDvdPreload_2, 0, enterStageIntro, exitStageIntro,
         { GS_INTRO_NORMAL, &stage_intro, NULL },
     },
     {

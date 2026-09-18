@@ -286,7 +286,7 @@ bool Rogue_BeginCamp(void)
 {
     int first, second, pool[REWARD_POOL_COUNT], count;
     if (!Rogue_IsActive() || g_rogue_run.phase != ROGUE_PHASE_ENCOUNTER ||
-        g_rogue_run.current_encounter.act_floor != 4 ||
+        g_rogue_run.current_encounter.act_floor != ROGUE_FLOORS_PER_ACT ||
         g_rogue_run.camp_floor == g_rogue_run.floor) return false;
     count = availableRewards(pool);
     first = RogueRng_Bounded(&g_rogue_run.rng, count);
