@@ -14,22 +14,27 @@ class NativeOnePlayerUiTests(unittest.TestCase):
         section = self.ui.split("static void drawStageClear(void)", 1)[1]
         section = section.split("static void drawRunEnd(void)", 1)[0]
         self.assertIn('"ROGUE PROGRESSION"', section)
-        self.assertIn('"ROUTE"', section)
+        self.assertIn('"ROUTE   1  >  2  >  ELITE  >  4  >  SHOP  >  BOSS"', section)
         self.assertIn('"CHOOSE UPGRADE"', section)
         self.assertIn('"CHOOSE NEXT FIGHT"', section)
         self.assertIn('"RUN STATS"', section)
 
-    def test_stage_clear_has_three_upgrades(self):
+    def test_stage_clear_renderer_is_lightweight(self):
+        section = self.ui.split("static void drawStageClear(void)", 1)[1]
+        section = section.split("static void drawRunEnd(void)", 1)[0]
+        self.assertNotIn("ui_panel_box(", section)
+        self.assertNotIn("ui_backdrop(", section)
+        self.assertNotIn("ui_fighter_icon(", section)
+        self.assertNotIn("stageProgressNode", section)
+        self.assertNotIn("stageRewardBox", section)
+        self.assertNotIn("stageFightBox", section)
+
+    def test_stage_clear_has_three_upgrade_entries(self):
         section = self.ui.split("static void drawStageClear(void)", 1)[1]
         section = section.split("static void drawRunEnd(void)", 1)[0]
         self.assertIn("for (i = 0; i < 3; ++i)", section)
-        self.assertIn("stageRewardBox", section)
-
-    def test_stage_clear_next_fights_are_text_only(self):
-        section = self.ui.split("static void drawStageClear(void)", 1)[1]
-        section = section.split("static void drawRunEnd(void)", 1)[0]
-        self.assertIn("stageFightBox", section)
-        self.assertNotIn("ui_fighter_icon", section)
+        self.assertIn("g_rogue_run.current_rewards[i]", section)
+        self.assertIn("Rogue_DescribeReward", section)
 
     def test_native_classic_matchup_intro(self):
         self.assertIn("GS_INTRO_EASY, &stage_intro", self.rogue)

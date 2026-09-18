@@ -11,22 +11,24 @@ class UiPortraitShopWrapTests(unittest.TestCase):
         cls.rewards = (ROOT / "mod/rogue_rewards.c").read_text(encoding="utf-8")
         cls.rogue = (ROOT / "mod/rogue.c").read_text(encoding="utf-8")
 
-    def test_native_character_images_remain_for_route_and_other_ui(self):
+    def test_native_character_images_remain_elsewhere(self):
         self.assertIn("ifStock_802F96D0", self.ui)
         self.assertIn("ui_fighter_icon(g_rogue_run.player_kind", self.ui)
         self.assertIn("ui_fighter_icon(encounter->enemy_kind", self.ui)
 
-    def test_stage_clear_popup_avoids_new_fighter_objects(self):
+    def test_stage_clear_popup_avoids_native_icon_objects(self):
         stage = self.ui.split("static void drawStageClear(void)", 1)[1].split(
             "static void drawRunEnd(void)", 1
         )[0]
         self.assertNotIn("ui_fighter_icon", stage)
-        self.assertIn("stageFightBox", stage)
+        self.assertNotIn("ui_panel_box", stage)
 
-    def test_reward_wrapping_is_compact(self):
-        self.assertIn("static void ui_wrapped_at", self.ui)
-        self.assertIn("detail, 22, 1", self.ui)
-        self.assertIn('"CHOOSE UPGRADE"', self.ui)
+    def test_reward_detail_remains_wrapped(self):
+        stage = self.ui.split("static void drawStageClear(void)", 1)[1].split(
+            "static void drawRunEnd(void)", 1
+        )[0]
+        self.assertIn("ui_wrapped_at", stage)
+        self.assertIn("detail, 58, 1", stage)
 
     def test_shop_visible(self):
         self.assertIn('"SHOP"', self.ui)

@@ -19,17 +19,21 @@ class NativeStageClearRewardTests(unittest.TestCase):
         self.assertIn("stage_progress_active", section)
         self.assertNotIn("openCanvas();", section)
 
-    def test_popup_contains_all_requested_sections(self):
+    def test_popup_contains_requested_sections(self):
         section = self.ui.split("static void drawStageClear(void)", 1)[1]
         section = section.split("static void drawRunEnd(void)", 1)[0]
-        for label in (
-            '"ROGUE PROGRESSION"',
-            '"ROUTE"',
-            '"CHOOSE UPGRADE"',
-            '"CHOOSE NEXT FIGHT"',
-            '"RUN STATS"',
-        ):
-            self.assertIn(label, section)
+        self.assertIn('"ROGUE PROGRESSION"', section)
+        self.assertIn('"CHOOSE UPGRADE"', section)
+        self.assertIn('"CHOOSE NEXT FIGHT"', section)
+        self.assertIn('"RUN STATS"', section)
+
+    def test_popup_uses_text_only_on_native_result_canvas(self):
+        section = self.ui.split("static void drawStageClear(void)", 1)[1]
+        section = section.split("static void drawRunEnd(void)", 1)[0]
+        self.assertNotIn("ui_panel_box(", section)
+        self.assertNotIn("ui_fighter_icon(", section)
+        self.assertNotIn("ui_backdrop(", section)
+        self.assertIn("ui_at(", section)
 
     def test_upgrade_then_fight_is_two_step_input(self):
         frame = self.ui.split("int RogueUI_Frame(void)", 1)[1].split(
