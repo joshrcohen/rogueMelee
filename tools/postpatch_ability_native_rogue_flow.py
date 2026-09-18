@@ -135,6 +135,54 @@ path.write_text(text, encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------
+# Progression matchup:
+# State 4 directly reuses GS_INTRO_EASY / GmIntEz. Keep ordinary timed
+# behavior for state 1, but make state 4 interactive and Rogue-owned.
+# ---------------------------------------------------------------------------
+path = root / "src" / "melee" / "gm" / "gm_1832.c"
+text = path.read_text(encoding="utf-8")
+
+include = '#include <melee/rogue/rogue.h>\n'
+if include not in text:
+    anchor = '#include "gmscene.h"\n'
+    if anchor not in text:
+        raise SystemExit("native Rogue flow: Classic intro include anchor changed")
+    text = text.replace(anchor, anchor + include, 1)
+
+include = '#include <melee/gm/gm_1A3F.h>\n'
+if include not in text:
+    anchor = '#include <melee/rogue/rogue.h>\n'
+    text = text.replace(anchor, anchor + include, 1)
+
+old = '''void gm_Scene_IntroEasy_OnFrame(void)
+{
+    if (lbl_804735A8.x0 != 0) {
+        lbAudioAx_800236DC();
+        gm_801A4B60();
+    }
+}'''
+new = '''void gm_Scene_IntroEasy_OnFrame(void)
+{
+    if (gm_GetCurrentGameMode() == GM_ROGUE &&
+        gm_GetCurrentSceneIndex() == 4)
+    {
+        Rogue_RouteMenuSceneFrame();
+        return;
+    }
+
+    if (lbl_804735A8.x0 != 0) {
+        lbAudioAx_800236DC();
+        gm_801A4B60();
+    }
+}'''
+if new not in text:
+    if old not in text:
+        raise SystemExit("native Rogue flow: Classic intro frame hook changed")
+    text = text.replace(old, new, 1)
+
+path.write_text(text, encoding="utf-8")
+
+# ---------------------------------------------------------------------------
 # Wii 1.7 + -lang c99 compatibility:
 # The pinned gm/types.h has two explicit file-scope STATIC_ASSERTs for
 # TmSettingTable. Metrowerks Wii 1.7 rejects that anonymous-struct macro form
@@ -162,5 +210,5 @@ for old, new in replacements.items():
 
 path.write_text(text, encoding="utf-8")
 
-print("postpatch: Rogue progression uses non-gameplay Tournament menu host")
+print("postpatch: Rogue progression uses native Classic VS presentation")
 print("postpatch: Rogue Game Over uses native Classic character assets")

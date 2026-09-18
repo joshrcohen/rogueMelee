@@ -41,32 +41,34 @@ class NativeOnePlayerFlowTests(unittest.TestCase):
         self.assertIn("start->rules.x4_4 = true;", self.rogue)
         post = self.rogue.split("bool Rogue_PostFight(void)", 1)[1]
         post = post.split("static void enterGameOver", 1)[0]
-        self.assertIn("destination = 4;", post)
-        self.assertNotIn("RogueUI_OpenResults();\n            destination = 4", post)
+        self.assertIn("destination = routeSceneStateForChoice(0);", post)
+        self.assertNotIn(
+            "RogueUI_OpenResults();\n            destination = routeSceneStateForChoice(0)",
+            post,
+        )
 
-    def test_progression_uses_native_non_gameplay_menu_host(self):
-        self.assertIn("GS_TOU_BRACKET, NULL, NULL", self.rogue)
+    def test_progression_reuses_native_classic_matchup_scene(self):
+        self.assertIn("GS_INTRO_EASY, &route_intro", self.rogue)
         self.assertIn("Rogue_RouteMenuSceneFrame", self.fixer)
+        self.assertIn("gm_GetCurrentSceneIndex() == 4", self.fixer)
+        self.assertIn(
+            "native Rogue flow: Classic intro frame hook changed",
+            self.fixer,
+        )
+        # Hand-boss fallback keeps the crash-safe Tournament/SIS host.
+        self.assertIn("GS_TOU_BRACKET, NULL, NULL", self.rogue)
         self.assertIn(
             'HSD_SisLib_803A62A0(0, fn_8018F5F0(), "SIS_TournamentData");',
             self.fixer,
         )
         self.assertIn("HSD_SisLib_803A5F50(0);", self.fixer)
-        self.assertIn(
-            "native Rogue flow: tournament enter hook changed",
-            self.fixer,
-        )
-        self.assertIn(
-            "native Rogue flow: tournament exit hook changed",
-            self.fixer,
-        )
 
     def test_stage_clear_finishes_before_progression_screen(self):
         patch = (ROOT / "patches/engine.patch").read_text(encoding="utf-8")
         self.assertIn("case 3:", patch)
         self.assertIn("if (!Rogue_PostFight()) gm_801A4B60();", patch)
         self.assertNotIn("gmvs.c", self.fixer)
-        self.assertIn("destination = 4;", self.rogue)
+        self.assertIn("destination = routeSceneStateForChoice(0);", self.rogue)
 
     def test_real_continue_screen_is_used(self):
         self.assertIn("static DebugGameOverData game_over_data;", self.rogue)

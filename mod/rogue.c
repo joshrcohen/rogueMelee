@@ -63,6 +63,7 @@ typedef struct RogueIntroData {
 } RogueIntroData;
 
 static RogueIntroData stage_intro;
+static RogueIntroData route_intro;
 
 /* Vanilla's Classic intro skips Master Hand and is not authored for the
  * standalone Hand bosses. Keep the Adventure-style intro as a safe fallback. */
@@ -264,6 +265,8 @@ static void exitBossStageIntro(GameModeState* state)
 static bool in_camp;
 static bool in_route;
 static bool route_ui_open;
+static bool route_reload;
+static bool route_intro_native;
 static void campFrame(void)
 {
     if (gm_GetFrameCount() >= 60 && RogueUI_CampFrame()) gm_8016B328();
@@ -313,14 +316,201 @@ static void exitCamp(GameModeState* state)
 }
 
 
+static bool routePreviewSupportsClassic(
+    const RogueEncounter* encounter)
+{
+    int i;
+
+    if (encounter == NULL || encounter->enemy_count <= 0)
+        return false;
+
+    /* Retail GmIntEz explicitly refuses the Hand fighter kinds. */
+    for (i = 0; i < encounter->enemy_count; ++i) {
+        CharacterKind kind = encounter->enemies[i].kind;
+        if (kind == CKind_MasterH || kind == CKind_CrezyH)
+            return false;
+    }
+    return true;
+}
+
+static const RogueEncounter* routePreviewEncounter(int choice)
+{
+    const RogueRouteRound* current;
+    int preview_floor;
+    int act_floor;
+
+    if (choice < 0 || choice >= ROGUE_ROUTE_CHOICES)
+        choice = 0;
+
+    /*
+     * Generate the next ordinary route round before the reward is taken.
+     * RogueRoute_Prepare is idempotent, so Rogue_SelectReward later reuses
+     * these exact choices rather than rerolling them.
+     */
+    if (g_rogue_run.phase == ROGUE_PHASE_REWARD) {
+        preview_floor = g_rogue_run.floor + 1;
+        if (preview_floor > ROGUE_RUN_ENCOUNTERS)
+            return NULL;
+
+        act_floor =
+            ((preview_floor - 1) % ROGUE_FLOORS_PER_ACT) + 1;
+
+        if (act_floor == ROGUE_FLOORS_PER_ACT) {
+            if (g_rogue_run.route.boss_generated)
+                return &g_rogue_run.route.boss;
+            return NULL;
+        }
+
+        if (!RogueRoute_Prepare(&g_rogue_run.route,
+                                &g_rogue_run.route_rng,
+                                preview_floor))
+            return NULL;
+    } else if (g_rogue_run.phase == ROGUE_PHASE_ROUTE) {
+        current = RogueRoute_Current(&g_rogue_run.route);
+        if ((!current || !current->generated) &&
+            !RogueRoute_Prepare(&g_rogue_run.route,
+                                &g_rogue_run.route_rng,
+                                g_rogue_run.floor))
+            return NULL;
+    }
+
+    current = RogueRoute_Current(&g_rogue_run.route);
+    if (current && current->generated)
+        return &current->choices[choice];
+
+    if (g_rogue_run.phase == ROGUE_PHASE_ENCOUNTER)
+        return &g_rogue_run.current_encounter;
+
+    return NULL;
+}
+
+static int routePreviewFloor(void)
+{
+    return g_rogue_run.phase == ROGUE_PHASE_REWARD
+               ? g_rogue_run.floor + 1
+               : g_rogue_run.floor;
+}
+
+static int routeSceneStateForChoice(int choice)
+{
+    return routePreviewSupportsClassic(routePreviewEncounter(choice)) ? 4 : 7;
+}
+
+static void prepareRouteClassicIntro(const RogueEncounter* encounter)
+{
+    struct GameCache* gc;
+    u64 audio;
+    int count;
+    int i;
+    int same_kind;
+
+    memset(&route_intro, 0, sizeof(route_intro));
+
+    same_kind = encounter->enemy_count > 1;
+    for (i = 1; i < encounter->enemy_count; ++i) {
+        if (encounter->enemies[i].kind != encounter->enemies[0].kind) {
+            same_kind = false;
+            break;
+        }
+    }
+
+    if (same_kind) {
+        route_intro.model_scale_kind = 4;
+    } else if (encounter->enemy_count > 0 &&
+               encounter->enemies[0].model_scale >= 1.25f) {
+        route_intro.model_scale_kind = 1;
+    } else if (encounter->enemy_count > 0 &&
+               encounter->enemies[0].model_scale <= 0.80f) {
+        route_intro.model_scale_kind = 2;
+    } else {
+        route_intro.model_scale_kind = 0;
+    }
+
+    route_intro.game_type = 0;
+    route_intro.port = controller_port;
+    route_intro.nametag = GM_NAMETAG_NONE;
+    route_intro.stage_number = (u8) routePreviewFloor();
+    route_intro.ally_count = 1;
+    route_intro.enemy_count =
+        encounter->enemy_count > 3 ? 3 : encounter->enemy_count;
+
+    for (i = 0; i < 3; ++i) {
+        route_intro.allies[i] = ChKind_None;
+        route_intro.enemies[i] = ChKind_None;
+    }
+
+    route_intro.allies[0] = g_rogue_run.player_kind;
+    route_intro.ally_costumes[0] = g_rogue_run.player_costume;
+
+    for (i = 0; i < route_intro.enemy_count; ++i) {
+        route_intro.enemies[i] = encounter->enemies[i].kind;
+        route_intro.enemy_costumes[i] = encounter->enemies[i].costume;
+        route_intro.enemy_flags[i] = encounter->enemies[i].metal ? 1 : 0;
+    }
+
+    /*
+     * Reuse the same native preload path as the existing pre-fight Classic
+     * intro. This makes the lower half real Melee character models.
+     */
+    gc = &lbDvd_GetPreloadCacheScene()->game_cache;
+    lbDvd_80018C6C();
+    count = 0;
+
+    gc->entries[count].char_id = route_intro.allies[0];
+    gc->entries[count].color = route_intro.ally_costumes[0];
+    ++count;
+    lbDvd_80018254();
+    lbDvd_80018C2C(0xC7);
+    lbDvd_80017700(4);
+
+    for (i = 0; i < route_intro.enemy_count; ++i) {
+        gc->entries[count].char_id = route_intro.enemies[i];
+        gc->entries[count].color = route_intro.enemy_costumes[i];
+        ++count;
+    }
+
+    lbDvd_80018254();
+    gc->stkind = encounter->stage;
+    lbDvd_80018254();
+
+    audio = lbAudioAx_80026E84(g_rogue_run.player_kind);
+    for (i = 0; i < route_intro.enemy_count; ++i) {
+        audio |= lbAudioAx_80026E84(route_intro.enemies[i]);
+        if (route_intro.enemies[i] == CKind_Kirby)
+            audio |= ((u64) 2 << 32) | 0x4000;
+    }
+    audio |= lbAudioAx_80026EBC(encounter->stage);
+
+    lbAudioAx_80026F2C(0x1C);
+    lbAudioAx_8002702C(0xC, audio);
+    lbAudioAx_80027168();
+}
+
 static void enterRouteMenu(GameModeState* state)
 {
+    const RogueEncounter* preview;
+    int choice;
+
     (void) state;
     RogueUI_Reset();
     resolved = false;
     in_camp = false;
     in_route = true;
     route_ui_open = false;
+
+    choice = route_reload ? RogueUI_RouteChoice() : 0;
+    preview = routePreviewEncounter(choice);
+    route_intro_native = routePreviewSupportsClassic(preview);
+
+    if (route_intro_native)
+        prepareRouteClassicIntro(preview);
+    else
+        memset(&route_intro, 0, sizeof(route_intro));
+}
+
+bool Rogue_RouteUsesClassicPreview(void)
+{
+    return route_intro_native;
 }
 
 static void exitRouteMenu(GameModeState* state)
@@ -341,17 +531,34 @@ void Rogue_RouteMenuSceneFrame(void)
     int next_state;
 
     if (!route_ui_open) {
-        RogueUI_OpenRoute();
+        if (route_reload) {
+            RogueUI_ReopenRoute();
+            route_reload = false;
+        } else {
+            RogueUI_OpenRoute();
+        }
         route_ui_open = true;
     }
 
     choice = RogueUI_RouteFrame();
+
+    /*
+     * The lower matchup is Melee's real GmIntEz scene. LEFT/RIGHT reloads
+     * the route scene so Melee rebuilds the selected 3-D opponent.
+     */
+    if (RogueUI_ConsumeRouteRefresh()) {
+        route_reload = true;
+        next_state = routeSceneStateForChoice(RogueUI_RouteChoice());
+        RogueUI_Clear();
+        gm_SetNextGameModeStateId(next_state);
+        gm_801A4B60();
+        return;
+    }
+
     if (choice < 0)
         return;
 
     if (choice >= ROGUE_ROUTE_CHOICES) {
-        /* Boss is already prepared by Rogue_SelectReward. The All-Star Rest
-         * Area is entered only here, for the real pre-boss shop/rest stop. */
         if (g_rogue_run.phase != ROGUE_PHASE_ENCOUNTER)
             return;
 
@@ -541,7 +748,7 @@ bool Rogue_PostFight(void)
          */
         if (g_rogue_run.phase == ROGUE_PHASE_REWARD) {
             RogueUI_Clear();
-            destination = 4;
+            destination = routeSceneStateForChoice(0);
             return false;
         }
 
@@ -556,8 +763,9 @@ bool Rogue_PostFight(void)
             return true;
 
         if (action == ROGUE_UI_CONTINUE)
-            destination = g_rogue_run.phase == ROGUE_PHASE_ROUTE ? 4 :
-                          Rogue_BeginCamp() ? 3 : Rogue_IntroState();
+            destination = g_rogue_run.phase == ROGUE_PHASE_ROUTE
+                              ? routeSceneStateForChoice(0)
+                              : Rogue_BeginCamp() ? 3 : Rogue_IntroState();
         else if (action == ROGUE_UI_NEW || action == ROGUE_UI_REPLAY) {
             if (action == ROGUE_UI_NEW)
                 pending_seed = OSGetTick();
@@ -642,7 +850,7 @@ GameModeState gm_Mode_Rogue_States[] = {
     },
     {
         4, lbDvdPreload_3, 0, enterRouteMenu, exitRouteMenu,
-        { GS_TOU_BRACKET, NULL, NULL },
+        { GS_INTRO_EASY, &route_intro, NULL },
     },
     {
         5, lbDvdPreload_2, 0, enterBossStageIntro, exitBossStageIntro,
@@ -651,6 +859,11 @@ GameModeState gm_Mode_Rogue_States[] = {
     {
         6, lbDvdPreload_3, 0, enterGameOver, exitGameOver,
         { GS_GAMEOVER, &game_over_data, &game_over_data },
+    },
+    {
+        /* Hand-boss preview fallback: current crash-safe SIS host. */
+        7, lbDvdPreload_3, 0, enterRouteMenu, exitRouteMenu,
+        { GS_TOU_BRACKET, NULL, NULL },
     },
     { GM_GAMEMODESTATE_TERMINATE },
 };

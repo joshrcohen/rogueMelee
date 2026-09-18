@@ -14,7 +14,7 @@ class NativeStageClearRewardTests(unittest.TestCase):
         post = self.rogue.split("bool Rogue_PostFight(void)", 1)[1]
         post = post.split("static void enterGameOver", 1)[0]
         self.assertIn("g_rogue_run.phase == ROGUE_PHASE_REWARD", post)
-        self.assertIn("destination = 4;", post)
+        self.assertIn("destination = routeSceneStateForChoice(0);", post)
         self.assertIn("GS_TOU_BRACKET, NULL, NULL", self.rogue)
         menu = self.rogue.split("static void enterRouteMenu", 1)[1]
         menu = menu.split("static void encounterFrame", 1)[0]

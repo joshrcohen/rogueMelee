@@ -16,6 +16,8 @@ class NativeOnePlayerUiTests(unittest.TestCase):
         self.assertIn("routeDrawMatchup", self.ui)
         self.assertIn("ROUTE_UI_UPGRADE", self.ui)
         self.assertIn("ROUTE_UI_FIGHT", self.ui)
+        self.assertIn("Rogue_RouteUsesClassicPreview()", self.ui)
+        self.assertIn("GS_INTRO_EASY, &route_intro", self.rogue)
 
     def test_native_classic_matchup_intro(self):
         self.assertIn("GS_INTRO_EASY, &stage_intro", self.rogue)

@@ -9,6 +9,7 @@ void Rogue_ModeOnUnload(void);
 bool Rogue_DeveloperBootRequested(void);
 bool Rogue_PostFight(void);
 void Rogue_RouteMenuSceneFrame(void);
+bool Rogue_RouteUsesClassicPreview(void);
 int Rogue_ControllerPort(void);
 
 #endif
