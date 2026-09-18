@@ -39,6 +39,25 @@ class NativeOnePlayerUiTests(unittest.TestCase):
     def test_native_continue_screen_remains(self):
         self.assertIn("GS_GAMEOVER, &game_over_data, &game_over_data", self.rogue)
 
+    def test_reference_readability_pass(self):
+        self.assertIn("READABILITY / REFERENCE PASS", self.progress)
+        self.assertIn(
+            "HSD_SisLib_803A7548(text, entry, 1.60f, 1.60f)",
+            self.progress,
+        )
+        self.assertIn(
+            "HSD_SisLib_803A7548(text, entry, 1.62f, 1.62f)",
+            self.progress,
+        )
+        self.assertIn(
+            "HSD_SisLib_803A7548(text, entry, 1.68f, 1.68f)",
+            self.progress,
+        )
+        self.assertIn(
+            "GXColor bg = selected ? ui_dark : ui_panel_color",
+            self.progress,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

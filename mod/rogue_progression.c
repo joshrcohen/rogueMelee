@@ -283,22 +283,24 @@ static void draw_node(float x, const char* label,
     char encoded[128];
     GXColor bg = active ? ui_gold : complete ? ui_red : ui_panel_color;
     GXColor fg = active ? ui_black : ui_white;
+    int entry;
 
-    text = ui_panel(x, -12.95f, 4.15f, 1.35f, bg, fg);
+    text = ui_panel(x, -13.05f, 4.15f, 1.55f, bg, fg);
     if (text == NULL)
         return;
 
     ui_encode(encoded, label);
-    HSD_SisLib_803A6B98(text, 13.0f, 12.0f, "%s", encoded);
+    entry = HSD_SisLib_803A6B98(text, 13.0f, 11.0f, "%s", encoded);
+    HSD_SisLib_803A7548(text, entry, 1.34f, 1.34f);
 }
 
 static void draw_reward_card(float x, int index, bool selected)
 {
     RogueReward* reward = &g_rogue_run.current_rewards[index];
     HSD_Text* text;
-    GXColor bg = selected ? ui_gold : ui_panel_color;
-    GXColor fg = selected ? ui_black : ui_white;
-    GXColor sub = selected ? ui_black : ui_muted;
+    GXColor bg = selected ? ui_dark : ui_panel_color;
+    GXColor fg = selected ? ui_gold : ui_white;
+    GXColor sub = ui_muted;
     char encoded[128];
     char meta[80];
     char detail[180];
@@ -322,21 +324,21 @@ static void draw_reward_card(float x, int index, bool selected)
 
     ui_encode(encoded, reward->name);
     entry = HSD_SisLib_803A6B98(text, 18.0f, 14.0f, "%s", encoded);
-    HSD_SisLib_803A7548(text, entry, 1.22f, 1.22f);
+    HSD_SisLib_803A7548(text, entry, 1.60f, 1.60f);
 
     ui_encode(encoded, meta);
     entry = HSD_SisLib_803A6B98(text, 18.0f, 50.0f, "%s", encoded);
-    HSD_SisLib_803A7548(text, entry, .73f, .73f);
+    HSD_SisLib_803A7548(text, entry, .92f, .92f);
     HSD_SisLib_803A74F0(text, entry, &sub);
 
     ui_encode(encoded, line1);
     entry = HSD_SisLib_803A6B98(text, 18.0f, 80.0f, "%s", encoded);
-    HSD_SisLib_803A7548(text, entry, .68f, .68f);
+    HSD_SisLib_803A7548(text, entry, .86f, .86f);
 
     if (line2[0]) {
         ui_encode(encoded, line2);
         entry = HSD_SisLib_803A6B98(text, 18.0f, 103.0f, "%s", encoded);
-        HSD_SisLib_803A7548(text, entry, .68f, .68f);
+        HSD_SisLib_803A7548(text, entry, .86f, .86f);
     }
 }
 
@@ -377,11 +379,11 @@ static void draw_fight_plate(float x, const RogueEncounter* encounter,
 
     ui_encode(encoded, opponent);
     entry = HSD_SisLib_803A6B98(text, 20.0f, 13.0f, "%s", encoded);
-    HSD_SisLib_803A7548(text, entry, 1.28f, 1.28f);
+    HSD_SisLib_803A7548(text, entry, 1.62f, 1.62f);
 
     ui_encode(encoded, meta);
     entry = HSD_SisLib_803A6B98(text, 20.0f, 52.0f, "%s", encoded);
-    HSD_SisLib_803A7548(text, entry, .75f, .75f);
+    HSD_SisLib_803A7548(text, entry, .94f, .94f);
     HSD_SisLib_803A74F0(text, entry, &sub);
 
     ui_encode(encoded, tag);
@@ -408,7 +410,7 @@ static void draw_bottom_bar(void)
 
     ui_encode(encoded, "CURRENT CHARACTER BUILD / UPGRADES");
     entry = HSD_SisLib_803A6B98(text, 55.0f, 13.0f, "%s", encoded);
-    HSD_SisLib_803A7548(text, entry, 1.00f, 1.00f);
+    HSD_SisLib_803A7548(text, entry, 1.68f, 1.68f);
     HSD_SisLib_803A74F0(text, entry, &ui_gold);
 
     snprintf(line, sizeof(line),
@@ -419,7 +421,7 @@ static void draw_bottom_bar(void)
              ability_name(ROGUE_ABILITY_DOWN));
     ui_encode(encoded, line);
     entry = HSD_SisLib_803A6B98(text, 55.0f, 41.0f, "%s", encoded);
-    HSD_SisLib_803A7548(text, entry, .70f, .70f);
+    HSD_SisLib_803A7548(text, entry, .91f, .91f);
 
     snprintf(line, sizeof(line),
              "DMG %.0f%%   DEF %.0f%%   RUN %.0f%%   SHIELD %.0f%%",
@@ -429,7 +431,7 @@ static void draw_bottom_bar(void)
              stats->shield_health * 100.0f);
     ui_encode(encoded, line);
     entry = HSD_SisLib_803A6B98(text, 55.0f, 66.0f, "%s", encoded);
-    HSD_SisLib_803A7548(text, entry, .66f, .66f);
+    HSD_SisLib_803A7548(text, entry, .87f, .87f);
 
     if (has_reward) {
         snprintf(line, sizeof(line),
@@ -446,7 +448,7 @@ static void draw_bottom_bar(void)
 
     ui_encode(encoded, line);
     entry = HSD_SisLib_803A6B98(text, 55.0f, 91.0f, "%s", encoded);
-    HSD_SisLib_803A7548(text, entry, .66f, .66f);
+    HSD_SisLib_803A7548(text, entry, .87f, .87f);
 }
 
 static void draw_build(void)
@@ -489,6 +491,12 @@ static void draw_build(void)
     ui_at(-4.5f, 11.0f, .012f, ui_gold, "B: RETURN");
 }
 
+/*
+ * READABILITY / REFERENCE PASS:
+ * Keep native fighter models dominant while making overlay text
+ * readable at normal game scale. Selected cards/plates stay dark
+ * instead of covering the models with solid yellow blocks.
+ */
 static void draw_progression(void)
 {
     const RogueRoute* route = &g_rogue_run.route;
@@ -526,12 +534,12 @@ static void draw_progression(void)
         draw_node(node_x[i], node_names[i], active, complete);
     }
 
-    ui_at(-4.35f, -10.35f, .0145f, ui_white,
+    ui_at(-4.75f, -10.35f, .0175f, ui_white,
           "ACT %d   -   FLOOR %d",
           route->act, target_floor);
 
     if (has_reward && !upgrade_chosen) {
-        ui_at(-3.90f, -9.22f, .0120f, ui_gold,
+        ui_at(-4.55f, -9.22f, .0185f, ui_gold,
               "CHOOSE UPGRADE");
 
         for (i = 0; i < 3; ++i) {
@@ -541,11 +549,11 @@ static void draw_progression(void)
                 upgrade_cursor == i);
         }
     } else {
-        ui_at(-4.50f, -7.85f, .0150f, ui_gold,
+        ui_at(-5.30f, -7.85f, .0190f, ui_gold,
               has_reward ? "CHOOSE NEXT FIGHT" : "CHOOSE FIRST FIGHT");
 
         if (has_reward && upgrade_taken >= 0) {
-            ui_at(-5.80f, -6.55f, .0098f, ui_muted,
+            ui_at(-6.10f, -6.55f, .0115f, ui_muted,
                   "UPGRADE LOCKED: %s",
                   g_rogue_run.current_rewards[upgrade_taken].name);
         }
@@ -598,16 +606,16 @@ static void draw_progression(void)
     draw_bottom_bar();
 
     if (has_reward && !upgrade_chosen) {
-        ui_at(-7.75f, 13.05f, .0090f, ui_white,
+        ui_at(-8.30f, 13.05f, .0113f, ui_white,
               "LEFT / RIGHT: UPGRADE     A: SELECT     B: BUILD");
     } else if (target_act_floor >= ROGUE_FLOORS_PER_ACT) {
-        ui_at(-6.55f, 13.05f, .0090f, ui_white,
+        ui_at(-7.10f, 13.05f, .0113f, ui_white,
               "UPGRADE SELECTED     CONTINUING TO SHOP / REST");
     } else if (confirm_timer > 0) {
-        ui_at(-4.95f, 13.05f, .0090f, ui_gold,
+        ui_at(-5.45f, 13.05f, .0113f, ui_gold,
               "MATCH SET - LOADING VS SCREEN");
     } else {
-        ui_at(-7.45f, 13.05f, .0090f, ui_white,
+        ui_at(-8.00f, 13.05f, .0113f, ui_white,
               "LEFT / RIGHT: FIGHT     A: SELECT     B: BUILD");
     }
 }
