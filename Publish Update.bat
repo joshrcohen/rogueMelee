@@ -86,7 +86,7 @@ if errorlevel 1 (
       "dist\RogueMelee-Update.zip" ^
       --target "%COMMIT%" ^
       --title "RogueMelee %VERSION%" ^
-      --notes "Rogue Bracket update: adds native-style route choice between fights, seeded encounter branches, act history, boss previews, and Tournament/All-Star-inspired presentation while retaining the full 26-fighter / 104-special system." ^
+      --notes "Native 1-P UI pass: All-Star-inspired Rogue Route, Adventure-style VS intros, Stage Clear reward presentation, Continue-style run results, and a simplified combat HUD." ^
       --latest
     if errorlevel 1 goto :fail
 ) else (
