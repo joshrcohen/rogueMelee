@@ -21,7 +21,10 @@ class NativeOnePlayerUiTests(unittest.TestCase):
     def test_all_star_route_language(self):
         self.assertIn('"ALL-STAR PROGRESSION"', self.ui)
         self.assertIn('"CHOOSE NEXT MATCH"', self.ui)
-        self.assertIn('"FINAL MATCH"', self.ui)
+        self.assertTrue(
+            '"FINAL MATCH"' in self.ui or '"FINAL: %s"' in self.ui,
+            "Route UI should identify the final boss match",
+        )
 
     def test_continue_style_run_end(self):
         self.assertIn('"CONTINUE?"', self.ui)

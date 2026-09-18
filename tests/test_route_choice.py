@@ -27,6 +27,6 @@ class RouteChoiceTests(unittest.TestCase):
         self.assertRegex(c,r'4,\s*lbDvdPreload_2,\s*0,\s*enterRoute,\s*exitRoute')
     def test_bracket_ui(self):
         c=(ROOT/'mod/rogue_ui.c').read_text(encoding='utf-8')
-        self.assertIn('"ROGUE BRACKET"',c)
+        self.assertIn('"ROGUE ROUTE"',c)
         self.assertIn('"MATCH SET"',c)
 if __name__=='__main__': unittest.main()

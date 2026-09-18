@@ -15,6 +15,9 @@
 #include <sysdolphin/baselib/controller.h>
 #include <dolphin/gx.h>
 #include <melee/lb/lbaudio_ax.h>
+#include <melee/if/ifall.h>
+#include <melee/if/ifstock.h>
+#include <sysdolphin/baselib/jobj.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <printf.h>
@@ -30,8 +33,8 @@ static GXColor ui_dark = {9, 15, 35, 230};
 static GXColor ui_black = {18, 21, 34, 255};
 static GXColor ui_red = {198, 28, 20, 255};
 static GXColor ui_orange = {255, 104, 0, 255};
-static GXColor ui_screen = {0, 0, 0, 238};
-static GXColor ui_panel = {18, 22, 38, 246};
+static GXColor ui_screen = {0, 0, 0, 214};
+static GXColor ui_panel = {18, 22, 38, 210};
 
 
 static int ui_format(char* out, unsigned int size, const char* fmt, ...)
@@ -144,8 +147,11 @@ static void ui_tile(float x, float y, float width, float height, int selected,
     GXColor sub = selected ? ui_black : ui_muted;
 
     ui_panel_box(x, y, width, height, bg);
-    if (title && *title)
-        ui_at(x + .55f, y + .55f, .021f, fg, "%s", title);
+    if (title && *title) {
+        float title_size = strlen(title) > 18 ? .0165f :
+                           strlen(title) > 14 ? .0185f : .021f;
+        ui_at(x + .55f, y + .55f, title_size, fg, "%s", title);
+    }
     if (subtitle && *subtitle)
         ui_at(x + .55f, y + 2.15f, .0145f, sub, "%s", subtitle);
     if (tag && *tag)
@@ -197,13 +203,115 @@ static int encounterGold(const RogueEncounter* encounter)
            encounter->type == ROGUE_ENCOUNTER_ELITE ? 60 : 30;
 }
 
+
+#define ROGUE_UI_NATIVE_ICONS 10
+static HSD_GObj* native_icons[ROGUE_UI_NATIVE_ICONS];
+static int native_icon_count;
+static bool native_ifall_owned;
+
+static void ui_clear_native_icons(void)
+{
+    int i;
+    for (i = 0; i < native_icon_count; ++i) {
+        if (native_icons[i] != NULL)
+            HSD_GObjFree(native_icons[i]);
+        native_icons[i] = NULL;
+    }
+    native_icon_count = 0;
+}
+
+static bool ui_ensure_native_icons(void)
+{
+    HSD_Archive** archive;
+
+    if (ifAll_GetHUDGObj() != NULL)
+        return true;
+
+    archive = ifAll_GetArchive();
+    if (archive == NULL)
+        return false;
+
+    /* Adventure intro does not normally own the battle HUD archive.
+     * Load native IfAll resources temporarily for fighter portrait icons. */
+    ifAll_802F390C();
+    native_ifall_owned = true;
+    return ifAll_GetHUDGObj() != NULL;
+}
+
+static HSD_GObj* ui_fighter_icon(CharacterKind kind, int costume,
+                                 float x, float y, float scale)
+{
+    HSD_GObj* gobj;
+    HSD_JObj* jobj;
+    Vec3 size;
+
+    if (native_icon_count >= ROGUE_UI_NATIVE_ICONS)
+        return NULL;
+    if (!ui_ensure_native_icons())
+        return NULL;
+
+    gobj = ifStock_802F96D0(kind, costume, x, y);
+    if (gobj == NULL)
+        return NULL;
+
+    jobj = gobj->hsd_obj;
+    if (jobj != NULL) {
+        size.x = size.y = size.z = scale;
+        HSD_JObjSetScale(jobj, &size);
+    }
+
+    native_icons[native_icon_count++] = gobj;
+    return gobj;
+}
+
+static void ui_wrapped_at(float x, float y, float size, GXColor color,
+                          const char* text, int width, int max_lines)
+{
+    const char* p = text;
+    int row = 0;
+
+    while (*p && row < max_lines) {
+        char line[96];
+        int remaining = (int) strlen(p);
+        int count = remaining > width ? width : remaining;
+
+        if (remaining > width) {
+            while (count > 0 && p[count] != ' ')
+                --count;
+            if (count <= 0)
+                count = width;
+        }
+
+        if (count >= (int) sizeof(line))
+            count = sizeof(line) - 1;
+
+        memcpy(line, p, count);
+        line[count] = 0;
+        ui_at(x, y + row * 1.12f, size, color, "%s", line);
+
+        p += count;
+        while (*p == ' ')
+            ++p;
+        ++row;
+    }
+}
+
 static int cursor, page, delay, camp_zone = -2, camp_branch;
 static bool ready, inspect, history_open, hud_ready;
 static int history_cursor;
 static const RogueHistoryEntry* viewed_record;
 static HSD_Text* markers[5];
 static float camp_y;
-void RogueUI_Clear(void) { ui_begin(); ready = false; }
+void RogueUI_Clear(void)
+{
+    ui_clear_native_icons();
+    ui_begin();
+    ready = false;
+    if (native_ifall_owned) {
+        ifAll_802F3A64();
+        native_ifall_owned = false;
+    }
+}
 void RogueUI_Reset(void)
 {
     /* Called after scene teardown: SIS has already released its scene objects. */
@@ -212,6 +320,9 @@ void RogueUI_Reset(void)
     RogueCamp_Reset();
     history_open=false;history_cursor=0;viewed_record=NULL;
     hud_ready = false;
+    native_icon_count = 0;
+    native_ifall_owned = false;
+    memset(native_icons, 0, sizeof(native_icons));
     memset(markers, 0, sizeof(markers));
 }
 static void openCanvas(void)
@@ -352,8 +463,9 @@ static void drawStageClear(void)
     int fight = (encounter->act - 1) * ROGUE_FLOORS_PER_ACT +
                 encounter->act_floor;
     int i;
-    char detail[256], extra[160];
+    char detail[256];
 
+    ui_clear_native_icons();
     ui_backdrop();
 
     ui_at(-13.6f, -12.3f, .047f, ui_orange, "STAGE CLEAR");
@@ -367,6 +479,10 @@ static void drawStageClear(void)
           "GOLD EARNED   %d", earned);
     ui_at(-12.8f, -5.35f, .017f, ui_gold,
           "RUN GOLD      %d", g_rogue_run.currency);
+
+    ui_fighter_icon(encounter->enemy_kind,
+                    encounter->enemy_count ? encounter->enemies[0].costume : 0,
+                    -6.2f, -6.55f, 1.25f);
 
     ui_panel_box(-4.8f, -8.9f, 18.3f, 4.45f, ui_panel);
     ui_at(-4.1f, -8.2f, .0145f, ui_gold, "SPECIAL BONUS");
@@ -392,24 +508,22 @@ static void drawStageClear(void)
 
     Rogue_DescribeReward(&g_rogue_run.current_rewards[cursor],
                          detail, sizeof(detail));
-    extra[0] = 0;
-    {
-        int split = (int) strlen(detail);
-        if (split > 76) {
-            split = 76;
-            while (split > 0 && detail[split] != ' ') --split;
-            if (split > 0) {
-                snprintf(extra, sizeof(extra), "%s", detail + split + 1);
-                detail[split] = 0;
-            }
-        }
-    }
 
-    ui_panel_box(-13.5f, 3.4f, 26.65f, 4.15f, ui_panel);
+    ui_panel_box(-13.5f, 3.4f, 26.65f, 4.65f, ui_panel);
     ui_at(-12.8f, 4.05f, .014f, ui_gold, "REWARD DETAILS");
-    ui_at(-12.8f, 5.30f, .0165f, ui_white, "%s", detail);
-    if (*extra)
-        ui_at(-12.8f, 6.50f, .0165f, ui_white, "%s", extra);
+
+    if (g_rogue_run.current_rewards[cursor].type == ROGUE_REWARD_ABILITY) {
+        const RogueAbilityDefinition* def =
+            Rogue_GetAbility(g_rogue_run.current_rewards[cursor].ability_id);
+        if (def) {
+            ui_fighter_icon(def->source_kind, 0, -10.8f, 6.15f, 1.6f);
+            ui_wrapped_at(-8.9f, 5.25f, .0148f, ui_white, detail, 49, 3);
+        } else {
+            ui_wrapped_at(-12.8f, 5.25f, .0148f, ui_white, detail, 60, 3);
+        }
+    } else {
+        ui_wrapped_at(-12.8f, 5.25f, .0148f, ui_white, detail, 60, 3);
+    }
 
     ui_at(-13.2f, 9.55f, .016f, ui_white,
           "Stick: choose     A: confirm     B: build");
@@ -440,7 +554,10 @@ static void drawRunEnd(void)
 
     ui_rule(-13.5f, -9.6f, 27.0f, accent);
 
+    ui_clear_native_icons();
     ui_panel_box(-13.5f, -8.4f, 26.65f, 5.15f, ui_panel);
+    ui_fighter_icon(g_rogue_run.player_kind, g_rogue_run.player_costume,
+                    10.9f, -6.1f, 1.9f);
     ui_at(-12.7f, -7.6f, .014f, ui_muted, "RUN SUMMARY");
     ui_at(-12.7f, -5.95f, .021f, ui_white,
           "ACT %d    FLOOR %d / 5    WINS %d / 15",
@@ -589,29 +706,30 @@ static int route_cursor;
 static int route_confirm;
 static int route_locked = -1;
 
-static void routeNode(float x, float y, int active, int complete,
+static void routeNode(float x, float y, float width,
+                      int active, int complete,
                       const char* label, const char* detail)
 {
     GXColor bg = active ? ui_gold :
                  complete ? ui_panel : ui_black;
     GXColor fg = active ? ui_black : ui_white;
 
-    ui_panel_box(x, y, 4.3f, 1.45f, bg);
-    ui_at(x + .45f, y + .38f, .013f, fg, "%s", label);
+    ui_panel_box(x, y, width, 1.35f, bg);
+    ui_at(x + .30f, y + .32f, .0115f, fg, "%s", label);
     if (detail && *detail)
-        ui_at(x + .15f, y + 1.75f, .0095f,
-              complete ? ui_muted : ui_white, "%.16s", detail);
+        ui_at(x + .05f, y + 1.55f, .0085f,
+              complete ? ui_muted : ui_white, "%.12s", detail);
 }
 
 static void routeDraw(void)
 {
     const RogueRoute* route = &g_rogue_run.route;
     const RogueRouteRound* current = RogueRoute_Current(route);
-    static const float node_x[5] = {
-        -14.5f, -7.4f, -.3f, 6.8f, 13.9f
+    static const float node_x[6] = {
+        -14.8f, -9.25f, -3.70f, 1.85f, 7.40f, 12.95f
     };
-    static const char* node_name[5] = {
-        "MATCH 1", "MATCH 2", "ELITE", "MATCH 4", "BOSS"
+    static const char* node_name[6] = {
+        "MATCH 1", "MATCH 2", "ELITE", "MATCH 4", "SHOP", "BOSS"
     };
     int i;
 
@@ -623,33 +741,36 @@ static void routeDraw(void)
     ui_at(-14.5f, -9.55f, .012f, ui_muted,
           "ALL-STAR PROGRESSION");
 
-    for (i = 0; i < 5; ++i) {
+    for (i = 0; i < 6; ++i) {
         char label[32];
-        const char* detail = "";
-        int active = i == route->current_round;
-        int complete = i < route->current_round;
+        const char* detail = node_name[i];
+        int round_index = i < 4 ? i : -1;
+        int active = round_index == route->current_round;
+        int complete = round_index >= 0 && round_index < route->current_round;
 
         if (i == 4) {
+            snprintf(label, sizeof(label), "SHOP");
+            detail = "REST AREA";
+        } else if (i == 5) {
             snprintf(label, sizeof(label), "BOSS");
             detail = RogueRoute_CharacterName(route->boss.enemy_kind);
-            active = false;
-        } else if (complete && route->rounds[i].selected >= 0) {
+        } else if (complete && route->rounds[round_index].selected >= 0) {
             const RogueEncounter* picked =
-                &route->rounds[i].choices[route->rounds[i].selected];
+                &route->rounds[round_index]
+                    .choices[route->rounds[round_index].selected];
             snprintf(label, sizeof(label), "CLEAR");
             detail = RogueRoute_CharacterName(picked->enemy_kind);
         } else if (active) {
             snprintf(label, sizeof(label), "NEXT");
-            detail = node_name[i];
         } else {
             snprintf(label, sizeof(label), "?");
-            detail = node_name[i];
         }
 
-        routeNode(node_x[i], -7.9f, active, complete, label, detail);
+        routeNode(node_x[i], -7.9f, 3.55f,
+                  active, complete, label, detail);
 
-        if (i < 4)
-            ui_rule(node_x[i] + 4.35f, -7.18f, 2.75f,
+        if (i < 5)
+            ui_rule(node_x[i] + 3.58f, -7.25f, 1.95f,
                     complete ? ui_red : ui_muted);
     }
 
@@ -687,18 +808,16 @@ static void routeDraw(void)
     }
 
     ui_panel_box(-13.6f, 5.25f, 26.8f, 2.25f, ui_panel);
-    ui_at(-12.9f, 5.85f, .0135f, ui_muted, "FINAL MATCH");
-    ui_at(-7.5f, 5.75f, .016f, ui_white, "%s",
+    ui_at(-12.9f, 5.85f, .0135f, ui_muted,
+          "AFTER MATCH 4: SHOP / REST AREA");
+    ui_at(2.4f, 5.75f, .0145f, ui_white, "FINAL: %s",
           route->boss.name ? route->boss.name : "Boss");
-    ui_at(5.1f, 5.85f, .013f, ui_gold, "%s",
-          RogueRoute_StageName(route->boss.stage));
 
-    if (route_confirm > 0) {
+    if (route_confirm > 0)
         ui_at(7.6f, 9.35f, .019f, ui_gold, "MATCH SET");
-    } else {
+    else
         ui_at(-13.2f, 9.35f, .016f, ui_white,
               "Stick: choose     A: select     B: build");
-    }
 }
 
 void RogueUI_OpenRoute(void)
@@ -711,6 +830,21 @@ void RogueUI_OpenRoute(void)
     page = 0;
     delay = 30;
     routeDraw();
+
+    {
+        const RogueRouteRound* current = RogueRoute_Current(&g_rogue_run.route);
+        if (current && current->generated) {
+            int i;
+            for (i = 0; i < 2; ++i) {
+                const RogueEncounter* e = &current->choices[i];
+                ui_fighter_icon(e->enemy_kind,
+                                e->enemy_count ? e->enemies[0].costume : 0,
+                                -7.2f + i * 13.7f, .35f, 2.35f);
+            }
+        }
+        ui_fighter_icon(g_rogue_run.route.boss.enemy_kind, 0,
+                        14.4f, -7.2f, 1.2f);
+    }
 }
 
 int RogueUI_RouteFrame(void)
@@ -782,7 +916,7 @@ int RogueUI_RouteFrame(void)
 static void campDraw(int zone)
 {
     ui_begin();
-    ui_at(-17,-13,.020f,ui_gold,"REST AREA    Gold %d",g_rogue_run.currency);
+    ui_at(-17,-13,.020f,ui_gold,"SHOP / REST AREA    Gold %d",g_rogue_run.currency);
     for(int i=0;i<5;i++) {
         const char* names[]={"SHOP 1","SHOP 2","REST","TRAIN","NEXT FIGHT"};
         HSD_Text* t=ui_object(0,0,.013f,i==zone?ui_gold:ui_white);
@@ -875,6 +1009,7 @@ void RogueUI_IntroFrame(void)
     const RogueEncounter* encounter;
     char opponent[96];
     const char* player;
+    int i;
 
     if (ready)
         return;
@@ -897,11 +1032,29 @@ void RogueUI_IntroFrame(void)
     ui_panel_box(2.6f, -7.8f, 11.4f, 10.5f, ui_panel);
 
     ui_at(-13.2f, -6.9f, .0135f, ui_muted, "PLAYER");
-    ui_at(-13.2f, -3.4f, .030f, ui_white, "%s", player);
-
     ui_at(3.4f, -6.9f, .0135f, ui_muted,
           encounter->enemy_count > 1 ? "OPPONENTS" : "OPPONENT");
-    ui_at(3.4f, -3.4f, .027f, ui_white, "%s", opponent);
+
+    ui_fighter_icon(g_rogue_run.player_kind, g_rogue_run.player_costume,
+                    -8.4f, -1.8f, 3.4f);
+
+    if (encounter->enemy_count <= 1) {
+        ui_fighter_icon(encounter->enemy_kind,
+                        encounter->enemy_count ?
+                        encounter->enemies[0].costume : 0,
+                        8.4f, -1.8f, 3.4f);
+    } else {
+        for (i = 0; i < encounter->enemy_count && i < 3; ++i) {
+            float x = 6.0f + i * 2.4f;
+            ui_fighter_icon(encounter->enemies[i].kind,
+                            encounter->enemies[i].costume,
+                            x, -1.8f, 2.35f);
+        }
+    }
+
+    ui_at(-13.2f, .55f, .023f, ui_white, "%s", player);
+    ui_at(3.4f, .55f, strlen(opponent) > 18 ? .018f : .022f,
+          ui_white, "%s", opponent);
 
     ui_at(-1.45f, -2.0f, .050f, ui_orange, "VS");
 
