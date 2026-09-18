@@ -14,19 +14,17 @@ class NativeOnePlayerUiTests(unittest.TestCase):
         self.assertIn('"CHOOSE UPGRADE"', self.progress)
         self.assertIn('"CHOOSE NEXT FIGHT"', self.progress)
         self.assertIn('"CURRENT CHARACTER BUILD / UPGRADES"', self.progress)
-        self.assertIn('"GOLD +%d  TOTAL %d  SCORE %d', self.progress)
-        self.assertIn("draw_route_header(", self.progress)
+        self.assertIn('"GOLD +%d   TOTAL %d   SCORE %d', self.progress)
+        self.assertIn("draw_node(", self.progress)
 
     def test_three_upgrade_cards_across_middle(self):
         self.assertIn("for (i = 0; i < 3; ++i)", self.progress)
-        self.assertIn("-14.75f + i * 9.78f", self.progress)
+        self.assertIn("-14.75f + i * 9.80f", self.progress)
         self.assertIn("draw_reward_card(", self.progress)
 
     def test_cards_disappear_after_upgrade(self):
-        draw = self.progress.split("static void draw_progression", 1)[1]
-        draw = draw.split("static int copy_encounter", 1)[0]
-        self.assertIn("has_reward && !upgrade_chosen", draw)
-        self.assertIn("draw_reward_card(", draw)
+        self.assertIn("has_reward && !upgrade_chosen", self.progress)
+        self.assertIn('"UPGRADE LOCKED: %s"', self.progress)
 
     def test_fight_choice_uses_native_intro_models(self):
         self.assertIn("left = &round->choices[0];", self.progress)
@@ -41,12 +39,12 @@ class NativeOnePlayerUiTests(unittest.TestCase):
     def test_native_continue_screen_remains(self):
         self.assertIn("GS_GAMEOVER, &game_over_data, &game_over_data", self.rogue)
 
-    def test_safe_target_render_polish(self):
-        self.assertIn("SAFE TARGET-RENDER POLISH", self.progress)
-        self.assertIn("panel_entry(", self.progress)
+    def test_balanced_target_render_pass(self):
+        self.assertIn("BALANCED TARGET-RENDER PASS", self.progress)
+        self.assertIn("selected ? &ui_gold", self.progress)
         self.assertIn("ui_blue", self.progress)
         self.assertIn("ui_purple", self.progress)
-        self.assertIn("draw_center_vs();", self.progress)
+        self.assertNotIn("draw_panel_frame", self.progress)
 
 
 if __name__ == "__main__":

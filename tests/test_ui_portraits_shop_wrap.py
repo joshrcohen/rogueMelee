@@ -22,7 +22,7 @@ class UiPortraitShopWrapTests(unittest.TestCase):
 
     def test_build_strip_has_abilities_and_stats(self):
         self.assertIn("ability_name(ROGUE_ABILITY_NEUTRAL)", self.progress)
-        self.assertIn('"GOLD +%d  TOTAL %d  SCORE %d   DMG %.0f%%  DEF %.0f%%"', self.progress)
+        self.assertIn('"GOLD +%d   TOTAL %d   SCORE %d   DMG %.0f%%   DEF %.0f%%"', self.progress)
         self.assertIn('"CURRENT CHARACTER BUILD / UPGRADES"', self.progress)
 
     def test_shop_before_boss(self):
