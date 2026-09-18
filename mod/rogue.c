@@ -13,6 +13,7 @@
 #include <melee/ft/types.h>
 #include <melee/gr/stage.h>
 
+#include <melee/gm/forward.h>
 #include <melee/gm/gm_unsplit.h>
 #include <melee/gm/gm_1B03.h>
 #include <melee/gm/gm_18A1.h>
@@ -36,7 +37,51 @@ static u32 pending_seed;
 static bool boss_intro_done;
 static u8 controller_port;
 int Rogue_ControllerPort(void) { return controller_port; }
-static struct { u8 port, stage_index; u16 stage; } stage_intro;
+/*
+ * Native Classic 1-P matchup-screen payload.
+ *
+ * This layout mirrors the 0x20-byte Classic intro payload consumed by
+ * GS_INTRO_EASY in gm_1832.c.
+ */
+typedef struct RogueIntroData {
+    s32 model_scale_kind;
+    s32 game_type;
+    u8 port;
+    u8 nametag;
+    u8 stage_number;
+    u8 ally_count;
+    u8 enemy_count;
+    u8 allies[3];
+    u8 enemies[3];
+    u8 ally_costumes[3];
+    u8 enemy_costumes[3];
+    u8 ally_flags[3];
+    u8 enemy_flags[3];
+    u8 pad;
+} RogueIntroData;
+
+static RogueIntroData stage_intro;
+
+/* Vanilla's Classic intro skips Master Hand and is not authored for the
+ * standalone Hand bosses. Keep the Adventure-style intro as a safe fallback. */
+static struct {
+    u8 port;
+    u8 stage_index;
+    u16 stage;
+} boss_stage_intro;
+
+static int Rogue_IntroState(void)
+{
+    const RogueEncounter* encounter = &g_rogue_run.current_encounter;
+    int i;
+
+    for (i = 0; i < encounter->enemy_count; ++i) {
+        CharacterKind kind = encounter->enemies[i].kind;
+        if (kind == CKind_MasterH || kind == CKind_CrezyH)
+            return 5;
+    }
+    return 1;
+}
 
 #include <melee/gm/gm_1601.h>
 #include <melee/gm/gm_1A3F.h>
@@ -78,20 +123,129 @@ static void exitCharacterSelect(GameModeState* state)
 
 static void enterStageIntro(GameModeState* state)
 {
-    RogueEncounter* encounter = &g_rogue_run.current_encounter;
-    (void)state;
+    const RogueEncounter* encounter = &g_rogue_run.current_encounter;
+    struct GameCache* gc;
+    u64 audio;
+    int count;
+    int i;
+    int same_kind;
+
+    (void) state;
     RogueUI_Reset();
+    memset(&stage_intro, 0, sizeof(stage_intro));
+
+    /*
+     * Drive Melee's real Classic "STAGE / VS / NOW LOADING" scene.
+     *
+     * Classic model_scale_kind:
+     *   0 = ordinary matchup
+     *   1 = giant presentation
+     *   2 = tiny presentation
+     *   4 = Team <fighter> presentation
+     */
+    same_kind = encounter->enemy_count > 1;
+    for (i = 1; i < encounter->enemy_count; ++i) {
+        if (encounter->enemies[i].kind != encounter->enemies[0].kind) {
+            same_kind = false;
+            break;
+        }
+    }
+
+    if (same_kind) {
+        stage_intro.model_scale_kind = 4;
+    } else if (encounter->enemy_count > 0 &&
+               encounter->enemies[0].model_scale >= 1.25f) {
+        stage_intro.model_scale_kind = 1;
+    } else if (encounter->enemy_count > 0 &&
+               encounter->enemies[0].model_scale <= 0.80f) {
+        stage_intro.model_scale_kind = 2;
+    } else {
+        stage_intro.model_scale_kind = 0;
+    }
+
+    stage_intro.game_type = 0;
     stage_intro.port = controller_port;
-    /* Reuse Adventure's stage camera scene over the actual rogue arena.
-     * Battlefield/Final Destination cameras fit the compact arena set. */
-    stage_intro.stage_index = encounter->stage == St_Kind_Battle ? 10 : 11;
-    stage_intro.stage = encounter->stage;
+    stage_intro.nametag = GM_NAMETAG_NONE;
+    stage_intro.stage_number = (u8) g_rogue_run.floor;
+    stage_intro.ally_count = 1;
+    stage_intro.enemy_count =
+        encounter->enemy_count > 3 ? 3 : encounter->enemy_count;
+
+    for (i = 0; i < 3; ++i) {
+        stage_intro.allies[i] = ChKind_None;
+        stage_intro.enemies[i] = ChKind_None;
+    }
+
+    stage_intro.allies[0] = g_rogue_run.player_kind;
+    stage_intro.ally_costumes[0] = g_rogue_run.player_costume;
+
+    for (i = 0; i < stage_intro.enemy_count; ++i) {
+        stage_intro.enemies[i] = encounter->enemies[i].kind;
+        stage_intro.enemy_costumes[i] = encounter->enemies[i].costume;
+        stage_intro.enemy_flags[i] = encounter->enemies[i].metal ? 1 : 0;
+    }
+
+    /*
+     * Match Classic's preload preparation. This gives GS_INTRO_EASY all demo
+     * fighter assets it needs and keeps the actual Rogue stage queued.
+     */
+    gc = &lbDvd_GetPreloadCacheScene()->game_cache;
+    lbDvd_80018C6C();
+    count = 0;
+
+    gc->entries[count].char_id = stage_intro.allies[0];
+    gc->entries[count].color = stage_intro.ally_costumes[0];
+    ++count;
+    lbDvd_80018254();
+    lbDvd_80018C2C(0xC7);
+    lbDvd_80017700(4);
+
+    for (i = 0; i < stage_intro.enemy_count; ++i) {
+        gc->entries[count].char_id = stage_intro.enemies[i];
+        gc->entries[count].color = stage_intro.enemy_costumes[i];
+        ++count;
+    }
+
+    lbDvd_80018254();
+    gc->stkind = encounter->stage;
+    lbDvd_80018254();
+
+    audio = lbAudioAx_80026E84(g_rogue_run.player_kind);
+    for (i = 0; i < stage_intro.enemy_count; ++i) {
+        audio |= lbAudioAx_80026E84(stage_intro.enemies[i]);
+        if (stage_intro.enemies[i] == CKind_Kirby)
+            audio |= ((u64) 2 << 32) | 0x4000;
+    }
+    audio |= lbAudioAx_80026EBC(encounter->stage);
+
+    lbAudioAx_80026F2C(0x1C);
+    lbAudioAx_8002702C(0xC, audio);
+    lbAudioAx_80027168();
 }
 
 static void exitStageIntro(GameModeState* state)
 {
     (void) state;
     RogueUI_Clear();
+}
+
+static void enterBossStageIntro(GameModeState* state)
+{
+    const RogueEncounter* encounter = &g_rogue_run.current_encounter;
+    (void) state;
+
+    RogueUI_Reset();
+    boss_stage_intro.port = controller_port;
+    boss_stage_intro.stage_index =
+        encounter->stage == St_Kind_Battle ? 10 : 11;
+    boss_stage_intro.stage = encounter->stage;
+}
+
+static void exitBossStageIntro(GameModeState* state)
+{
+    (void) state;
+    RogueUI_Clear();
+    gm_SetNextGameModeStateId(2);
 }
 
 static bool in_camp;
@@ -142,7 +296,7 @@ static void exitCamp(GameModeState* state)
     (void)state;
     Rogue_LeaveCamp();
     RogueUI_Clear();
-    gm_SetNextGameModeStateId(1);
+    gm_SetNextGameModeStateId(Rogue_IntroState());
 }
 
 
@@ -235,7 +389,7 @@ static void exitRoute(GameModeState* state)
         return;
     }
 
-    gm_SetNextGameModeStateId(Rogue_BeginCamp() ? 3 : 1);
+    gm_SetNextGameModeStateId(Rogue_BeginCamp() ? 3 : Rogue_IntroState());
 }
 
 static void encounterFrame(void)
@@ -344,7 +498,7 @@ void Rogue_ModeOnLoad(void)
     Rogue_NewRun(CKind_Mario, 314159);
     RogueRoute_Select(&g_rogue_run.route, 0, &g_rogue_run.current_encounter);
     g_rogue_run.phase = ROGUE_PHASE_ENCOUNTER;
-    gm_SetGameModeStateId(1);
+    gm_SetGameModeStateId(Rogue_IntroState());
 #endif
 #endif
 }
@@ -388,7 +542,7 @@ bool Rogue_PostFight(void)
     if (action == ROGUE_UI_WAIT) return true;
     if (action == ROGUE_UI_CONTINUE)
         destination = g_rogue_run.phase == ROGUE_PHASE_ROUTE ? 4 :
-                      Rogue_BeginCamp() ? 3 : 1;
+                      Rogue_BeginCamp() ? 3 : Rogue_IntroState();
     else if (action == ROGUE_UI_NEW || action == ROGUE_UI_REPLAY) {
         if (action == ROGUE_UI_NEW) pending_seed = OSGetTick();
         destination = 0;
@@ -417,8 +571,8 @@ GameModeState gm_Mode_Rogue_States[] = {
         { GS_CSS, &character_select, &character_select },
     },
     {
-        1, lbDvdPreload_2, 0, enterStageIntro, exitStageIntro,
-        { GS_INTRO_NORMAL, &stage_intro, NULL },
+        1, lbDvdPreload_3, 0, enterStageIntro, exitStageIntro,
+        { GS_INTRO_EASY, &stage_intro, NULL },
     },
     {
         2, lbDvdPreload_2, 0, enterEncounter, exitEncounter,
@@ -431,6 +585,10 @@ GameModeState gm_Mode_Rogue_States[] = {
     {
         4, lbDvdPreload_2, 0, enterRoute, exitRoute,
         { GS_VS, &start_data, &exit_data },
+    },
+    {
+        5, lbDvdPreload_2, 0, enterBossStageIntro, exitBossStageIntro,
+        { GS_INTRO_NORMAL, &boss_stage_intro, NULL },
     },
     { GM_GAMEMODESTATE_TERMINATE },
 };

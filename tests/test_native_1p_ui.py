@@ -7,16 +7,18 @@ class NativeOnePlayerUiTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.ui = (ROOT / "mod/rogue_ui.c").read_text(encoding="utf-8")
+        cls.rogue = (ROOT / "mod/rogue.c").read_text(encoding="utf-8")
 
     def test_stage_clear_reward_screen(self):
         self.assertIn('"STAGE CLEAR"', self.ui)
         self.assertIn('"SPECIAL BONUS"', self.ui)
         self.assertIn('"CHOOSE A REWARD"', self.ui)
 
-    def test_adventure_style_intro(self):
-        self.assertIn('"NOW LOADING"', self.ui)
-        self.assertIn('"VS"', self.ui)
-        self.assertIn('RogueRoute_CharacterName(g_rogue_run.player_kind)', self.ui)
+    def test_native_classic_matchup_intro(self):
+        self.assertIn("GS_INTRO_EASY, &stage_intro", self.rogue)
+        self.assertIn("lbDvdPreload_3", self.rogue)
+        self.assertIn("stage_intro.allies[0] = g_rogue_run.player_kind", self.rogue)
+        self.assertIn("stage_intro.enemies[i] = encounter->enemies[i].kind", self.rogue)
 
     def test_all_star_route_language(self):
         self.assertIn('"ALL-STAR PROGRESSION"', self.ui)
