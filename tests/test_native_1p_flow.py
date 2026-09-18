@@ -39,9 +39,10 @@ class NativeOnePlayerFlowTests(unittest.TestCase):
         post = post.split("static void enterGameOver", 1)[0]
         self.assertIn("g_rogue_run.phase == ROGUE_PHASE_REWARD", post)
         self.assertIn("destination = 4;", post)
-        self.assertIn("ROGUE_UI_ROUTE_REWARD_BASE + route_reward_cursor", self.ui)
-        self.assertNotIn("Rogue_SelectReward(route_reward_cursor)", self.ui)
-        self.assertIn("Rogue_SelectReward(reward_choice)", self.rogue)
+        self.assertIn("Rogue_SelectReward(route_reward_cursor)", self.ui)
+        self.assertNotIn("ROGUE_UI_ROUTE_REWARD_BASE", self.ui)
+        self.assertNotIn("route_reward_choice", self.rogue)
+        self.assertIn("RogueRoute_Prepare(&g_rogue_run.route,", post)
         self.assertNotIn("static void drawStageClear(void)", self.ui)
 
     def test_old_route_scene_remains_restored(self):

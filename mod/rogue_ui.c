@@ -870,26 +870,12 @@ void RogueUI_OpenRoute(void)
 {
     openCanvas();
 
-    route_reward_mode =
+    route_had_reward =
         g_rogue_run.phase == ROGUE_PHASE_REWARD &&
         g_rogue_run.reward_pending;
-
-    if (route_reward_mode) {
-        route_had_reward = true;
-        route_reward_cursor = 0;
-        route_reward_taken = -1;
-        route_reward_floor = -1;
-    } else {
-        /*
-         * Reward confirmation intentionally tears down and re-enters this
-         * same route scene. Keep the selected card visible after that reload.
-         */
-        route_had_reward =
-            route_reward_taken >= 0 &&
-            route_reward_floor == g_rogue_run.floor;
-        route_reward_cursor = 0;
-    }
-
+    route_reward_mode = route_had_reward;
+    route_reward_cursor = 0;
+    route_reward_taken = -1;
     route_cursor = 0;
     route_confirm = 0;
     route_locked = -1;
@@ -959,13 +945,26 @@ int RogueUI_RouteFrame(void)
 
         if (input & (MenuInput_Confirm | MenuInput_StartButton)) {
             /*
-             * Emit the reward choice only. routeFrame will end the scene,
-             * then exitRoute applies it and prepares the next round.
+             * The next ordinary route round was generated before this scene
+             * started, so its fighter resources are already preloaded.
+             * Applying the reward no longer changes which route assets this
+             * live Rest Area scene needs.
              */
+            if (!Rogue_SelectReward(route_reward_cursor))
+                return -1;
+
             route_reward_taken = route_reward_cursor;
-            route_reward_floor = g_rogue_run.floor + 1;
+            route_reward_mode = false;
+            route_cursor = 0;
+            route_locked = -1;
+            route_confirm = 0;
             sfxForward();
-            return ROGUE_UI_ROUTE_REWARD_BASE + route_reward_cursor;
+
+            /* Match 4 reward prepares the boss; preserve shop-before-boss. */
+            if (g_rogue_run.phase == ROGUE_PHASE_ENCOUNTER)
+                return ROGUE_ROUTE_CHOICES;
+
+            routeDraw();
         }
         return -1;
     }

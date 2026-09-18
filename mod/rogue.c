@@ -264,7 +264,6 @@ static void exitBossStageIntro(GameModeState* state)
 static bool in_camp;
 static bool in_route;
 static bool route_ui_open;
-static int route_reward_choice = -1;
 static void campFrame(void)
 {
     if (gm_GetFrameCount() >= 60 && RogueUI_CampFrame()) gm_8016B328();
@@ -331,14 +330,11 @@ static void routeFrame(void)
         return;
 
     /*
-     * Never apply a reward, advance the floor, generate the next route, and
-     * redraw the route UI from inside this live VS-scene frame callback.
-     * Queue the reward and leave the scene cleanly instead.
+     * A reward after Match 4 prepares the already-generated act boss.
+     * RogueUI_RouteFrame returns this sentinel so we leave this one route
+     * scene and continue into the existing shop/boss flow.
      */
-    if (choice >= ROGUE_UI_ROUTE_REWARD_BASE &&
-        choice < ROGUE_UI_ROUTE_REWARD_BASE + 3)
-    {
-        route_reward_choice = choice - ROGUE_UI_ROUTE_REWARD_BASE;
+    if (choice == ROGUE_ROUTE_CHOICES) {
         gm_8016B328();
         return;
     }
@@ -365,7 +361,6 @@ static void enterRoute(GameModeState* state)
     in_camp = false;
     in_route = true;
     route_ui_open = false;
-    route_reward_choice = -1;
 
     memset(&room, 0, sizeof(room));
     act = (g_rogue_run.floor - 1) / ROGUE_FLOORS_PER_ACT + 1;
@@ -408,29 +403,9 @@ static void enterRoute(GameModeState* state)
 
 static void exitRoute(GameModeState* state)
 {
-    int reward_choice = route_reward_choice;
-
     (void) state;
-    route_reward_choice = -1;
     RogueUI_Clear();
     in_route = false;
-
-    /*
-     * Reward application can advance the floor and generate a new route
-     * round. Do that during route-state exit instead of the active frame.
-     */
-    if (reward_choice >= 0) {
-        if (!Rogue_SelectReward(reward_choice)) {
-            gm_ChangeGameModeAfterCurrentScene(GM_MENU);
-            return;
-        }
-
-        if (g_rogue_run.phase == ROGUE_PHASE_ROUTE) {
-            /* Rebuild the same known-good route state with the new round. */
-            gm_SetNextGameModeStateId(4);
-            return;
-        }
-    }
 
     if (g_rogue_run.phase != ROGUE_PHASE_ENCOUNTER) {
         gm_ChangeGameModeAfterCurrentScene(GM_MENU);
@@ -603,6 +578,27 @@ bool Rogue_PostFight(void)
          * scene and select the reward there.
          */
         if (g_rogue_run.phase == ROGUE_PHASE_REWARD) {
+            int next_floor = g_rogue_run.floor + 1;
+            int next_act_floor =
+                ((next_floor - 1) % ROGUE_FLOORS_PER_ACT) + 1;
+
+            /*
+             * Prepare the next ordinary route round BEFORE state 4 starts.
+             * enterRoute preloads fighter assets from RogueRoute_Current().
+             * If the round is generated only after the upgrade is selected,
+             * the new opponent portrait assets were never loaded for this
+             * live Rest Area scene.
+             */
+            if (next_act_floor < ROGUE_FLOORS_PER_ACT) {
+                if (!RogueRoute_Prepare(&g_rogue_run.route,
+                                        &g_rogue_run.route_rng,
+                                        next_floor))
+                {
+                    gm_ChangeGameModeAfterCurrentScene(GM_MENU);
+                    return false;
+                }
+            }
+
             RogueUI_Clear();
             destination = 4;
             return false;

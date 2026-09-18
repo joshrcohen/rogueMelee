@@ -37,17 +37,23 @@ class RouteChoiceTests(unittest.TestCase):
         c = (ROOT / "mod/rogue_ui.c").read_text(encoding="utf-8")
         self.assertIn("static bool route_reward_mode;", c)
         self.assertIn('"CHOOSE AN UPGRADE FIRST"', c)
-        self.assertIn("ROGUE_UI_ROUTE_REWARD_BASE + route_reward_cursor", c)
-        self.assertNotIn("Rogue_SelectReward(route_reward_cursor)", c)
+        self.assertIn("Rogue_SelectReward(route_reward_cursor)", c)
 
-    def test_reward_transition_reloads_same_route_scene(self):
+    def test_reward_does_not_reload_rest_area_scene(self):
         c = (ROOT / "mod/rogue.c").read_text(encoding="utf-8")
         exit_route = c.split("static void exitRoute", 1)[1].split(
             "static void encounterFrame", 1
         )[0]
-        self.assertIn("Rogue_SelectReward(reward_choice)", exit_route)
-        self.assertIn("g_rogue_run.phase == ROGUE_PHASE_ROUTE", exit_route)
-        self.assertIn("gm_SetNextGameModeStateId(4);", exit_route)
+        self.assertNotIn("gm_SetNextGameModeStateId(4);", exit_route)
+        self.assertNotIn("route_reward_choice", c)
+
+    def test_next_round_is_prepared_before_route_entry(self):
+        c = (ROOT / "mod/rogue.c").read_text(encoding="utf-8")
+        post = c.split("bool Rogue_PostFight(void)", 1)[1].split(
+            "static void enterGameOver", 1
+        )[0]
+        self.assertIn("next_floor = g_rogue_run.floor + 1", post)
+        self.assertIn("RogueRoute_Prepare(&g_rogue_run.route,", post)
 
     def test_bracket_ui_still_identifies_route_and_shop(self):
         c = (ROOT / "mod/rogue_ui.c").read_text(encoding="utf-8")

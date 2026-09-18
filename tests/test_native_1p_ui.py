@@ -18,11 +18,11 @@ class NativeOnePlayerUiTests(unittest.TestCase):
         self.assertIn("routeRewardBox", route)
         self.assertIn("g_rogue_run.current_rewards[i]", route)
         self.assertIn(
-            "ROGUE_UI_ROUTE_REWARD_BASE + route_reward_cursor",
+            "Rogue_SelectReward(route_reward_cursor)",
             route,
         )
         self.assertNotIn(
-            "Rogue_SelectReward(route_reward_cursor)",
+            "ROGUE_UI_ROUTE_REWARD_BASE",
             route,
         )
         self.assertNotIn("static void drawStageClear(void)", self.ui)
