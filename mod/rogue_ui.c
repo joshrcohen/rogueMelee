@@ -463,30 +463,41 @@ static void drawStageClear(void)
     int i;
     char detail[256];
 
+    /*
+     * Retail GmRegClr owns the screen underneath us. Rogue only replaces the
+     * contents of its result boxes / SPECIAL BONUS list with run rewards.
+     */
     ui_clear_native_icons();
 
-    ui_at(-6.8f, -5.7f, .0155f, ui_gold, "CHOOSE REWARD");
+    /* Native left-side result boxes: currency reward + current wallet. */
+    ui_at(-15.15f, -4.55f, .0108f, ui_muted, "GOLD GAINED");
+    ui_at(-14.75f, -2.95f, .0235f, ui_gold, "+%d", earned);
+
+    ui_at(-15.15f, .55f, .0108f, ui_muted, "TOTAL GOLD");
+    ui_at(-14.75f, 2.15f, .0235f, ui_white, "%d",
+          g_rogue_run.currency);
+
+    /* Native SPECIAL BONUS panel: the three generated Rogue upgrades. */
+    ui_at(-3.55f, -4.55f, .0135f, ui_gold, "CHOOSE UPGRADE");
 
     for (i = 0; i < 3; ++i) {
         RogueReward* reward = &g_rogue_run.current_rewards[i];
 
-        ui_at(-6.8f, -4.05f + i * 1.45f, .0152f,
+        ui_at(-3.35f, -2.55f + i * 1.55f, .0145f,
               cursor == i ? ui_gold : ui_white,
               "%s %s", cursor == i ? ">" : " ", reward->name);
 
-        ui_at(2.15f, -4.05f + i * 1.45f, .0112f,
+        ui_at(8.35f, -2.55f + i * 1.55f, .0105f,
               cursor == i ? ui_gold : ui_muted,
               "%s", Rogue_RarityName(reward->rarity));
     }
 
     Rogue_DescribeReward(&g_rogue_run.current_rewards[cursor],
                          detail, sizeof(detail));
-    ui_wrapped_at(-6.45f, 0.85f, .0115f, ui_white, detail, 45, 2);
+    ui_wrapped_at(-3.05f, 2.55f, .0108f, ui_white, detail, 45, 2);
 
-    ui_at(-6.8f, 3.75f, .0113f, ui_muted,
-          "GOLD +%d   TOTAL %d", earned, g_rogue_run.currency);
-    ui_at(-6.8f, 5.15f, .0113f, ui_white,
-          "STICK: CHOOSE    A: TAKE    B: BUILD");
+    ui_at(-3.35f, 6.35f, .0108f, ui_white,
+          "STICK: CHOOSE    A: TAKE UPGRADE    B: BUILD");
 }
 
 static void drawRunEnd(void)
@@ -563,12 +574,20 @@ static void draw(void)
 
 void RogueUI_OpenResults(void)
 {
+    /*
+     * The fight HUD already owns a SIS canvas in this same GS_VS scene.
+     * Clear its tracked text and reset ready before creating slot 2 for the
+     * reward picker. GmRegClr uses slots 0 and 3, so slot 2 stays independent.
+     */
+    RogueUI_Clear();
     overlay_sis = 2;
     openCanvas();
+
     cursor = page = delay = 0;
     inspect = false;
     draw();
 }
+
 int RogueUI_Frame(void)
 {
     u32 input;

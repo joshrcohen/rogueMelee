@@ -10,8 +10,10 @@ class NativeOnePlayerUiTests(unittest.TestCase):
         cls.rogue = (ROOT / "mod/rogue.c").read_text(encoding="utf-8")
 
     def test_stage_clear_reward_screen(self):
-        self.assertIn('"CHOOSE REWARD"', self.ui)
-        self.assertIn('"STICK: CHOOSE    A: TAKE    B: BUILD"', self.ui)
+        self.assertIn('"CHOOSE UPGRADE"', self.ui)
+        self.assertIn('"GOLD GAINED"', self.ui)
+        self.assertIn('"TOTAL GOLD"', self.ui)
+        self.assertIn('"STICK: CHOOSE    A: TAKE UPGRADE    B: BUILD"', self.ui)
         self.assertIn("start->rules.x4_4 = true", self.rogue)
 
     def test_native_classic_matchup_intro(self):
