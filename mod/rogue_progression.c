@@ -22,7 +22,7 @@
 
 RogueProgressionIntroData g_rogue_progression_intro;
 
-static HSD_Text* lines[96];
+static HSD_Text* lines[48];
 static unsigned line_count;
 
 static bool ui_open;
@@ -281,30 +281,104 @@ static const char* ability_name(int slot)
     return def ? def->name : "Native";
 }
 
-static void draw_panel_frame(float x, float y, float width, float height,
-                             GXColor border, GXColor bg)
+/*
+ * Add one text entry to an existing SIS object.
+ *
+ * This is the core stability rule for the progression screen: presentation
+ * components may have many entries, but they should not allocate one HSD_Text
+ * object per label.
+ */
+static int panel_entry(HSD_Text* text, float x, float y,
+                       float scale, GXColor* color,
+                       const char* value)
 {
-    ui_panel(x, y, width, height, border, ui_white);
-    ui_panel(x + .16f, y + .16f,
-             width - .32f, height - .32f,
-             bg, ui_white);
-}
-
-static void draw_node(float x, const char* label,
-                      bool active, bool complete)
-{
-    GXColor bg = active ? ui_gold : complete ? ui_red : ui_panel_soft;
-    GXColor fg = active ? ui_black : ui_white;
-    HSD_Text* text = ui_panel(x, -13.15f, 4.20f, 1.38f, bg, fg);
     char encoded[128];
     int entry;
 
+    if (text == NULL || value == NULL)
+        return -1;
+
+    ui_encode(encoded, value);
+    entry = HSD_SisLib_803A6B98(text, x, y, "%s", encoded);
+    HSD_SisLib_803A7548(text, entry, scale, scale);
+
+    if (color != NULL)
+        HSD_SisLib_803A74F0(text, entry, color);
+
+    return entry;
+}
+
+static void draw_route_header(const RogueRoute* route)
+{
+    static const char* labels[6] = {
+        "CLEAR", "NEXT", "ELITE", "MATCH 4", "SHOP", "BOSS"
+    };
+    static const float label_x[6] = {
+        82.0f, 164.0f, 246.0f, 326.0f, 414.0f, 506.0f
+    };
+    HSD_Text* text;
+    char line[96];
+    int i;
+
+    /*
+     * ONE SIS object owns the entire route/header region.
+     * The previous polish pass used a background plus six node objects plus
+     * separate Act/Floor text.
+     */
+    text = ui_panel(-20.0f, -15.0f, 40.0f, 5.55f,
+                    ui_black, ui_white);
     if (text == NULL)
         return;
 
-    ui_encode(encoded, label);
-    entry = HSD_SisLib_803A6B98(text, 13.0f, 10.0f, "%s", encoded);
-    HSD_SisLib_803A7548(text, entry, 1.42f, 1.42f);
+    for (i = 0; i < 6; ++i) {
+        bool complete = false;
+        bool active = false;
+        GXColor* color = &ui_muted;
+
+        if (i < ROGUE_ROUTE_ROUNDS)
+            complete = route->rounds[i].selected >= 0;
+
+        if (target_act_floor < ROGUE_FLOORS_PER_ACT)
+            active = i == target_act_floor - 1;
+        else
+            active = i == 4;
+
+        if (active)
+            color = &ui_gold;
+        else if (complete)
+            color = &ui_red;
+
+        panel_entry(text, label_x[i], 15.0f,
+                    1.36f, color, labels[i]);
+
+        if (active)
+            panel_entry(text, label_x[i] + 8.0f, 33.0f,
+                        .84f, &ui_gold, "====");
+    }
+
+    snprintf(line, sizeof(line), "ACT %d   -   FLOOR %d",
+             route->act, target_floor);
+    panel_entry(text, 252.0f, 61.0f,
+                1.45f, &ui_white, line);
+}
+
+static void draw_phase_bar(void)
+{
+    HSD_Text* text;
+    const char* phase;
+
+    if (has_reward && !upgrade_chosen)
+        phase = "CHOOSE UPGRADE";
+    else
+        phase = has_reward ? "CHOOSE NEXT FIGHT" : "CHOOSE FIRST FIGHT";
+
+    text = ui_panel(-20.0f, -9.45f, 40.0f, 1.28f,
+                    ui_black, ui_white);
+    if (text == NULL)
+        return;
+
+    panel_entry(text, 258.0f, 4.0f,
+                1.48f, &ui_gold, phase);
 }
 
 static const char* reward_icon_letter(const RogueReward* reward)
@@ -325,11 +399,14 @@ static const char* reward_icon_letter(const RogueReward* reward)
 static void draw_reward_card(float x, int index, bool selected)
 {
     RogueReward* reward = &g_rogue_run.current_rewards[index];
-    GXColor border = selected ? ui_gold : ui_border;
-    GXColor title = selected ? ui_gold : ui_white;
+    HSD_Text* text;
+    GXColor bg = selected ? ui_dark : ui_panel_color;
+    GXColor* accent = selected ? &ui_gold : &ui_border;
+    char meta[80];
     char detail[180];
     char line1[64];
     char line2[64];
+    char marker[16];
 
     Rogue_DescribeReward(reward, detail, sizeof(detail));
     split_description(detail,
@@ -337,29 +414,43 @@ static void draw_reward_card(float x, int index, bool selected)
                       line2, sizeof(line2),
                       29);
 
-    draw_panel_frame(x, -8.20f, 9.20f, 4.70f,
-                     border, ui_panel_color);
+    snprintf(meta, sizeof(meta), "%s / %s",
+             reward_category(reward),
+             Rogue_RarityName(reward->rarity));
+    snprintf(marker, sizeof(marker), "[%s]",
+             reward_icon_letter(reward));
 
-    draw_panel_frame(x + .48f, -7.70f, 1.45f, 1.45f,
-                     border, ui_black);
-    ui_at(x + .94f, -7.42f, .0175f, title,
-          "%s", reward_icon_letter(reward));
+    /*
+     * ONE object per card. The previous pass allocated:
+     * border + inner panel + icon border + icon inner + title + meta +
+     * divider + description line(s), which was the main object-count spike.
+     */
+    text = ui_panel(x, -8.20f, 9.18f, 4.70f,
+                    bg, ui_white);
+    if (text == NULL)
+        return;
 
-    ui_at(x + 2.18f, -7.70f, .0195f, title,
-          "%s", reward->name);
-    ui_at(x + 2.18f, -6.66f, .0108f, ui_muted,
-          "%s / %s",
-          reward_category(reward),
-          Rogue_RarityName(reward->rarity));
+    panel_entry(text, 12.0f, 10.0f,
+                1.28f, accent, marker);
+    panel_entry(text, 52.0f, 9.0f,
+                1.48f, accent, reward->name);
+    panel_entry(text, 52.0f, 32.0f,
+                .82f, &ui_muted, meta);
 
-    ui_panel(x + .48f, -5.94f, 8.22f, .08f,
-             selected ? ui_gold : ui_border_dim, ui_white);
+    panel_entry(text, 15.0f, 54.0f,
+                .72f, accent,
+                "--------------------------------");
 
-    ui_at(x + .55f, -5.50f, .0114f, ui_white,
-          "%s", line1);
+    panel_entry(text, 15.0f, 72.0f,
+                .86f, &ui_white, line1);
     if (line2[0]) {
-        ui_at(x + .55f, -4.70f, .0114f, ui_white,
-              "%s", line2);
+        panel_entry(text, 15.0f, 92.0f,
+                    .86f, &ui_white, line2);
+    }
+
+    if (selected) {
+        panel_entry(text, 247.0f, 10.0f,
+                    1.15f, &ui_gold, ">");
     }
 }
 
@@ -367,13 +458,14 @@ static void draw_fight_plate(float x, int side,
                              const RogueEncounter* encounter,
                              bool selected, bool locked)
 {
-    GXColor accent = selected ? ui_gold :
-                     side == 0 ? ui_blue : ui_purple;
-    GXColor title = selected ? ui_gold : ui_white;
+    HSD_Text* text;
+    GXColor bg = selected ? ui_dark : ui_panel_color;
+    GXColor* accent = selected ? &ui_gold :
+                      side == 0 ? &ui_blue : &ui_purple;
     char opponent[96];
+    char detail[120];
     const char* stage;
     const char* type;
-    char detail[120];
 
     encounter_name(opponent, sizeof(opponent), encounter);
     stage = RogueRoute_StageName(encounter->stage);
@@ -391,48 +483,74 @@ static void draw_fight_plate(float x, int side,
         snprintf(detail, sizeof(detail), "STANDARD");
     }
 
-    draw_panel_frame(x, 4.25f, 14.35f, 3.45f,
-                     accent, ui_panel_color);
+    /*
+     * ONE object per fight plate. Large title + compact metadata remain
+     * readable without separate SIS allocations for every line.
+     */
+    text = ui_panel(x, 4.25f, 14.35f, 3.45f,
+                    bg, ui_white);
+    if (text == NULL)
+        return;
 
-    ui_at(x + .55f, 4.62f, .0198f, title,
-          "%s", opponent);
+    panel_entry(text, 15.0f, 10.0f,
+                1.52f, accent, opponent);
+    panel_entry(text, 15.0f, 36.0f,
+                .70f, &ui_border_dim,
+                "----------------------------------------------");
+    panel_entry(text, 15.0f, 53.0f,
+                .88f, &ui_white, stage);
+    panel_entry(text, 174.0f, 53.0f,
+                .88f, accent, type);
+    panel_entry(text, 15.0f, 75.0f,
+                .77f, &ui_muted, detail);
 
-    ui_panel(x + .55f, 5.76f, 13.20f, .07f,
-             ui_border_dim, ui_white);
-
-    ui_at(x + .55f, 6.03f, .0113f, ui_white,
-          "%s", stage);
-    ui_at(x + 8.95f, 6.03f, .0113f, accent,
-          "%s", type);
-
-    ui_at(x + .55f, 6.88f, .0098f, ui_muted,
-          "%s", detail);
+    if (selected)
+        panel_entry(text, 333.0f, 9.0f,
+                    1.05f, &ui_gold, ">");
 }
 
 static void draw_center_vs(void)
 {
-    ui_panel(-1.30f, -.35f, 2.60f, 1.55f,
-             ui_black, ui_white);
-    ui_at(-.72f, -.05f, .0240f, ui_red, "VS");
+    HSD_Text* text;
+
+    /*
+     * ONE small object masks the native ALLY label. The retail red VS artwork
+     * remains visible behind it.
+     */
+    text = ui_panel(-1.28f, -.32f, 2.56f, 1.50f,
+                    ui_black, ui_white);
+    if (text == NULL)
+        return;
+
+    panel_entry(text, 13.0f, 5.0f,
+                1.62f, &ui_red, "VS");
 }
 
 static void draw_bottom_bar(void)
 {
     const RogueStats* stats = &g_rogue_run.stats;
+    HSD_Text* text;
+    char abilities[128];
+    char summary[128];
+    const char* controls;
     int score =
         g_rogue_run.wins * 10000 +
         g_rogue_run.currency * 100;
-    char abilities[128];
-    char summary[128];
 
-    draw_panel_frame(-19.55f, 8.35f, 39.10f, 6.10f,
-                     ui_border, ui_black);
+    /*
+     * ONE SIS object owns title, ability line, stats, gold/score and controls.
+     */
+    text = ui_panel(-20.0f, 8.25f, 40.0f, 6.35f,
+                    ui_black, ui_white);
+    if (text == NULL)
+        return;
 
-    ui_at(-9.60f, 8.88f, .0208f, ui_white,
-          "CURRENT CHARACTER BUILD / UPGRADES");
-
-    ui_panel(-17.70f, 10.15f, 35.40f, .08f,
-             ui_border_dim, ui_white);
+    panel_entry(text, 162.0f, 10.0f,
+                1.48f, &ui_white,
+                "CURRENT CHARACTER BUILD / UPGRADES");
+    panel_entry(text, 42.0f, 34.0f,
+                .70f, &ui_border_dim,
+                "--------------------------------------------------------------------------");
 
     snprintf(abilities, sizeof(abilities),
              "N %.10s  /  S %.10s  /  U %.10s  /  D %.10s",
@@ -440,8 +558,8 @@ static void draw_bottom_bar(void)
              ability_name(ROGUE_ABILITY_SIDE),
              ability_name(ROGUE_ABILITY_UP),
              ability_name(ROGUE_ABILITY_DOWN));
-    ui_at(-14.95f, 10.55f, .0122f, ui_white,
-          "%s", abilities);
+    panel_entry(text, 94.0f, 52.0f,
+                .90f, &ui_white, abilities);
 
     if (has_reward) {
         snprintf(summary, sizeof(summary),
@@ -459,96 +577,131 @@ static void draw_bottom_bar(void)
                  stats->damage_dealt * 100.0f,
                  stats->damage_received * 100.0f);
     }
+    panel_entry(text, 121.0f, 73.0f,
+                .80f, &ui_muted, summary);
 
-    ui_at(-12.70f, 11.72f, .0108f, ui_muted,
-          "%s", summary);
-}
-
-static void draw_controls(void)
-{
     if (has_reward && !upgrade_chosen) {
-        ui_at(-8.35f, 13.35f, .0115f, ui_white,
-              "LEFT / RIGHT: UPGRADE     A: SELECT     B: BUILD");
+        controls =
+            "LEFT / RIGHT: UPGRADE     A: SELECT     B: BUILD";
     } else if (target_act_floor >= ROGUE_FLOORS_PER_ACT) {
-        ui_at(-7.05f, 13.35f, .0115f, ui_white,
-              "UPGRADE SELECTED     CONTINUING TO SHOP / REST");
+        controls =
+            "UPGRADE SELECTED     CONTINUING TO SHOP / REST";
     } else if (confirm_timer > 0) {
-        ui_at(-5.65f, 13.35f, .0115f, ui_gold,
-              "MATCH SET     LOADING VS SCREEN");
+        controls =
+            "MATCH SET     LOADING VS SCREEN";
     } else {
-        ui_at(-8.00f, 13.35f, .0115f, ui_white,
-              "LEFT / RIGHT: FIGHT       A: SELECT     B: BUILD");
+        controls =
+            "LEFT / RIGHT: FIGHT       A: SELECT     B: BUILD";
     }
+
+    panel_entry(text, 176.0f, 106.0f,
+                .86f,
+                confirm_timer > 0 ? &ui_gold : &ui_white,
+                controls);
 }
 
 static void draw_build(void)
 {
     const RogueStats* stats = &g_rogue_run.stats;
+    HSD_Text* text;
+    char line[160];
 
     ui_clear();
 
-    draw_panel_frame(-17.75f, -12.15f, 35.50f, 23.35f,
-                     ui_border, ui_black);
+    /*
+     * Build view is also ONE large panel object with multiple entries.
+     */
+    text = ui_panel(-17.75f, -12.15f, 35.50f, 23.35f,
+                    ui_black, ui_white);
+    if (text == NULL)
+        return;
 
-    ui_at(-9.25f, -10.75f, .0255f, ui_gold,
-          "CURRENT CHARACTER BUILD");
-    ui_panel(-15.50f, -9.25f, 31.00f, .10f,
-             ui_border_dim, ui_white);
+    panel_entry(text, 145.0f, 18.0f,
+                1.70f, &ui_gold,
+                "CURRENT CHARACTER BUILD");
+    panel_entry(text, 35.0f, 48.0f,
+                .72f, &ui_border_dim,
+                "------------------------------------------------------------------");
 
-    ui_at(-14.75f, -7.65f, .0175f, ui_white,
-          "NEUTRAL     %s",
-          ability_name(ROGUE_ABILITY_NEUTRAL));
-    ui_at(-14.75f, -5.30f, .0175f, ui_white,
-          "SIDE        %s",
-          ability_name(ROGUE_ABILITY_SIDE));
-    ui_at(-14.75f, -2.95f, .0175f, ui_white,
-          "UP          %s",
-          ability_name(ROGUE_ABILITY_UP));
-    ui_at(-14.75f, -.60f, .0175f, ui_white,
-          "DOWN        %s",
-          ability_name(ROGUE_ABILITY_DOWN));
+    snprintf(line, sizeof(line), "NEUTRAL     %s",
+             ability_name(ROGUE_ABILITY_NEUTRAL));
+    panel_entry(text, 45.0f, 75.0f,
+                1.12f, &ui_white, line);
 
-    ui_panel(-15.50f, 1.15f, 31.00f, .10f,
-             ui_border_dim, ui_white);
+    snprintf(line, sizeof(line), "SIDE        %s",
+             ability_name(ROGUE_ABILITY_SIDE));
+    panel_entry(text, 45.0f, 110.0f,
+                1.12f, &ui_white, line);
 
-    ui_at(-14.75f, 2.30f, .0155f, ui_white,
-          "DAMAGE %.0f%%      DEFENSE %.0f%%",
-          stats->damage_dealt * 100.0f,
-          stats->damage_received * 100.0f);
-    ui_at(-14.75f, 4.35f, .0155f, ui_white,
-          "RUN %.0f%%         SHIELD %.0f%%",
-          stats->run_speed * 100.0f,
-          stats->shield_health * 100.0f);
-    ui_at(-14.75f, 6.40f, .0155f, ui_white,
-          "AIR +%.0f%%        JUMP +%.0f%%        EXTRA +%d",
-          stats->air_control_bonus * 100.0f,
-          stats->jump_height_bonus * 100.0f,
-          stats->extra_jumps);
-    ui_at(-14.75f, 8.45f, .0155f, ui_white,
-          "KNOCKBACK +%.0f%%  RESIST %.0f%%",
-          stats->knockback_dealt_bonus * 100.0f,
-          stats->knockback_resistance * 100.0f);
+    snprintf(line, sizeof(line), "UP          %s",
+             ability_name(ROGUE_ABILITY_UP));
+    panel_entry(text, 45.0f, 145.0f,
+                1.12f, &ui_white, line);
 
-    ui_at(-2.65f, 10.05f, .0125f, ui_gold,
-          "B: RETURN");
+    snprintf(line, sizeof(line), "DOWN        %s",
+             ability_name(ROGUE_ABILITY_DOWN));
+    panel_entry(text, 45.0f, 180.0f,
+                1.12f, &ui_white, line);
+
+    panel_entry(text, 35.0f, 212.0f,
+                .72f, &ui_border_dim,
+                "------------------------------------------------------------------");
+
+    snprintf(line, sizeof(line),
+             "DAMAGE %.0f%%      DEFENSE %.0f%%",
+             stats->damage_dealt * 100.0f,
+             stats->damage_received * 100.0f);
+    panel_entry(text, 45.0f, 238.0f,
+                1.00f, &ui_white, line);
+
+    snprintf(line, sizeof(line),
+             "RUN %.0f%%         SHIELD %.0f%%",
+             stats->run_speed * 100.0f,
+             stats->shield_health * 100.0f);
+    panel_entry(text, 45.0f, 270.0f,
+                1.00f, &ui_white, line);
+
+    snprintf(line, sizeof(line),
+             "AIR +%.0f%%   JUMP +%.0f%%   EXTRA +%d",
+             stats->air_control_bonus * 100.0f,
+             stats->jump_height_bonus * 100.0f,
+             stats->extra_jumps);
+    panel_entry(text, 45.0f, 302.0f,
+                1.00f, &ui_white, line);
+
+    snprintf(line, sizeof(line),
+             "KNOCKBACK +%.0f%%   RESIST %.0f%%",
+             stats->knockback_dealt_bonus * 100.0f,
+             stats->knockback_resistance * 100.0f);
+    panel_entry(text, 45.0f, 334.0f,
+                1.00f, &ui_white, line);
+
+    panel_entry(text, 252.0f, 365.0f,
+                .92f, &ui_gold, "B: RETURN");
 }
 
 /*
- * TARGET-RENDER POLISH PASS
+ * SAFE TARGET-RENDER POLISH
  *
- * Preserve the stable native GS_INTRO_EASY host and two-step progression
- * state machine. Only presentation changes here.
+ * The previous visual pass looked better but recreated the Stage Clear failure
+ * pattern: dozens of SIS objects on a native scene that already owns SIS UI.
+ *
+ * This renderer preserves the same layout with a hard object-budget design:
+ *
+ *   route/header       1 object
+ *   phase bar          1
+ *   upgrade band       1 (upgrade phase only)
+ *   three cards        3
+ *   center VS mask     1
+ *   two fight plates   2
+ *   bottom/build bar   1
+ *
+ * Normal maximum: ~10 Rogue HSD_Text objects.
  */
 static void draw_progression(void)
 {
     const RogueRoute* route = &g_rogue_run.route;
     const RogueRouteRound* round = RogueRoute_Current(route);
-    static const char* node_names[6] = {
-        "CLEAR", "NEXT", "ELITE", "MATCH 4", "SHOP", "BOSS"
-    };
-    static const float node_x[6] = {
-        -14.75f, -9.82f, -4.89f, .04f, 4.97f, 9.90f
-    };
     int i;
 
     if (build_open) {
@@ -558,35 +711,14 @@ static void draw_progression(void)
 
     ui_clear();
 
-    ui_panel(-20.0f, -15.0f, 40.0f, 5.55f,
-             ui_black, ui_white);
-
-    for (i = 0; i < 6; ++i) {
-        bool complete = false;
-        bool active = false;
-
-        if (i < ROGUE_ROUTE_ROUNDS)
-            complete = route->rounds[i].selected >= 0;
-
-        if (target_act_floor < ROGUE_FLOORS_PER_ACT)
-            active = i == target_act_floor - 1;
-        else
-            active = i == 4;
-
-        draw_node(node_x[i], node_names[i], active, complete);
-    }
-
-    ui_at(-4.60f, -10.60f, .0175f, ui_white,
-          "ACT %d   -   FLOOR %d",
-          route->act, target_floor);
-
-    ui_panel(-20.0f, -9.45f, 40.0f, 1.25f,
-             ui_black, ui_white);
+    draw_route_header(route);
+    draw_phase_bar();
 
     if (has_reward && !upgrade_chosen) {
-        ui_at(-4.35f, -9.20f, .0168f, ui_gold,
-              "CHOOSE UPGRADE");
-
+        /*
+         * One shared dark band keeps the native giant STAGE text from fighting
+         * the card row. Individual cards remain one object each.
+         */
         ui_panel(-20.0f, -8.20f, 40.0f, 4.95f,
                  ui_dark, ui_white);
 
@@ -596,9 +728,6 @@ static void draw_progression(void)
                 i,
                 upgrade_cursor == i);
         }
-    } else {
-        ui_at(-4.85f, -9.20f, .0168f, ui_gold,
-              has_reward ? "CHOOSE NEXT FIGHT" : "CHOOSE FIRST FIGHT");
     }
 
     draw_center_vs();
@@ -621,27 +750,31 @@ static void draw_progression(void)
                 !upgrade_chosen);
         }
     } else {
+        HSD_Text* text;
+        char line[120];
         const char* boss =
             route->boss_generated ?
             RogueRoute_CharacterName(route->boss.enemy_kind) :
             "BOSS";
 
-        draw_panel_frame(-14.75f, 4.25f, 29.50f, 3.45f,
-                         upgrade_chosen ? ui_gold : ui_border,
-                         ui_panel_color);
+        text = ui_panel(-14.75f, 4.25f, 29.50f, 3.45f,
+                        ui_panel_color, ui_white);
 
-        ui_at(-11.70f, 4.72f, .0180f,
-              upgrade_chosen ? ui_gold : ui_white,
-              "SHOP / REST  ->  %s", boss);
+        snprintf(line, sizeof(line),
+                 "SHOP / REST  ->  %s", boss);
+        panel_entry(text, 78.0f, 13.0f,
+                    1.34f,
+                    upgrade_chosen ? &ui_gold : &ui_white,
+                    line);
 
-        ui_at(-8.25f, 6.25f, .0105f, ui_muted,
-              upgrade_chosen ?
-              "UPGRADE LOCKED IN - CONTINUING" :
-              "SELECT AN UPGRADE FIRST");
+        panel_entry(text, 110.0f, 52.0f,
+                    .82f, &ui_muted,
+                    upgrade_chosen ?
+                    "UPGRADE LOCKED IN - CONTINUING" :
+                    "SELECT AN UPGRADE FIRST");
     }
 
     draw_bottom_bar();
-    draw_controls();
 }
 
 static int copy_encounter(const RogueEncounter* encounter,
