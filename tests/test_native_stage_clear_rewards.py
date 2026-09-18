@@ -15,13 +15,17 @@ class NativeStageClearRewardTests(unittest.TestCase):
         post = post.split("static void enterGameOver", 1)[0]
         self.assertIn("g_rogue_run.phase == ROGUE_PHASE_REWARD", post)
         self.assertIn("destination = 4;", post)
+        self.assertIn("GS_TOU_BRACKET, NULL, NULL", self.rogue)
+        menu = self.rogue.split("static void enterRouteMenu", 1)[1]
+        menu = menu.split("static void encounterFrame", 1)[0]
+        self.assertNotIn("St_Kind_Heal", menu)
 
     def test_progression_screen_contains_upgrade_and_fight_phases(self):
         self.assertIn("ROUTE_UI_UPGRADE", self.ui)
         self.assertIn("ROUTE_UI_FIGHT", self.ui)
         self.assertIn("ROUTE_UI_BOSS", self.ui)
         self.assertIn('"CHOOSE UPGRADE"', self.ui)
-        self.assertIn('"CHOOSE NEXT MATCH"', self.ui)
+        self.assertIn('"CHOOSE NEXT MATCH     LEFT / RIGHT"', self.ui)
 
     def test_progression_screen_keeps_run_context_visible(self):
         self.assertIn('"GOLD GAINED"', self.ui)
@@ -38,7 +42,10 @@ class NativeStageClearRewardTests(unittest.TestCase):
 
     def test_highlighted_fight_reveals_modifier(self):
         self.assertIn('"MOD: %s   %s"', self.ui)
-        self.assertIn("route_cursor == i", self.ui)
+        self.assertIn(
+            "routeDrawMatchup(&current->choices[route_cursor], route_cursor);",
+            self.ui,
+        )
 
 
 if __name__ == "__main__":

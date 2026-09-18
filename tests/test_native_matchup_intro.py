@@ -80,9 +80,18 @@ class NativeMatchupIntroTests(unittest.TestCase):
 
     def test_route_preview_replaces_duplicate_normal_intro(self):
         self.assertIn(
-            "gm_SetNextGameModeStateId(Rogue_BeginCamp() ? 3 : 2);",
+            "next_state = Rogue_BeginCamp() ? 3 : 2;",
             self.rogue,
         )
+        self.assertIn(
+            "gm_SetNextGameModeStateId(next_state);",
+            self.rogue,
+        )
+        self.assertIn(
+            "gm_SetNextGameModeStateId(2);",
+            self.rogue,
+        )
+        # Native intro remains available for camp/continue/special fallback.
         self.assertIn(
             "gm_SetNextGameModeStateId(Rogue_IntroState());",
             self.rogue,

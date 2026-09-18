@@ -1,10 +1,13 @@
-"""Native Rogue flow compatibility that must survive clean clones."""
+"""Native Rogue menu/game-over compatibility for clean clones."""
 from pathlib import Path
 import sys
 
 root = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path.cwd()
-path = root / "src" / "melee" / "gm" / "gm_19EF.c"
 
+# ---------------------------------------------------------------------------
+# Game Over: Rogue reuses Classic character/model resources.
+# ---------------------------------------------------------------------------
+path = root / "src" / "melee" / "gm" / "gm_19EF.c"
 text = path.read_text(encoding="utf-8")
 
 old = """    switch (gm_GetCurrentGameMode()) {
@@ -47,4 +50,73 @@ if new not in text:
     text = text.replace(old, new, 1)
 
 path.write_text(text, encoding="utf-8")
+
+# ---------------------------------------------------------------------------
+# Progression menu:
+# GS_TOU_BRACKET is a real non-gameplay Melee menu scene. For GM_ROGUE,
+# bypass tournament state logic and let Rogue own only the frame/input loop.
+# Tournament OnEnter/OnExit still provide native menu resources/SIS lifecycle.
+# ---------------------------------------------------------------------------
+path = root / "src" / "melee" / "gm" / "gmtou_1.c"
+text = path.read_text(encoding="utf-8")
+
+include = '#include <melee/rogue/rogue.h>\n'
+if include not in text:
+    # Exact include present in pinned 11749c9.
+    anchor = '#include <melee/mn/mnmain.h>\n'
+    if anchor not in text:
+        # Secondary fallback in case nearby includes are reorganized later.
+        anchor = '#include <melee/mn/inlines.h>\n'
+    if anchor not in text:
+        raise SystemExit("native Rogue flow: gmtou_1 include anchor changed")
+    text = text.replace(anchor, anchor + include, 1)
+
+old = """    PAD_STACK(4);
+
+    data = gm_GetTournamentData();"""
+new = """    PAD_STACK(4);
+
+    if (gm_GetCurrentGameMode() == GM_ROGUE) {
+        Rogue_RouteMenuSceneFrame();
+        return;
+    }
+
+    data = gm_GetTournamentData();"""
+if new not in text:
+    if old not in text:
+        raise SystemExit("native Rogue flow: tournament frame hook changed")
+    text = text.replace(old, new, 1)
+
+path.write_text(text, encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# Wii 1.7 + -lang c99 compatibility:
+# The pinned gm/types.h has two explicit file-scope STATIC_ASSERTs for
+# TmSettingTable. Metrowerks Wii 1.7 rejects that anonymous-struct macro form
+# in C99 mode. Use the project's ASSERT_OFFSET form instead; it preserves the
+# intended check in matching/lint builds and compiles away in this nonmatching
+# Rogue build.
+# ---------------------------------------------------------------------------
+path = root / "src" / "melee" / "gm" / "types.h"
+text = path.read_text(encoding="utf-8")
+
+replacements = {
+    "STATIC_ASSERT(offsetof(struct TmSettingTable, min) == 0x40);":
+        "ASSERT_OFFSET(struct TmSettingTable, min, 0x40);",
+    "STATIC_ASSERT(offsetof(struct TmSettingTable, max) == 0x4C);":
+        "ASSERT_OFFSET(struct TmSettingTable, max, 0x4C);",
+}
+
+for old, new in replacements.items():
+    if new not in text:
+        if old not in text:
+            raise SystemExit(
+                "native Rogue flow: TmSettingTable assert layout changed"
+            )
+        text = text.replace(old, new, 1)
+
+path.write_text(text, encoding="utf-8")
+
+print("postpatch: Rogue progression uses non-gameplay Tournament menu host")
 print("postpatch: Rogue Game Over uses native Classic character assets")

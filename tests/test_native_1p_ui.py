@@ -11,8 +11,9 @@ class NativeOnePlayerUiTests(unittest.TestCase):
 
     def test_combined_progression_screen(self):
         self.assertIn('"CHOOSE UPGRADE"', self.ui)
-        self.assertIn('"CHOOSE NEXT MATCH"', self.ui)
+        self.assertIn('"CHOOSE NEXT MATCH     LEFT / RIGHT"', self.ui)
         self.assertIn('"TOTAL SCORE"', self.ui)
+        self.assertIn("routeDrawMatchup", self.ui)
         self.assertIn("ROUTE_UI_UPGRADE", self.ui)
         self.assertIn("ROUTE_UI_FIGHT", self.ui)
 
@@ -24,7 +25,7 @@ class NativeOnePlayerUiTests(unittest.TestCase):
 
     def test_route_progression_language(self):
         self.assertIn('"ROGUE ROUTE"', self.ui)
-        self.assertIn('"CHOOSE NEXT MATCH"', self.ui)
+        self.assertIn('"CHOOSE NEXT MATCH     LEFT / RIGHT"', self.ui)
         self.assertIn('"BOSS"', self.ui)
         self.assertIn('"SHOP"', self.ui)
         self.assertIn('"FLOOR %d / %d"', self.ui)

@@ -37,12 +37,16 @@ class NativeOnePlayerFlowTests(unittest.TestCase):
     def test_selected_stocks_drive_rogue_matches(self):
         self.assertIn("g_rogue_run.player_stocks", self.encounter)
 
-    def test_real_stage_clear_shell_is_enabled(self):
+    def test_real_stage_clear_is_vanilla_classic_flow(self):
         self.assertIn("start->rules.x4_4 = true;", self.rogue)
-        self.assertIn('"CHOOSE UPGRADE"', self.ui)
-        self.assertIn("overlay_sis = 0;", self.ui)
-        self.assertIn("overlay_canvas = 0;", self.ui)
-        self.assertIn("RogueUI_Clear();", self.ui)
+        post = self.rogue.split("bool Rogue_PostFight(void)", 1)[1]
+        post = post.split("static void enterGameOver", 1)[0]
+        self.assertIn("destination = 4;", post)
+        self.assertNotIn("RogueUI_OpenResults();\n            destination = 4", post)
+
+    def test_progression_uses_native_non_gameplay_menu_host(self):
+        self.assertIn("GS_TOU_BRACKET, NULL, NULL", self.rogue)
+        self.assertIn("Rogue_RouteMenuSceneFrame", self.fixer)
 
     def test_stage_clear_finishes_before_progression_screen(self):
         patch = (ROOT / "patches/engine.patch").read_text(encoding="utf-8")

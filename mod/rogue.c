@@ -313,12 +313,32 @@ static void exitCamp(GameModeState* state)
 }
 
 
-static void routeFrame(void)
+static void enterRouteMenu(GameModeState* state)
+{
+    (void) state;
+    RogueUI_Reset();
+    resolved = false;
+    in_camp = false;
+    in_route = true;
+    route_ui_open = false;
+}
+
+static void exitRouteMenu(GameModeState* state)
+{
+    (void) state;
+    RogueUI_Clear();
+    in_route = false;
+    route_ui_open = false;
+}
+
+/*
+ * Called from GS_TOU_BRACKET's native scene frame hook while GM_ROGUE is
+ * active. This scene has no fighters, stage collision, stocks or match timer.
+ */
+void Rogue_RouteMenuSceneFrame(void)
 {
     int choice;
-
-    if (gm_GetFrameCount() < 30)
-        return;
+    int next_state;
 
     if (!route_ui_open) {
         RogueUI_OpenRoute();
@@ -329,90 +349,27 @@ static void routeFrame(void)
     if (choice < 0)
         return;
 
-    /* Sentinel 2 means Rogue_SelectReward already prepared the boss. */
     if (choice >= ROGUE_ROUTE_CHOICES) {
-        if (g_rogue_run.phase == ROGUE_PHASE_ENCOUNTER)
-            gm_8016B328();
+        /* Boss is already prepared by Rogue_SelectReward. The All-Star Rest
+         * Area is entered only here, for the real pre-boss shop/rest stop. */
+        if (g_rogue_run.phase != ROGUE_PHASE_ENCOUNTER)
+            return;
+
+        next_state = Rogue_BeginCamp() ? 3 : 2;
+        RogueUI_Clear();
+        gm_SetNextGameModeStateId(next_state);
+        gm_801A4B60();
         return;
     }
 
-    if (RogueRoute_Select(&g_rogue_run.route, choice,
-                          &g_rogue_run.current_encounter))
-    {
-        g_rogue_run.phase = ROGUE_PHASE_ENCOUNTER;
-        gm_8016B328();
-    }
-}
+    if (!RogueRoute_Select(&g_rogue_run.route, choice,
+                           &g_rogue_run.current_encounter))
+        return;
 
-static void enterRoute(GameModeState* state)
-{
-    StartMeleeData* start = gm_GetGameModeStateEnterData(state);
-    const RogueRouteRound* round =
-        g_rogue_run.phase == ROGUE_PHASE_REWARD
-            ? NULL
-            : RogueRoute_Current(&g_rogue_run.route);
-    RogueEncounter room;
-    int act;
-    int act_floor;
-    int i;
-
-    RogueUI_Reset();
-    resolved = false;
-    in_camp = false;
-    in_route = true;
-    route_ui_open = false;
-
-    memset(&room, 0, sizeof(room));
-    act = (g_rogue_run.floor - 1) / ROGUE_FLOORS_PER_ACT + 1;
-    act_floor = (g_rogue_run.floor - 1) % ROGUE_FLOORS_PER_ACT + 1;
-    room.act = act;
-    room.act_floor = act_floor;
-    room.enemy_count = 0;
-    room.stage = St_Kind_Heal;
-    room.stocks = 3;
-    room.name = "Rogue Bracket";
-
-    Rogue_SetupEncounter(&encounter_data, &room, g_rogue_run.player_kind);
-    *start = encounter_data.start;
-    start->players[0].color = g_rogue_run.player_costume;
-    start->players[0].slot = controller_port + 1;
-    start->players[0].xD_b2 = 1;
-    start->rules.x5_0 = 1;
-    start->rules.x5_1 = 1;
-    start->rules.x7 = 9;
-    start->rules.on_frame_end = routeFrame;
-
-    memset(&exit_data, 0, sizeof(exit_data));
-    memset(&gm_80473A18, 0, sizeof(gm_80473A18));
-    memset(gm_80473A18.x76, 33, sizeof(gm_80473A18.x76));
-    gm_80473A18._94[0] = (u8) act;
-    gm_80473A18._94[1] = round && round->generated ? 2 : 0;
-    if (round && round->generated) {
-        for (i = 0; i < 2; ++i)
-            gm_80473A18.x96[i] = round->choices[i].enemy_kind;
-    }
-
-    gm_LoadRumbleEnabled(start);
-    lbAudioAx_80026F2C(20);
-    lbAudioAx_8002702C(4, lbAudioAx_80026E84(g_rogue_run.player_kind));
-    lbAudioAx_80027168();
-    lbAudioAx_80026F2C(24);
-    lbAudioAx_8002702C(8, lbAudioAx_80026EBC(St_Kind_Heal));
-    lbAudioAx_80027168();
-}
-
-static void exitRoute(GameModeState* state)
-{
-    (void) state;
+    g_rogue_run.phase = ROGUE_PHASE_ENCOUNTER;
     RogueUI_Clear();
-    in_route = false;
-
-    if (g_rogue_run.phase != ROGUE_PHASE_ENCOUNTER) {
-        gm_ChangeGameModeAfterCurrentScene(GM_MENU);
-        return;
-    }
-
-    gm_SetNextGameModeStateId(Rogue_BeginCamp() ? 3 : 2);
+    gm_SetNextGameModeStateId(2);
+    gm_801A4B60();
 }
 
 static void encounterFrame(void)
@@ -684,8 +641,8 @@ GameModeState gm_Mode_Rogue_States[] = {
         { GS_VS, &start_data, &exit_data },
     },
     {
-        4, lbDvdPreload_2, 0, enterRoute, exitRoute,
-        { GS_VS, &start_data, &exit_data },
+        4, lbDvdPreload_3, 0, enterRouteMenu, exitRouteMenu,
+        { GS_TOU_BRACKET, NULL, NULL },
     },
     {
         5, lbDvdPreload_2, 0, enterBossStageIntro, exitBossStageIntro,
