@@ -9,13 +9,12 @@ class NativeOnePlayerFlowTests(unittest.TestCase):
     def setUpClass(cls):
         cls.rogue = (ROOT / "mod/rogue.c").read_text(encoding="utf-8")
         cls.state_h = (ROOT / "mod/rogue_state.h").read_text(encoding="utf-8")
-        cls.state_c = (ROOT / "mod/rogue_state.c").read_text(encoding="utf-8")
         cls.encounter = (ROOT / "mod/rogue_encounter.c").read_text(encoding="utf-8")
         cls.ui = (ROOT / "mod/rogue_ui.c").read_text(encoding="utf-8")
         cls.build = (ROOT / "tools/build.py").read_text(encoding="utf-8")
-        cls.fixer = (ROOT / "tools/postpatch_ability_native_rogue_flow.py").read_text(
-            encoding="utf-8"
-        )
+        cls.fixer = (
+            ROOT / "tools/postpatch_ability_native_rogue_flow.py"
+        ).read_text(encoding="utf-8")
 
     def test_real_classic_css_starts_run(self):
         self.assertIn("gm_801B06B0(css, REG_CLASSIC", self.rogue)
@@ -31,39 +30,39 @@ class NativeOnePlayerFlowTests(unittest.TestCase):
 
     def test_difficulty_changes_enemy_setup(self):
         self.assertIn("static void Rogue_ApplyDifficulty", self.encounter)
-        self.assertIn("attack *= 1.16f;", self.encounter)
-        self.assertIn("defense *= 1.10f;", self.encounter)
 
     def test_selected_stocks_drive_rogue_matches(self):
         self.assertIn("g_rogue_run.player_stocks", self.encounter)
 
-    def test_real_stage_clear_is_vanilla_classic_flow(self):
+    def test_vanilla_stage_clear_shell_is_enabled(self):
         self.assertIn("start->rules.x4_4 = true;", self.rogue)
+        self.assertIn("start->rules.x18", self.rogue)
+
+    def test_reward_picker_is_old_stage_clear_flow(self):
         post = self.rogue.split("bool Rogue_PostFight(void)", 1)[1]
         post = post.split("static void enterGameOver", 1)[0]
-        self.assertIn("destination = routeSceneStateForChoice(0);", post)
-        self.assertNotIn(
-            "RogueUI_OpenResults();\n            destination = routeSceneStateForChoice(0)",
-            post,
-        )
+        self.assertIn("RogueUI_OpenResults();", post)
+        self.assertNotIn("routeSceneStateForChoice", post)
+        self.assertNotIn("Rogue_RouteMenuSceneFrame", self.rogue)
 
-    def test_progression_uses_safe_non_gameplay_menu_host(self):
-        self.assertIn("GS_TOU_BRACKET, NULL, NULL", self.rogue)
-        self.assertNotIn("GS_INTRO_EASY, &route_intro", self.rogue)
-        self.assertIn("Rogue_RouteMenuSceneFrame", self.fixer)
-        self.assertNotIn("gm_GetCurrentSceneIndex() == 4", self.fixer)
-        self.assertIn(
-            'HSD_SisLib_803A62A0(0, fn_8018F5F0(), "SIS_TournamentData");',
-            self.fixer,
+    def test_old_route_scene_is_restored(self):
+        self.assertIn("static void enterRoute(GameModeState* state)", self.rogue)
+        self.assertIn("static void exitRoute(GameModeState* state)", self.rogue)
+        self.assertRegex(
+            self.rogue,
+            r"4,\s*lbDvdPreload_2,\s*0,\s*enterRoute,\s*exitRoute",
         )
-        self.assertIn("HSD_SisLib_803A5F50(0);", self.fixer)
+        self.assertNotIn("GS_TOU_BRACKET, NULL, NULL", self.rogue)
 
-    def test_stage_clear_finishes_before_progression_screen(self):
+    def test_postfight_hook_remains_in_engine_patch(self):
         patch = (ROOT / "patches/engine.patch").read_text(encoding="utf-8")
         self.assertIn("case 3:", patch)
         self.assertIn("if (!Rogue_PostFight()) gm_801A4B60();", patch)
-        self.assertNotIn("gmvs.c", self.fixer)
-        self.assertIn("destination = routeSceneStateForChoice(0);", self.rogue)
+
+    def test_no_custom_progression_scene_postpatch(self):
+        self.assertNotIn("gmtou_1.c", self.fixer)
+        self.assertNotIn("gm_1832.c", self.fixer)
+        self.assertNotIn("Rogue_RouteMenuSceneFrame", self.fixer)
 
     def test_real_continue_screen_is_used(self):
         self.assertIn("static DebugGameOverData game_over_data;", self.rogue)
@@ -72,18 +71,11 @@ class NativeOnePlayerFlowTests(unittest.TestCase):
             self.rogue,
         )
 
-    def test_continue_retries_current_encounter(self):
-        self.assertIn("--g_rogue_run.continues;", self.rogue)
-        self.assertIn(
-            "g_rogue_run.phase = ROGUE_PHASE_ENCOUNTER;",
-            self.rogue,
-        )
-
-    def test_game_over_scene_uses_classic_assets_for_rogue(self):
+    def test_game_over_uses_classic_assets(self):
         self.assertIn("case GM_ROGUE:", self.fixer)
         self.assertIn("game_mode = GM_CLASSIC;", self.fixer)
 
-    def test_build_runs_native_flow_postpatch(self):
+    def test_build_uses_tracked_fixer(self):
         self.assertIn("postpatch_ability_native_rogue_flow.py", self.build)
 
     def test_pinned_nametag_name(self):

@@ -63,7 +63,6 @@ typedef struct RogueIntroData {
 } RogueIntroData;
 
 static RogueIntroData stage_intro;
-static RogueIntroData route_intro;
 
 /* Vanilla's Classic intro skips Master Hand and is not authored for the
  * standalone Hand bosses. Keep the Adventure-style intro as a safe fallback. */
@@ -265,8 +264,6 @@ static void exitBossStageIntro(GameModeState* state)
 static bool in_camp;
 static bool in_route;
 static bool route_ui_open;
-static bool route_reload;
-static bool route_intro_native;
 static void campFrame(void)
 {
     if (gm_GetFrameCount() >= 60 && RogueUI_CampFrame()) gm_8016B328();
@@ -312,97 +309,16 @@ static void exitCamp(GameModeState* state)
     (void)state;
     Rogue_LeaveCamp();
     RogueUI_Clear();
-
-    /*
-     * Camp returns to the progression screen. The boss/fight is confirmed
-     * there instead of skipping straight from Shop into combat.
-     */
-    gm_SetNextGameModeStateId(4);
+    gm_SetNextGameModeStateId(Rogue_IntroState());
 }
 
 
-static void prepareRouteMenuData(void)
-{
-    const RogueRouteRound* current;
-    int preview_floor;
-    int act_floor;
-
-    /*
-     * Generate the next route round while the post-fight reward is pending.
-     * RogueRoute_Prepare is idempotent, so taking the reward later reuses
-     * these exact choices rather than rerolling them.
-     */
-    if (g_rogue_run.phase == ROGUE_PHASE_REWARD) {
-        preview_floor = g_rogue_run.floor + 1;
-        if (preview_floor > ROGUE_RUN_ENCOUNTERS)
-            return;
-
-        act_floor =
-            ((preview_floor - 1) % ROGUE_FLOORS_PER_ACT) + 1;
-
-        /* Floor 5 is the already-generated act boss, not a normal route row. */
-        if (act_floor < ROGUE_FLOORS_PER_ACT)
-            RogueRoute_Prepare(&g_rogue_run.route,
-                               &g_rogue_run.route_rng,
-                               preview_floor);
-        return;
-    }
-
-    if (g_rogue_run.phase != ROGUE_PHASE_ROUTE)
-        return;
-
-    current = RogueRoute_Current(&g_rogue_run.route);
-    if (!current || !current->generated)
-        RogueRoute_Prepare(&g_rogue_run.route,
-                           &g_rogue_run.route_rng,
-                           g_rogue_run.floor);
-}
-
-/*
- * The progression screen always lives in the crash-safe Tournament/SIS host.
- * It draws Melee's existing ifStock fighter art itself, so changing the
- * highlighted fight never tears down or rebuilds a native fighter scene.
- */
-static int routeSceneStateForChoice(int choice)
-{
-    (void) choice;
-    return 4;
-}
-
-static void enterRouteMenu(GameModeState* state)
-{
-    (void) state;
-    RogueUI_Reset();
-    resolved = false;
-    in_camp = false;
-    in_route = true;
-    route_ui_open = false;
-
-    prepareRouteMenuData();
-}
-
-bool Rogue_RouteUsesClassicPreview(void)
-{
-    /* Kept for UI/API compatibility; progression no longer enters GmIntEz. */
-    return false;
-}
-
-static void exitRouteMenu(GameModeState* state)
-{
-    (void) state;
-    RogueUI_Clear();
-    in_route = false;
-    route_ui_open = false;
-}
-
-/*
- * Called from GS_TOU_BRACKET's native scene frame hook while GM_ROGUE is
- * active. This scene has no fighters, stage collision, stocks or match timer.
- */
-void Rogue_RouteMenuSceneFrame(void)
+static void routeFrame(void)
 {
     int choice;
-    int next_state;
+
+    if (gm_GetFrameCount() < 30)
+        return;
 
     if (!route_ui_open) {
         RogueUI_OpenRoute();
@@ -413,29 +329,80 @@ void Rogue_RouteMenuSceneFrame(void)
     if (choice < 0)
         return;
 
-    /*
-     * Special value means "continue with the already-selected boss".
-     * Before the boss this enters Shop/Rest once; after Shop it goes to fight.
-     */
-    if (choice >= ROGUE_ROUTE_CHOICES) {
-        if (g_rogue_run.phase != ROGUE_PHASE_ENCOUNTER)
-            return;
+    if (RogueRoute_Select(&g_rogue_run.route, choice,
+                          &g_rogue_run.current_encounter))
+    {
+        g_rogue_run.phase = ROGUE_PHASE_ENCOUNTER;
+        gm_8016B328();
+    }
+}
 
-        next_state = Rogue_BeginCamp() ? 3 : 2;
-        RogueUI_Clear();
-        gm_SetNextGameModeStateId(next_state);
-        gm_801A4B60();
+static void enterRoute(GameModeState* state)
+{
+    StartMeleeData* start = gm_GetGameModeStateEnterData(state);
+    const RogueRouteRound* round = RogueRoute_Current(&g_rogue_run.route);
+    RogueEncounter room;
+    int act;
+    int act_floor;
+    int i;
+
+    RogueUI_Reset();
+    resolved = false;
+    in_camp = false;
+    in_route = true;
+    route_ui_open = false;
+
+    memset(&room, 0, sizeof(room));
+    act = (g_rogue_run.floor - 1) / ROGUE_FLOORS_PER_ACT + 1;
+    act_floor = (g_rogue_run.floor - 1) % ROGUE_FLOORS_PER_ACT + 1;
+    room.act = act;
+    room.act_floor = act_floor;
+    room.enemy_count = 0;
+    room.stage = St_Kind_Heal;
+    room.stocks = 3;
+    room.name = "Rogue Bracket";
+
+    Rogue_SetupEncounter(&encounter_data, &room, g_rogue_run.player_kind);
+    *start = encounter_data.start;
+    start->players[0].color = g_rogue_run.player_costume;
+    start->players[0].slot = controller_port + 1;
+    start->players[0].xD_b2 = 1;
+    start->rules.x5_0 = 1;
+    start->rules.x5_1 = 1;
+    start->rules.x7 = 9;
+    start->rules.on_frame_end = routeFrame;
+
+    memset(&exit_data, 0, sizeof(exit_data));
+    memset(&gm_80473A18, 0, sizeof(gm_80473A18));
+    memset(gm_80473A18.x76, 33, sizeof(gm_80473A18.x76));
+    gm_80473A18._94[0] = (u8) act;
+    gm_80473A18._94[1] = round && round->generated ? 2 : 0;
+    if (round && round->generated) {
+        for (i = 0; i < 2; ++i)
+            gm_80473A18.x96[i] = round->choices[i].enemy_kind;
+    }
+
+    gm_LoadRumbleEnabled(start);
+    lbAudioAx_80026F2C(20);
+    lbAudioAx_8002702C(4, lbAudioAx_80026E84(g_rogue_run.player_kind));
+    lbAudioAx_80027168();
+    lbAudioAx_80026F2C(24);
+    lbAudioAx_8002702C(8, lbAudioAx_80026EBC(St_Kind_Heal));
+    lbAudioAx_80027168();
+}
+
+static void exitRoute(GameModeState* state)
+{
+    (void) state;
+    RogueUI_Clear();
+    in_route = false;
+
+    if (g_rogue_run.phase != ROGUE_PHASE_ENCOUNTER) {
+        gm_ChangeGameModeAfterCurrentScene(GM_MENU);
         return;
     }
 
-    if (!RogueRoute_Select(&g_rogue_run.route, choice,
-                           &g_rogue_run.current_encounter))
-        return;
-
-    g_rogue_run.phase = ROGUE_PHASE_ENCOUNTER;
-    RogueUI_Clear();
-    gm_SetNextGameModeStateId(2);
-    gm_801A4B60();
+    gm_SetNextGameModeStateId(Rogue_BeginCamp() ? 3 : 2);
 }
 
 static void encounterFrame(void)
@@ -571,25 +538,20 @@ bool Rogue_PostFight(void)
         g_rogue_run.phase == ROGUE_PHASE_REST ||
         g_rogue_run.phase == ROGUE_PHASE_SHOP)
         return false;
-
     if (!resolved) {
         MatchEnd result;
         int i;
         bool won = Player_GetStocks(0) > 0;
-
         memset(&result, 0, sizeof(result));
         result.outcome = gmVs_GetSceneController()->state.match_result;
         for (i = 1; i <= g_rogue_run.current_encounter.enemy_count; ++i)
-            if (Player_GetStocks(i) > 0)
-                won = false;
-
+            if (Player_GetStocks(i) > 0) won = false;
         result.is_teams = g_rogue_run.current_encounter.enemy_count > 1;
         result.player_standings[0].pkind = Gm_PKind_Human;
         if (won) {
             result.n_winners = result.n_team_winners = 1;
             result.winners[0] = result.team_winners[0] = 0;
         }
-
         Rogue_OnMatchEnd(&result);
         resolved = true;
 
@@ -599,45 +561,20 @@ bool Rogue_PostFight(void)
         }
 
         RogueHistory_Record();
-
-        /*
-         * Retail GmRegClr has already completed. Ordinary wins now move to
-         * the route scene, where upgrade selection and next-fight selection
-         * happen together.
-         */
-        if (g_rogue_run.phase == ROGUE_PHASE_REWARD) {
-            RogueUI_Clear();
-            destination = routeSceneStateForChoice(0);
-            return false;
-        }
-
-        /* Final victory keeps the existing run-complete UI. */
         RogueUI_OpenResults();
     }
-
-    {
-        int action = RogueUI_Frame();
-
-        if (action == ROGUE_UI_WAIT)
-            return true;
-
-        if (action == ROGUE_UI_CONTINUE)
-            destination = g_rogue_run.phase == ROGUE_PHASE_ROUTE
-                              ? routeSceneStateForChoice(0)
-                              : Rogue_BeginCamp() ? 3 : Rogue_IntroState();
-        else if (action == ROGUE_UI_NEW || action == ROGUE_UI_REPLAY) {
-            if (action == ROGUE_UI_NEW)
-                pending_seed = OSGetTick();
-            destination = 0;
-        } else {
-            destination = -1;
-        }
-    }
-
+    int action = RogueUI_Frame();
+    if (action == ROGUE_UI_WAIT) return true;
+    if (action == ROGUE_UI_CONTINUE)
+        destination = g_rogue_run.phase == ROGUE_PHASE_ROUTE ? 4 :
+                      Rogue_BeginCamp() ? 3 : Rogue_IntroState();
+    else if (action == ROGUE_UI_NEW || action == ROGUE_UI_REPLAY) {
+        if (action == ROGUE_UI_NEW) pending_seed = OSGetTick();
+        destination = 0;
+    } else destination = -1;
     RogueUI_Clear();
     return false;
 }
-
 static void enterGameOver(GameModeState* state)
 {
     DebugGameOverData* data = gm_GetGameModeStateEnterData(state);
@@ -708,12 +645,8 @@ GameModeState gm_Mode_Rogue_States[] = {
         { GS_VS, &start_data, &exit_data },
     },
     {
-        /*
-         * Dedicated non-gameplay progression screen.
-         * Tournament supplies a stable Melee menu/SIS host; Rogue owns the UI.
-         */
-        4, lbDvdPreload_3, 0, enterRouteMenu, exitRouteMenu,
-        { GS_TOU_BRACKET, NULL, NULL },
+        4, lbDvdPreload_2, 0, enterRoute, exitRoute,
+        { GS_VS, &start_data, &exit_data },
     },
     {
         5, lbDvdPreload_2, 0, enterBossStageIntro, exitBossStageIntro,
@@ -722,11 +655,6 @@ GameModeState gm_Mode_Rogue_States[] = {
     {
         6, lbDvdPreload_3, 0, enterGameOver, exitGameOver,
         { GS_GAMEOVER, &game_over_data, &game_over_data },
-    },
-    {
-        /* Hand-boss preview fallback: current crash-safe SIS host. */
-        7, lbDvdPreload_3, 0, enterRouteMenu, exitRouteMenu,
-        { GS_TOU_BRACKET, NULL, NULL },
     },
     { GM_GAMEMODESTATE_TERMINATE },
 };

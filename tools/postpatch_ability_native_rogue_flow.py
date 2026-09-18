@@ -1,4 +1,7 @@
-"""Native Rogue menu/game-over compatibility for clean clones."""
+"""Compatibility postpatch for the pre-combined Rogue flow.
+
+This intentionally contains NO Tournament or Classic-intro progression hooks.
+"""
 from pathlib import Path
 import sys
 
@@ -52,103 +55,7 @@ if new not in text:
 path.write_text(text, encoding="utf-8")
 
 # ---------------------------------------------------------------------------
-# Progression menu:
-# GS_TOU_BRACKET is a real non-gameplay Melee menu scene. For GM_ROGUE,
-# bypass tournament state logic and let Rogue own only the frame/input loop.
-# Tournament OnEnter/OnExit still provide native menu resources/SIS lifecycle.
-# ---------------------------------------------------------------------------
-path = root / "src" / "melee" / "gm" / "gmtou_1.c"
-text = path.read_text(encoding="utf-8")
-
-include = '#include <melee/rogue/rogue.h>\n'
-if include not in text:
-    # Exact include present in pinned 11749c9.
-    anchor = '#include <melee/mn/mnmain.h>\n'
-    if anchor not in text:
-        # Secondary fallback in case nearby includes are reorganized later.
-        anchor = '#include <melee/mn/inlines.h>\n'
-    if anchor not in text:
-        raise SystemExit("native Rogue flow: gmtou_1 include anchor changed")
-    text = text.replace(anchor, anchor + include, 1)
-
-old = """    PAD_STACK(4);
-
-    data = gm_GetTournamentData();"""
-new = """    PAD_STACK(4);
-
-    if (gm_GetCurrentGameMode() == GM_ROGUE) {
-        Rogue_RouteMenuSceneFrame();
-        return;
-    }
-
-    data = gm_GetTournamentData();"""
-if new not in text:
-    if old not in text:
-        raise SystemExit("native Rogue flow: tournament frame hook changed")
-    text = text.replace(old, new, 1)
-
-
-# Rogue must bypass Tournament OnEnter/OnExit as well as OnFrame.
-old = """void gm_Scene_TouBracket_OnEnter(void* arg0)
-{
-    lbl_804D6668 = NULL;"""
-new = """void gm_Scene_TouBracket_OnEnter(void* arg0)
-{
-    if (gm_GetCurrentGameMode() == GM_ROGUE) {
-        /*
-         * Rogue uses this only as a non-gameplay menu host.
-         * Do not initialize Tournament bracket/model state.
-         * SIS creates the ortho camera RogueUI needs.
-         */
-        HSD_SisLib_803A62A0(0, fn_8018F5F0(), "SIS_TournamentData");
-        return;
-    }
-
-    lbl_804D6668 = NULL;"""
-if new not in text:
-    if old not in text:
-        raise SystemExit("native Rogue flow: tournament enter hook changed")
-    text = text.replace(old, new, 1)
-
-old = """void gm_Scene_TouBracket_OnExit(void* arg0)
-{
-    lbArchive_80016EFC(lbl_804D6660);"""
-new = """void gm_Scene_TouBracket_OnExit(void* arg0)
-{
-    if (gm_GetCurrentGameMode() == GM_ROGUE) {
-        /*
-         * Rogue did not load Tournament's model archives above.
-         * Release only the SIS slot it created.
-         */
-        HSD_SisLib_803A5F50(0);
-        return;
-    }
-
-    lbArchive_80016EFC(lbl_804D6660);"""
-if new not in text:
-    if old not in text:
-        raise SystemExit("native Rogue flow: tournament exit hook changed")
-    text = text.replace(old, new, 1)
-
-
-path.write_text(text, encoding="utf-8")
-
-
-# ---------------------------------------------------------------------------
-# Progression matchup:
-# State 4 intentionally stays on GS_TOU_BRACKET. Do not hook GmIntEz here:
-# entering a second Classic fighter-presentation scene directly from the CSS
-# caused the initial character-confirm crash. The ordinary state-1 Classic
-# intro remains untouched.
-# ---------------------------------------------------------------------------
-
-# ---------------------------------------------------------------------------
-# Wii 1.7 + -lang c99 compatibility:
-# The pinned gm/types.h has two explicit file-scope STATIC_ASSERTs for
-# TmSettingTable. Metrowerks Wii 1.7 rejects that anonymous-struct macro form
-# in C99 mode. Use the project's ASSERT_OFFSET form instead; it preserves the
-# intended check in matching/lint builds and compiles away in this nonmatching
-# Rogue build.
+# Wii 1.7 + -lang c99 compatibility for modified vanilla translation units.
 # ---------------------------------------------------------------------------
 path = root / "src" / "melee" / "gm" / "types.h"
 text = path.read_text(encoding="utf-8")
@@ -170,5 +77,5 @@ for old, new in replacements.items():
 
 path.write_text(text, encoding="utf-8")
 
-print("postpatch: Rogue progression uses crash-safe Tournament/SIS host")
-print("postpatch: Rogue Game Over uses native Classic character assets")
+print("postpatch: pre-combined Rogue flow compatibility applied")
+print("postpatch: no Tournament/Classic-intro progression hooks installed")

@@ -9,23 +9,13 @@ class NativeOnePlayerUiTests(unittest.TestCase):
         cls.ui = (ROOT / "mod/rogue_ui.c").read_text(encoding="utf-8")
         cls.rogue = (ROOT / "mod/rogue.c").read_text(encoding="utf-8")
 
-    def test_combined_progression_screen(self):
+    def test_stage_clear_reward_screen(self):
         self.assertIn('"CHOOSE UPGRADE"', self.ui)
-        self.assertIn('"CHOOSE NEXT MATCH     LEFT / RIGHT"', self.ui)
-        self.assertIn('"TOTAL SCORE"', self.ui)
-        self.assertIn("routeDrawMatchup", self.ui)
-        self.assertIn("ROUTE_UI_UPGRADE", self.ui)
-        self.assertIn("ROUTE_UI_FIGHT", self.ui)
-        route_matchup = self.ui.split(
-            "static void routeDrawMatchup", 1
-        )[1].split("static void routeDrawFightChoices", 1)[0]
-        self.assertNotRegex(
-            route_matchup,
-            r"(?m)^\s*ui_fighter_icon\s*\(",
-        )
-        self.assertIn("SIS-ONLY MATCHUP PREVIEW", route_matchup)
-        self.assertIn("GS_TOU_BRACKET, NULL, NULL", self.rogue)
-        self.assertNotIn("GS_INTRO_EASY, &route_intro", self.rogue)
+        self.assertIn('"UPGRADE DETAILS"', self.ui)
+        self.assertIn('"GOLD"', self.ui)
+        self.assertIn('"TOTAL"', self.ui)
+        self.assertIn("start->rules.x4_4 = true", self.rogue)
+        self.assertIn("start->rules.x18", self.rogue)
 
     def test_native_classic_matchup_intro(self):
         self.assertIn("GS_INTRO_EASY, &stage_intro", self.rogue)
@@ -33,12 +23,13 @@ class NativeOnePlayerUiTests(unittest.TestCase):
         self.assertIn("stage_intro.allies[0] = g_rogue_run.player_kind", self.rogue)
         self.assertIn("stage_intro.enemies[i] = encounter->enemies[i].kind", self.rogue)
 
-    def test_route_progression_language(self):
-        self.assertIn('"ROGUE ROUTE"', self.ui)
-        self.assertIn('"CHOOSE NEXT MATCH     LEFT / RIGHT"', self.ui)
-        self.assertIn('"BOSS"', self.ui)
-        self.assertIn('"SHOP"', self.ui)
-        self.assertIn('"FLOOR %d / %d"', self.ui)
+    def test_all_star_route_language(self):
+        self.assertIn('"ALL-STAR PROGRESSION"', self.ui)
+        self.assertIn('"CHOOSE NEXT MATCH"', self.ui)
+        self.assertTrue(
+            '"FINAL MATCH"' in self.ui or '"FINAL: %s"' in self.ui,
+            "Route UI should identify the final boss match",
+        )
 
     def test_native_continue_screen(self):
         self.assertIn("GS_GAMEOVER, &game_over_data, &game_over_data", self.rogue)

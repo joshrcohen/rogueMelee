@@ -37,15 +37,6 @@ static GXColor ui_orange = {255, 104, 0, 255};
 static GXColor ui_screen = {0, 0, 0, 214};
 static GXColor ui_panel = {18, 22, 38, 210};
 
-/* Dedicated route/progression palette.
- * The safe Tournament/SIS host provides the scene; fighter portraits use
- * Melee's existing ifStock assets rather than a second live fighter scene. */
-static GXColor ui_route_bg = {8, 18, 48, 224};
-static GXColor ui_route_panel = {13, 27, 63, 238};
-static GXColor ui_route_panel2 = {22, 40, 82, 244};
-static GXColor ui_route_frame = {92, 116, 170, 255};
-static GXColor ui_route_blue = {42, 68, 126, 255};
-
 
 static int ui_format(char* out, unsigned int size, const char* fmt, ...)
 {
@@ -703,113 +694,64 @@ int RogueUI_Frame(void)
 }
 
 /* Rogue Bracket: Tournament/1-P-styled route selection over Rest Area. */
-enum {
-    ROUTE_UI_UPGRADE,
-    ROUTE_UI_FIGHT,
-    ROUTE_UI_BOSS,
-};
-
 static int route_cursor;
-static int route_reward_cursor;
-static int route_reward_taken = -1;
 static int route_confirm;
-static bool route_refresh_requested;
 static int route_locked = -1;
-static int route_mode;
-static int route_gold_earned;
-static int route_score;
-static bool route_had_reward;
-
-static void routeFrameBox(float x, float y, float width,
-                          float height, int selected)
-{
-    GXColor border = selected ? ui_gold : ui_route_frame;
-    GXColor inside = selected ? ui_route_panel2 : ui_route_panel;
-
-    ui_panel_box(x, y, width, height, border);
-    ui_panel_box(x + .13f, y + .13f,
-                 width - .26f, height - .26f, inside);
-}
-
-static void routeRewardCard(float x, float y, RogueReward* reward,
-                            int selected)
-{
-    char detail[128];
-    char meta[80];
-    float title_size;
-
-    Rogue_DescribeReward(reward, detail, sizeof(detail));
-    snprintf(meta, sizeof(meta), "%s   %s",
-             rewardCategory(reward), Rogue_RarityName(reward->rarity));
-
-    routeFrameBox(x, y, 8.55f, 3.55f, selected);
-
-    if (selected)
-        ui_at(x - .52f, y + 1.12f, .025f, ui_gold, ">");
-
-    title_size = strlen(reward->name) > 18 ? .0155f :
-                 strlen(reward->name) > 14 ? .0175f : .0205f;
-
-    ui_at(x + .50f, y + .42f, title_size,
-          selected ? ui_gold : ui_white, "%s", reward->name);
-    ui_at(x + .50f, y + 1.36f, .0095f, ui_muted, "%s", meta);
-    ui_wrapped_at(x + .50f, y + 2.08f, .0095f, ui_white,
-                  detail, 28, 2);
-}
 
 static void routeNode(float x, float y, float width,
                       int active, int complete,
                       const char* label, const char* detail)
 {
-    GXColor border = active ? ui_gold :
-                     complete ? ui_red : ui_route_frame;
-    GXColor fg = active ? ui_gold : ui_white;
+    GXColor bg = active ? ui_gold :
+                 complete ? ui_panel : ui_black;
+    GXColor fg = active ? ui_black : ui_white;
 
-    ui_panel_box(x, y, width, 1.30f, border);
-    ui_panel_box(x + .11f, y + .11f, width - .22f, 1.08f,
-                 active ? ui_route_panel2 : ui_route_panel);
-
-    ui_at(x + .27f, y + .29f, .0108f, fg, "%s", label);
+    ui_panel_box(x, y, width, 1.35f, bg);
+    ui_at(x + .30f, y + .32f, .0115f, fg, "%s", label);
     if (detail && *detail)
-        ui_at(x + .03f, y + 1.43f, .0082f,
-              complete ? ui_muted : ui_white, "%.13s", detail);
+        ui_at(x + .05f, y + 1.55f, .0085f,
+              complete ? ui_muted : ui_white, "%.12s", detail);
 }
 
-static void routeDrawTrack(void)
+static void routeDraw(void)
 {
     const RogueRoute* route = &g_rogue_run.route;
+    const RogueRouteRound* current = RogueRoute_Current(route);
     static const float node_x[6] = {
-        -14.20f, -9.08f, -3.96f, 1.16f, 6.28f, 11.40f
+        -14.8f, -9.25f, -3.70f, 1.85f, 7.40f, 12.95f
     };
     static const char* node_name[6] = {
         "MATCH 1", "MATCH 2", "ELITE", "MATCH 4", "SHOP", "BOSS"
     };
-    int active_round = route->current_round;
+    const char* player = RogueRoute_CharacterName(g_rogue_run.player_kind);
     int i;
+
+    ui_begin();
+    ui_backdrop();
+    ui_clear_native_icons();
+
+    ui_at(-14.6f, -12.2f, .036f, ui_gold, "ROGUE ROUTE");
+    ui_at(9.1f, -11.5f, .018f, ui_white, "ACT %d", route->act);
+    ui_at(-14.5f, -9.55f, .012f, ui_muted,
+          "ALL-STAR PROGRESSION");
 
     for (i = 0; i < 6; ++i) {
         char label[32];
         const char* detail = node_name[i];
         int round_index = i < 4 ? i : -1;
-        int complete = round_index >= 0 &&
-                       route->rounds[round_index].selected >= 0;
-        int active = round_index >= 0 &&
-                     round_index == active_round && !complete;
+        int active = round_index == route->current_round;
+        int complete = round_index >= 0 && round_index < route->current_round;
 
         if (i == 4) {
-            snprintf(label, sizeof(label),
-                     route_mode == ROUTE_UI_BOSS ? "NEXT" : "SHOP");
+            snprintf(label, sizeof(label), "SHOP");
             detail = "REST AREA";
-            active = route_mode == ROUTE_UI_BOSS;
         } else if (i == 5) {
             snprintf(label, sizeof(label), "BOSS");
-            detail = route->boss_generated
-                         ? RogueRoute_CharacterName(route->boss.enemy_kind)
-                         : "FINAL";
-        } else if (complete) {
+            detail = RogueRoute_CharacterName(route->boss.enemy_kind);
+        } else if (complete && route->rounds[round_index].selected >= 0) {
             const RogueEncounter* picked =
                 &route->rounds[round_index]
-                     .choices[route->rounds[round_index].selected];
+                    .choices[route->rounds[round_index].selected];
             snprintf(label, sizeof(label), "CLEAR");
             detail = RogueRoute_CharacterName(picked->enemy_kind);
         } else if (active) {
@@ -817,335 +759,117 @@ static void routeDrawTrack(void)
             detail = node_name[i];
         } else {
             snprintf(label, sizeof(label), "%s", node_name[i]);
-            detail = round_index == 2 ? "ELITE" : "PENDING";
+            if (round_index == 2)
+                detail = "ELITE";
+            else
+                detail = "PENDING";
         }
 
-        routeNode(node_x[i], -9.45f, 3.18f,
+        routeNode(node_x[i], -7.9f, 3.55f,
                   active, complete, label, detail);
 
         if (i < 5)
-            ui_rule(node_x[i] + 3.18f, -8.82f, 1.94f,
-                    complete ? ui_red : ui_route_frame);
+            ui_rule(node_x[i] + 3.58f, -7.25f, 1.95f,
+                    complete ? ui_red : ui_muted);
     }
-}
-
-static void routeDrawRewards(void)
-{
-    int i;
-
-    ui_at(-13.85f, -6.03f, .0195f, ui_gold,
-          route_mode == ROUTE_UI_UPGRADE
-              ? "CHOOSE UPGRADE"
-              : "UPGRADE SELECTED");
-    ui_at(1.75f, -5.93f, .0115f, ui_muted,
-          route_mode == ROUTE_UI_UPGRADE
-              ? "PICK %d OF 3"
-              : "LOCKED",
-          route_reward_cursor + 1);
-
-    for (i = 0; i < 3; ++i) {
-        RogueReward* reward = &g_rogue_run.current_rewards[i];
-        float x = -13.75f + i * 9.15f;
-        int selected = route_mode == ROUTE_UI_UPGRADE
-                           ? route_reward_cursor == i
-                           : route_reward_taken == i;
-
-        routeRewardCard(x, -5.08f, reward, selected);
-    }
-}
-
-static void routeDrawMatchup(const RogueEncounter* encounter,
-                               int choice)
-{
-    char opponent[80];
-    char subtitle[100];
-    char modifier[120];
-    char stock[32];
-    int display_floor =
-        route_mode == ROUTE_UI_UPGRADE ? g_rogue_run.floor + 1 :
-                                         g_rogue_run.floor;
-
-    encounterOpponent(opponent, sizeof(opponent), encounter);
-    snprintf(subtitle, sizeof(subtitle), "%s   %s",
-             RogueRoute_StageName(encounter->stage),
-             RogueRoute_TypeName(encounter->type));
-
-    if (encounter->enemy_count > 0) {
-        snprintf(stock, sizeof(stock), "%d STOCK%s",
-                 encounter->enemies[0].stocks,
-                 encounter->enemies[0].stocks == 1 ? "" : "S");
-    } else {
-        stock[0] = 0;
-    }
-
-    if (encounter->modifier && *encounter->modifier) {
-        snprintf(modifier, sizeof(modifier), "MOD: %s   %s",
-                 encounter->modifier, stock);
-    } else {
-        snprintf(modifier, sizeof(modifier), "%s", stock);
-    }
-
-    ui_at(-1.95f, -.55f, .0280f, ui_white,
-          "STAGE %d", display_floor);
-
-    if (route_mode == ROUTE_UI_FIGHT)
-        ui_at(8.00f, -.28f, .0100f, ui_muted,
-              "CHOICE %d OF %d", choice + 1, ROGUE_ROUTE_CHOICES);
-
-    /*
-     * Normal route previews are the actual GmIntEz Classic matchup scene
-     * underneath this overlay. Leave the fighter models / VS art uncovered.
-     */
-    if (Rogue_RouteUsesClassicPreview()) {
-        ui_rule(-14.10f, .26f, 28.20f, ui_route_frame);
-        ui_rule(-14.10f, 6.08f, 28.20f, ui_route_frame);
-        ui_panel_box(-14.10f, .26f, .12f, 5.94f, ui_route_frame);
-        ui_panel_box(13.98f, .26f, .12f, 5.94f, ui_route_frame);
-        ui_at(-3.35f, .48f, .0107f, ui_muted, "%s", subtitle);
-
-        if (modifier[0]) {
-            ui_panel_box(-3.65f, 5.28f, 7.30f, .70f, ui_route_bg);
-            ui_at(-2.95f, 5.45f, .0102f,
-                  encounter->modifier ? ui_gold : ui_muted,
-                  "%s", modifier);
-        }
-        return;
-    }
-
-    /*
-     * SIS-ONLY MATCHUP PREVIEW.
-     *
-     * Do NOT call ui_fighter_icon() from the progression menu. That helper
-     * initializes IfAll/ifStock, which is the full in-match HUD subsystem.
-     * On the first route screen there is no VS match/player HUD state yet;
-     * initializing that subsystem here can stall during the CSS -> menu
-     * transition. Keep this screen strictly non-gameplay.
-     *
-     * This still uses Melee's native SIS font, menu host, sounds and layout.
-     * Fighter names are shown in VS-style framed panels without loading the
-     * battle HUD archive.
-     */
-    ui_panel_box(-14.25f, .18f, 28.50f, 6.15f, ui_route_frame);
-    ui_panel_box(-14.05f, .38f, 28.10f, 5.75f, ui_route_bg);
-    ui_rule(-14.05f, .38f, 28.10f, ui_route_blue);
-
-    ui_at(-3.35f, .75f, .0107f, ui_muted, "%s", subtitle);
-
-    routeFrameBox(-12.65f, 1.55f, 9.20f, 3.25f, 0);
-    routeFrameBox(3.45f, 1.55f, 9.20f, 3.25f,
-                  route_mode == ROUTE_UI_FIGHT);
-
-    ui_at(-11.95f, 2.05f, .0102f, ui_muted, "PLAYER");
-    ui_at(4.15f, 2.05f, .0102f, ui_muted,
-          encounter->enemy_count > 1 ? "OPPONENTS" : "OPPONENT");
-
-    ui_at(-11.95f, 3.12f, .0215f, ui_white, "%s",
-          RogueRoute_CharacterName(g_rogue_run.player_kind));
-    ui_at(4.15f, 3.12f,
-          strlen(opponent) > 16 ? .0155f : .0215f,
-          route_mode == ROUTE_UI_FIGHT ? ui_gold : ui_white,
-          "%s", opponent);
-
-    ui_at(-1.43f, 2.55f, .057f, ui_orange, "VS");
-
-    if (modifier[0]) {
-        ui_panel_box(-3.65f, 5.28f, 7.30f, .70f, ui_route_panel2);
-        ui_at(-2.95f, 5.45f, .0102f,
-              encounter->modifier ? ui_gold : ui_muted,
-              "%s", modifier);
-    }
-}
-
-static void routeDrawFightChoices(void)
-{
-    const RogueRoute* route = &g_rogue_run.route;
-    const RogueRouteRound* current = RogueRoute_Current(route);
-
-    if (route_mode == ROUTE_UI_UPGRADE) {
-        int preview_floor = g_rogue_run.floor + 1;
-        int act_floor =
-            ((preview_floor - 1) % ROGUE_FLOORS_PER_ACT) + 1;
-
-        ui_at(-13.75f, -.48f, .0165f, ui_muted,
-              "NEXT MATCH  -  TAKE AN UPGRADE TO UNLOCK");
-
-        if (act_floor == ROGUE_FLOORS_PER_ACT &&
-            route->boss_generated) {
-            routeDrawMatchup(&route->boss, 0);
-            return;
-        }
-
-        if (current && current->generated) {
-            routeDrawMatchup(&current->choices[0], 0);
-            return;
-        }
-
-        routeFrameBox(-14.25f, .18f, 28.50f, 6.15f, 0);
-        ui_at(-5.95f, 2.85f, .0170f, ui_muted,
-              "PREPARING NEXT MATCH...");
-        return;
-    }
-
-    if (route_mode == ROUTE_UI_BOSS) {
-        ui_at(-13.75f, -.48f, .0165f, ui_white, "NEXT MATCH");
-        routeDrawMatchup(&g_rogue_run.current_encounter, 0);
-        return;
-    }
-
-    ui_at(-13.75f, -.48f, .0165f, ui_white,
-          "CHOOSE NEXT MATCH     LEFT / RIGHT");
 
     if (!current || !current->generated) {
-        routeFrameBox(-14.25f, .18f, 28.50f, 6.15f, 0);
-        ui_at(-4.15f, 2.85f, .0170f, ui_white,
-              "PREPARING NEXT MATCHES...");
+        ui_at(-13.2f, -1.0f, .022f, ui_white,
+              "Preparing next match...");
         return;
     }
 
-    routeDrawMatchup(&current->choices[route_cursor], route_cursor);
-}
+    ui_at(-13.6f, -3.45f, .017f, ui_muted, "CHOOSE NEXT MATCH");
 
-static void routeDrawRunStats(void)
-{
-    routeFrameBox(-13.75f, 6.65f, 8.55f, 1.75f, 0);
-    routeFrameBox(-4.55f, 6.65f, 8.55f, 1.75f, 0);
-    routeFrameBox(4.65f, 6.65f, 8.55f, 1.75f, 0);
+    for (i = 0; i < ROGUE_ROUTE_CHOICES; ++i) {
+        const RogueEncounter* encounter = &current->choices[i];
+        char opponent[80], subtitle[100], tag[120], preview[100], stock[32];
+        float center_x = -7.2f + i * 13.7f;
+        int selected = route_locked >= 0 ? route_locked == i :
+                       route_cursor == i;
 
-    ui_at(-13.05f, 7.08f, .0102f, ui_muted, "GOLD GAINED");
-    ui_at(-8.35f, 6.98f, .0175f, ui_gold, "+%d", route_gold_earned);
+        encounterOpponent(opponent, sizeof(opponent), encounter);
+        snprintf(subtitle, sizeof(subtitle), "%s   %s",
+                 RogueRoute_StageName(encounter->stage),
+                 RogueRoute_TypeName(encounter->type));
 
-    ui_at(-3.85f, 7.08f, .0102f, ui_muted, "TOTAL GOLD");
-    ui_at(.50f, 6.98f, .0175f, ui_white, "%d", g_rogue_run.currency);
+        if (encounter->enemy_count > 0) {
+            snprintf(stock, sizeof(stock), "%d STOCK%s",
+                     encounter->enemies[0].stocks,
+                     encounter->enemies[0].stocks == 1 ? "" : "S");
+        } else {
+            stock[0] = 0;
+        }
 
-    ui_at(5.35f, 7.08f, .0102f, ui_muted, "TOTAL SCORE");
-    ui_at(9.92f, 6.98f, .0175f, ui_gold, "%d", route_score);
-}
+        if (encounter->modifier && *encounter->modifier) {
+            if (stock[0]) {
+                snprintf(tag, sizeof(tag), "%s   %s",
+                         encounter->modifier, stock);
+            } else {
+                snprintf(tag, sizeof(tag), "%s", encounter->modifier);
+            }
+        } else if (stock[0]) {
+            snprintf(tag, sizeof(tag), "%s", stock);
+        } else {
+            tag[0] = 0;
+        }
 
-static void routeDrawUpgradeStatus(void)
-{
-    const char* title;
-    const char* detail;
+        if (route_confirm > 0 && route_locked == i) {
+            snprintf(preview, sizeof(preview), "VS %s", opponent);
+            ui_tile(-13.6f + i * 13.85f, -2.05f, 12.95f, 6.4f,
+                    true, ui_gold, player, preview, tag);
 
-    if (g_rogue_run.phase == ROGUE_PHASE_ENCOUNTER &&
-        g_rogue_run.current_encounter.type == ROGUE_ENCOUNTER_BOSS)
-    {
-        title = "BUILD READY";
-        detail = "SHOP COMPLETE - CONFIRM THE BOSS MATCH BELOW";
-    } else {
-        title = "UPGRADES";
-        detail = "WIN A MATCH TO CHOOSE 1 OF 3 UPGRADES";
+            ui_fighter_icon(g_rogue_run.player_kind,
+                            g_rogue_run.player_costume,
+                            center_x - 2.9f, 0.15f, 1.85f);
+            ui_fighter_icon(encounter->enemy_kind,
+                            encounter->enemy_count ?
+                                encounter->enemies[0].costume : 0,
+                            center_x + 2.9f, 0.15f, 1.85f);
+            ui_at(center_x, 0.15f, .026f, ui_orange, "VS");
+            ui_at(center_x - 5.1f, 2.55f, .0118f, ui_muted, "YOU");
+            ui_at(center_x - 5.1f, 3.35f, .0108f, ui_white, "%s",
+                  tag[0] ? tag : "STANDARD");
+        } else {
+            ui_tile(-13.6f + i * 13.85f, -2.05f, 12.95f, 6.4f,
+                    selected, ui_gold, opponent, subtitle, tag);
+
+            ui_fighter_icon(encounter->enemy_kind,
+                            encounter->enemy_count ?
+                                encounter->enemies[0].costume : 0,
+                            center_x, 0.35f, 2.35f);
+
+            if (encounter->modifier && *encounter->modifier) {
+                ui_at(center_x - 5.45f, 2.55f, .0105f, ui_orange,
+                      "MOD: %s", encounter->modifier);
+            }
+        }
     }
 
-    ui_panel_box(-14.55f, -6.40f, 29.10f, 5.35f, ui_route_bg);
-    ui_at(-13.85f, -6.03f, .0195f, ui_gold, "%s", title);
-    ui_at(-13.85f, -4.58f, .0125f, ui_muted, "%s", detail);
-
-    routeFrameBox(-13.75f, -3.25f, 8.55f, 1.65f, 0);
-    routeFrameBox(-4.60f, -3.25f, 8.55f, 1.65f, 0);
-    routeFrameBox(4.55f, -3.25f, 8.55f, 1.65f, 0);
-
-    ui_at(-11.78f, -2.75f, .0110f, ui_muted, "UPGRADE 1");
-    ui_at(-2.63f, -2.75f, .0110f, ui_muted, "UPGRADE 2");
-    ui_at(6.52f, -2.75f, .0110f, ui_muted, "UPGRADE 3");
-}
-
-static void routeDraw(void)
-{
-    const RogueRoute* route = &g_rogue_run.route;
-    int display_floor =
-        route_mode == ROUTE_UI_UPGRADE ? g_rogue_run.floor + 1 :
-                                         g_rogue_run.floor;
-
-    ui_begin();
-    ui_clear_native_icons();
-
-    /*
-     * Stable full-screen menu background. No live fighter scene is running
-     * behind this screen, which avoids the character-select transition crash.
-     */
-    ui_panel_box(-20.0f, -15.0f, 40.0f, 30.0f, ui_route_bg);
-    ui_panel_box(-15.55f, -14.15f, 31.10f, 6.25f, ui_route_panel);
-    ui_rule(-15.25f, -10.55f, 30.50f, ui_route_frame);
-
-    ui_at(-14.60f, -13.35f, .0330f, ui_white, "ROGUE ROUTE");
-    ui_rule(-14.60f, -11.78f, 10.25f, ui_gold);
-
-    routeFrameBox(9.15f, -13.55f, 5.35f, 2.55f, 0);
-    ui_at(10.15f, -12.95f, .0165f, ui_white,
-          "ACT %d", route->act);
-    ui_at(9.78f, -11.72f, .0118f, ui_muted,
-          "FLOOR %d / %d", display_floor, ROGUE_RUN_ENCOUNTERS);
-
-    routeDrawTrack();
-
-    if (route_had_reward) {
-        ui_panel_box(-14.55f, -6.40f, 29.10f, 5.35f, ui_route_bg);
-        routeDrawRewards();
-    } else {
-        routeDrawUpgradeStatus();
-    }
-
-    routeDrawFightChoices();
-    routeDrawRunStats();
+    ui_panel_box(-13.6f, 5.25f, 26.8f, 2.25f, ui_panel);
+    ui_at(-12.9f, 5.85f, .0135f, ui_muted,
+          "AFTER MATCH 4: SHOP / REST AREA");
+    ui_at(2.4f, 5.75f, .0145f, ui_white, "FINAL: %s",
+          route->boss.name ? route->boss.name : "Boss");
 
     if (route_confirm > 0)
-        ui_at(3.25f, 9.30f, .0155f, ui_gold,
+        ui_at(4.75f, 9.35f, .018f, ui_gold,
               "MATCH SET  -  STARTING ENCOUNTER");
-    else if (route_mode == ROUTE_UI_UPGRADE)
-        ui_at(-13.20f, 9.30f, .0145f, ui_white,
-              "Stick: choose upgrade     A: take     B: build");
     else
-        ui_at(-13.20f, 9.30f, .0145f, ui_white,
-              "Stick: choose fight     A: select     B: build");
+        ui_at(-13.2f, 9.35f, .016f, ui_white,
+              "Stick: choose     A: select     B: build");
 }
 
 void RogueUI_OpenRoute(void)
 {
     openCanvas();
-
-    route_had_reward = g_rogue_run.phase == ROGUE_PHASE_REWARD;
-    route_mode =
-        route_had_reward ? ROUTE_UI_UPGRADE :
-        (g_rogue_run.phase == ROGUE_PHASE_ENCOUNTER &&
-         g_rogue_run.current_encounter.type == ROGUE_ENCOUNTER_BOSS)
-            ? ROUTE_UI_BOSS
-            : ROUTE_UI_FIGHT;
-    route_reward_cursor = 0;
-    route_reward_taken = -1;
     route_cursor = 0;
     route_confirm = 0;
     route_locked = -1;
-    route_refresh_requested = false;
-    route_gold_earned =
-        route_had_reward ? encounterGold(&g_rogue_run.current_encounter) : 0;
-    route_score = g_rogue_run.wins * 10000 + g_rogue_run.currency * 100;
-
     inspect = false;
     page = 0;
     delay = 30;
     routeDraw();
-}
-
-void RogueUI_ReopenRoute(void)
-{
-    openCanvas();
-    route_refresh_requested = false;
-    inspect = false;
-    page = 0;
-    delay = 10;
-    routeDraw();
-}
-
-int RogueUI_RouteChoice(void)
-{
-    return route_cursor;
-}
-
-bool RogueUI_ConsumeRouteRefresh(void)
-{
-    bool result = route_refresh_requested;
-    route_refresh_requested = false;
-    return result;
 }
 
 int RogueUI_RouteFrame(void)
@@ -1194,67 +918,14 @@ int RogueUI_RouteFrame(void)
         return -1;
     }
 
-    if (route_mode == ROUTE_UI_UPGRADE) {
-        if (input & (MenuInput_Left | MenuInput_Up)) {
-            route_reward_cursor = (route_reward_cursor + 2) % 3;
-            routeDraw();
-            sfxMove();
-        }
-        if (input & (MenuInput_Right | MenuInput_Down)) {
-            route_reward_cursor = (route_reward_cursor + 1) % 3;
-            routeDraw();
-            sfxMove();
-        }
-
-        if (input & (MenuInput_Confirm | MenuInput_StartButton)) {
-            if (!Rogue_SelectReward(route_reward_cursor))
-                return -1;
-
-            route_reward_taken = route_reward_cursor;
-            route_cursor = 0;
-            route_locked = -1;
-            route_confirm = 0;
-            route_mode = g_rogue_run.phase == ROGUE_PHASE_ROUTE
-                             ? ROUTE_UI_FIGHT
-                             : ROUTE_UI_BOSS;
-            route_score =
-                g_rogue_run.wins * 10000 + g_rogue_run.currency * 100;
-            routeDraw();
-            sfxForward();
-
-            /*
-             * After Match 4 the reward advances to the boss encounter.
-             * Enter Shop/Rest immediately; exiting Shop comes back to this
-             * screen in BOSS mode for final confirmation.
-             */
-            if (g_rogue_run.phase == ROGUE_PHASE_ENCOUNTER)
-                return ROGUE_ROUTE_CHOICES;
-        }
-        return -1;
-    }
-
-    if (route_mode == ROUTE_UI_BOSS) {
-        if (input & (MenuInput_Confirm | MenuInput_StartButton)) {
-            route_locked = ROGUE_ROUTE_CHOICES;
-            route_confirm = 20;
-            routeDraw();
-            sfxForward();
-        }
-        return -1;
-    }
-
     if (input & (MenuInput_Left | MenuInput_Right |
                  MenuInput_Up | MenuInput_Down)) {
-        /*
-         * Fighter previews are native ifStock art on this same menu scene.
-         * Redraw in place; do not reload the scene when changing choices.
-         */
         route_cursor ^= 1;
         routeDraw();
         sfxMove();
     }
 
-    if (input & (MenuInput_Confirm | MenuInput_StartButton)) {
+    if (input & MenuInput_Confirm) {
         route_locked = route_cursor;
         route_confirm = 20;
         routeDraw();
