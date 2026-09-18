@@ -11,6 +11,7 @@
 #include <melee/cm/camera.h>
 #include <sysdolphin/baselib/cobj.h>
 #include <sysdolphin/baselib/gobj.h>
+#include <sysdolphin/baselib/gobjplink.h>
 #include <sysdolphin/baselib/sislib.h>
 #include <sysdolphin/baselib/controller.h>
 #include <dolphin/gx.h>
