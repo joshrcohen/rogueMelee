@@ -30,6 +30,9 @@ typedef struct RogueRun {
     RoguePhase phase;
     CharacterKind player_kind;
     u8 player_costume;
+    u8 difficulty;
+    u8 player_stocks;
+    u8 continues;
     int floor;
     int wins;
     int currency;

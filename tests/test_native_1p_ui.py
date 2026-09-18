@@ -10,9 +10,9 @@ class NativeOnePlayerUiTests(unittest.TestCase):
         cls.rogue = (ROOT / "mod/rogue.c").read_text(encoding="utf-8")
 
     def test_stage_clear_reward_screen(self):
-        self.assertIn('"STAGE CLEAR"', self.ui)
-        self.assertIn('"SPECIAL BONUS"', self.ui)
-        self.assertIn('"CHOOSE A REWARD"', self.ui)
+        self.assertIn('"CHOOSE REWARD"', self.ui)
+        self.assertIn('"STICK: CHOOSE    A: TAKE    B: BUILD"', self.ui)
+        self.assertIn("start->rules.x4_4 = true", self.rogue)
 
     def test_native_classic_matchup_intro(self):
         self.assertIn("GS_INTRO_EASY, &stage_intro", self.rogue)
@@ -28,9 +28,10 @@ class NativeOnePlayerUiTests(unittest.TestCase):
             "Route UI should identify the final boss match",
         )
 
-    def test_continue_style_run_end(self):
-        self.assertIn('"CONTINUE?"', self.ui)
-        self.assertIn('"RUN SUMMARY"', self.ui)
+    def test_native_continue_screen(self):
+        self.assertIn("GS_GAMEOVER, &game_over_data, &game_over_data", self.rogue)
+        self.assertIn("enterGameOver", self.rogue)
+        self.assertIn("exitGameOver", self.rogue)
 
     def test_hud_is_simplified(self):
         self.assertNotIn('"A%d-%d  G%d  DMG %+.0f%%  RUN %+.0f%%  SH %+.0f%%"', self.ui)

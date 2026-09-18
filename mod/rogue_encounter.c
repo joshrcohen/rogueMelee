@@ -301,6 +301,50 @@ void Rogue_GenerateEncounter(RogueEncounter* encounter, RogueRng* rng,
     }
 }
 
+static void Rogue_ApplyDifficulty(PlayerInitData* player,
+                                  const RogueEnemy* enemy)
+{
+    int cpu = enemy->cpu_level;
+    float attack = enemy->attack_ratio;
+    float defense = enemy->defense_ratio;
+
+    if (Rogue_IsActive()) {
+        switch (g_rogue_run.difficulty) {
+        case 0:
+            cpu -= 2;
+            attack *= 0.85f;
+            defense *= 0.90f;
+            break;
+        case 1:
+            cpu -= 1;
+            attack *= 0.93f;
+            defense *= 0.95f;
+            break;
+        case 3:
+            cpu += 1;
+            attack *= 1.08f;
+            defense *= 1.05f;
+            break;
+        case 4:
+            cpu += 2;
+            attack *= 1.16f;
+            defense *= 1.10f;
+            break;
+        default:
+            break;
+        }
+    }
+
+    if (cpu < 1)
+        cpu = 1;
+    if (cpu > 9)
+        cpu = 9;
+
+    player->cpu_level = cpu;
+    player->attack_ratio = attack;
+    player->defense_ratio = defense;
+}
+
 void Rogue_SetupEncounter(VsModeData* data, const RogueEncounter* encounter,
                           CharacterKind player_kind)
 {
@@ -322,7 +366,10 @@ void Rogue_SetupEncounter(VsModeData* data, const RogueEncounter* encounter,
     }
     data->start.players[0].ckind = player_kind;
     data->start.players[0].slot_type = Gm_PKind_Human;
-    data->start.players[0].stocks = encounter->stocks;
+    data->start.players[0].stocks =
+        Rogue_IsActive() && g_rogue_run.player_stocks
+            ? g_rogue_run.player_stocks
+            : encounter->stocks;
     data->start.players[0].team = 0;
     for (i = 0; i < encounter->enemy_count && i < GM_MAX_PLAYERS - 1; ++i) {
         const RogueEnemy* enemy = &encounter->enemies[i];
@@ -330,9 +377,7 @@ void Rogue_SetupEncounter(VsModeData* data, const RogueEncounter* encounter,
         player->ckind = enemy->kind;
         player->slot_type = Gm_PKind_Cpu;
         player->stocks = enemy->stocks;
-        player->cpu_level = enemy->cpu_level;
-        player->attack_ratio = enemy->attack_ratio;
-        player->defense_ratio = enemy->defense_ratio;
+        Rogue_ApplyDifficulty(player, enemy);
         player->model_scale = enemy->model_scale;
         player->damage1 = enemy->start_damage;
         player->vs_metal = enemy->metal;

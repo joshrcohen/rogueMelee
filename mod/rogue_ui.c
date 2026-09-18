@@ -25,7 +25,7 @@
 #include <string.h>
 static HSD_Text* lines[128];
 static unsigned line_count;
-static int overlay = 1, overlay_canvas;
+static int overlay = 1, overlay_canvas, overlay_sis;
 extern u8 mn_804D6BB4;
 static GXColor ui_white = {237, 239, 250, 255};
 static GXColor ui_gold = {255, 200, 0, 255};
@@ -77,7 +77,7 @@ static void ui_encode(char* out, const char* in)
 }
 static HSD_Text* ui_object(float x, float y, float size, GXColor color)
 {
-    HSD_Text* t = HSD_SisLib_803A6754(0, overlay ? overlay_canvas : mn_804D6BB4);
+    HSD_Text* t = HSD_SisLib_803A6754(overlay_sis, overlay ? overlay_canvas : mn_804D6BB4);
     lines[line_count++] = t;
     t->pos_x = overlay ? 320 + x * 16 : x;
     t->pos_y = overlay ? 240 + y * 16 : y;
@@ -317,6 +317,7 @@ void RogueUI_Reset(void)
 {
     /* Called after scene teardown: SIS has already released its scene objects. */
     line_count = 0; ready = false; cursor = page = delay = camp_branch = 0;
+    overlay_sis = 0;
     camp_zone = -2; inspect = false;
     RogueCamp_Reset();
     history_open=false;history_cursor=0;viewed_record=NULL;
@@ -329,7 +330,7 @@ void RogueUI_Reset(void)
 static void openCanvas(void)
 {
     if (ready) return;
-    overlay_canvas = HSD_SisLib_803A611C(0, NULL, 9, 13, 0, 20, 0, 15);
+    overlay_canvas = HSD_SisLib_803A611C(overlay_sis, NULL, 9, 13, 0, 20, 0, 15);
     ready = true;
 }
 
@@ -459,75 +460,33 @@ static void drawStageClear(void)
 {
     const RogueEncounter* encounter = &g_rogue_run.current_encounter;
     int earned = encounterGold(encounter);
-    int base = 30;
-    int bonus = earned - base;
-    int fight = (encounter->act - 1) * ROGUE_FLOORS_PER_ACT +
-                encounter->act_floor;
     int i;
     char detail[256];
 
     ui_clear_native_icons();
-    ui_backdrop();
 
-    ui_at(-13.6f, -12.3f, .047f, ui_orange, "STAGE CLEAR");
-    ui_at(7.3f, -11.4f, .016f, ui_white,
-          "ACT %d    FIGHT %d", encounter->act, fight);
-    ui_rule(-13.5f, -9.9f, 27.0f, ui_orange);
-
-    ui_panel_box(-13.5f, -8.9f, 8.0f, 4.45f, ui_panel);
-    ui_at(-12.8f, -8.2f, .0135f, ui_muted, "MATCH RESULT");
-    ui_at(-12.8f, -6.85f, .020f, ui_white,
-          "GOLD EARNED   %d", earned);
-    ui_at(-12.8f, -5.35f, .017f, ui_gold,
-          "RUN GOLD      %d", g_rogue_run.currency);
-
-    ui_fighter_icon(encounter->enemy_kind,
-                    encounter->enemy_count ? encounter->enemies[0].costume : 0,
-                    -6.2f, -6.55f, 1.25f);
-
-    ui_panel_box(-4.8f, -8.9f, 18.3f, 4.45f, ui_panel);
-    ui_at(-4.1f, -8.2f, .0145f, ui_gold, "SPECIAL BONUS");
-    ui_at(-4.1f, -6.80f, .017f, ui_white,
-          "CLEAR MATCH                         +%d", base);
-    if (bonus > 0)
-        ui_at(-4.1f, -5.25f, .017f, ui_white,
-              "%s BONUS                         +%d",
-              encounter->type == ROGUE_ENCOUNTER_BOSS ? "BOSS" : "ELITE",
-              bonus);
-
-    ui_at(-13.5f, -3.25f, .017f, ui_muted, "CHOOSE A REWARD");
+    ui_at(-6.8f, -5.7f, .0155f, ui_gold, "CHOOSE REWARD");
 
     for (i = 0; i < 3; ++i) {
         RogueReward* reward = &g_rogue_run.current_rewards[i];
-        char tag[96];
-        snprintf(tag, sizeof(tag), "%s   %s",
-                 rewardCategory(reward),
-                 Rogue_RarityName(reward->rarity));
-        ui_tile(-13.5f + i * 9.15f, -1.9f, 8.35f, 4.55f,
-                cursor == i, ui_gold, reward->name, tag, "A: SELECT");
+
+        ui_at(-6.8f, -4.05f + i * 1.45f, .0152f,
+              cursor == i ? ui_gold : ui_white,
+              "%s %s", cursor == i ? ">" : " ", reward->name);
+
+        ui_at(2.15f, -4.05f + i * 1.45f, .0112f,
+              cursor == i ? ui_gold : ui_muted,
+              "%s", Rogue_RarityName(reward->rarity));
     }
 
     Rogue_DescribeReward(&g_rogue_run.current_rewards[cursor],
                          detail, sizeof(detail));
+    ui_wrapped_at(-6.45f, 0.85f, .0115f, ui_white, detail, 45, 2);
 
-    ui_panel_box(-13.5f, 3.4f, 26.65f, 4.65f, ui_panel);
-    ui_at(-12.8f, 4.05f, .014f, ui_gold, "REWARD DETAILS");
-
-    if (g_rogue_run.current_rewards[cursor].type == ROGUE_REWARD_ABILITY) {
-        const RogueAbilityDefinition* def =
-            Rogue_GetAbility(g_rogue_run.current_rewards[cursor].ability_id);
-        if (def) {
-            ui_fighter_icon(def->source_kind, 0, -10.8f, 6.15f, 1.6f);
-            ui_wrapped_at(-8.9f, 5.25f, .0148f, ui_white, detail, 49, 3);
-        } else {
-            ui_wrapped_at(-12.8f, 5.25f, .0148f, ui_white, detail, 60, 3);
-        }
-    } else {
-        ui_wrapped_at(-12.8f, 5.25f, .0148f, ui_white, detail, 60, 3);
-    }
-
-    ui_at(-13.2f, 9.55f, .016f, ui_white,
-          "Stick: choose     A: confirm     B: build");
+    ui_at(-6.8f, 3.75f, .0113f, ui_muted,
+          "GOLD +%d   TOTAL %d", earned, g_rogue_run.currency);
+    ui_at(-6.8f, 5.15f, .0113f, ui_white,
+          "STICK: CHOOSE    A: TAKE    B: BUILD");
 }
 
 static void drawRunEnd(void)
@@ -602,7 +561,14 @@ static void draw(void)
         drawRunEnd();
 }
 
-void RogueUI_OpenResults(void) { openCanvas(); cursor=page=delay=0;inspect=false;draw(); }
+void RogueUI_OpenResults(void)
+{
+    overlay_sis = 2;
+    openCanvas();
+    cursor = page = delay = 0;
+    inspect = false;
+    draw();
+}
 int RogueUI_Frame(void)
 {
     u32 input;

@@ -18,6 +18,7 @@
 #include <melee/gm/gm_1B03.h>
 #include <melee/gm/gm_18A1.h>
 #include <melee/gm/gmvs.h>
+#include <melee/gm/types.h>
 #include <dolphin/pad.h>
 #include <melee/lb/lbaudio_ax.h>
 #include <melee/lb/lbarchive.h>
@@ -33,6 +34,7 @@ static VsModeData encounter_data;
 static StartMeleeData start_data;
 static MatchExitInfo exit_data;
 static CSSData character_select;
+static DebugGameOverData game_over_data;
 static u32 pending_seed;
 static bool boss_intro_done;
 static u8 controller_port;
@@ -95,10 +97,12 @@ static void enterCharacterSelect(GameModeState* state)
 {
     CSSData* css = gm_GetGameModeStateEnterData(state);
     memset(css, 0, sizeof(*css));
-    /* The native single-player CSS layout without Classic's lives/difficulty
-     * controls; the run owns those rules. No event-mode callbacks are used. */
-    gm_801B06B0(css, EVENT_MATCH, g_rogue_run.player_kind, 3,
-                g_rogue_run.player_costume, 0, 4, controller_port);
+    /* Real Classic 1-P CSS: fighter, difficulty and stock selection. */
+    gm_801B06B0(css, REG_CLASSIC, g_rogue_run.player_kind,
+                g_rogue_run.player_stocks ? g_rogue_run.player_stocks : 3,
+                g_rogue_run.player_costume, GM_NAMETAG_NONE,
+                g_rogue_run.difficulty <= 4 ? g_rogue_run.difficulty : 2,
+                controller_port);
     lbDvd_SetupVsPreloadCache();
 }
 
@@ -106,18 +110,27 @@ static void exitCharacterSelect(GameModeState* state)
 {
     CSSData* css = gm_GetGameModeStateExitData(state);
     s8 kind;
-    u8 costume;
+    u8 stocks = 3;
+    u8 costume = 0;
+    u8 nametag = GM_NAMETAG_NONE;
+    u8 difficulty = 2;
+
     if (css->pending_scene_change == CSSPendingSceneChange_2) {
         gm_ChangeGameModeAfterCurrentScene(GM_MENU);
         return;
     }
-    gm_801B0730(css, &kind, NULL, &costume, NULL, NULL);
+
+    gm_801B0730(css, &kind, &stocks, &costume, &nametag, &difficulty);
     if (kind < 0 || kind >= CKind_Playable_Count) {
         gm_SetNextGameModeStateId(0);
         return;
     }
+
     Rogue_NewRun(kind, pending_seed);
     g_rogue_run.player_costume = costume;
+    g_rogue_run.player_stocks = stocks ? stocks : 3;
+    g_rogue_run.difficulty = difficulty > 4 ? 4 : difficulty;
+    g_rogue_run.continues = 1;
     gm_SetNextGameModeStateId(4);
 }
 
@@ -435,6 +448,12 @@ static void enterEncounter(GameModeState* state)
     *start = encounter_data.start;
     start->players[0].color = g_rogue_run.player_costume;
     start->players[0].slot = controller_port + 1;
+
+    /* Retail GmRegClr STAGE CLEAR overlay. */
+    start->rules.x4_4 = true;
+    start->rules.x18 =
+        (u32) (g_rogue_run.wins * 10000 + g_rogue_run.currency * 100);
+
     for (int i = 1; i <= g_rogue_run.current_encounter.enemy_count; ++i)
         if (start->players[i].ckind == start->players[0].ckind &&
             start->players[i].color == start->players[0].color)
@@ -535,6 +554,12 @@ bool Rogue_PostFight(void)
         }
         Rogue_OnMatchEnd(&result);
         resolved = true;
+
+        if (g_rogue_run.phase == ROGUE_PHASE_DEAD) {
+            destination = 6;
+            return false;
+        }
+
         RogueHistory_Record();
         RogueUI_OpenResults();
     }
@@ -550,6 +575,43 @@ bool Rogue_PostFight(void)
     RogueUI_Clear();
     return false;
 }
+static void enterGameOver(GameModeState* state)
+{
+    DebugGameOverData* data = gm_GetGameModeStateEnterData(state);
+
+    RogueUI_Reset();
+    memset(data, 0, sizeof(*data));
+
+    data->x0 = (u32) (g_rogue_run.wins * 10000 +
+                      g_rogue_run.currency * 100);
+    data->x8 = 1;
+    data->ckind = g_rogue_run.player_kind;
+    data->slot = controller_port;
+    data->x15 = GM_NAMETAG_NONE;
+    data->x16 = 1;
+    data->x18 = (u16) (g_rogue_run.continues * 10);
+}
+
+static void exitGameOver(GameModeState* state)
+{
+    DebugGameOverData* data = gm_GetGameModeStateExitData(state);
+
+    RogueUI_Clear();
+
+    if (data->xC != 0 && g_rogue_run.continues > 0) {
+        --g_rogue_run.continues;
+        g_rogue_run.active = true;
+        g_rogue_run.phase = ROGUE_PHASE_ENCOUNTER;
+        resolved = false;
+        destination = 2;
+        gm_SetNextGameModeStateId(Rogue_IntroState());
+        return;
+    }
+
+    RogueHistory_Record();
+    gm_ChangeGameModeAfterCurrentScene(GM_MENU);
+}
+
 static void exitEncounter(GameModeState* state)
 {
     (void)state;
@@ -589,6 +651,10 @@ GameModeState gm_Mode_Rogue_States[] = {
     {
         5, lbDvdPreload_2, 0, enterBossStageIntro, exitBossStageIntro,
         { GS_INTRO_NORMAL, &boss_stage_intro, NULL },
+    },
+    {
+        6, lbDvdPreload_3, 0, enterGameOver, exitGameOver,
+        { GS_GAMEOVER, &game_over_data, &game_over_data },
     },
     { GM_GAMEMODESTATE_TERMINATE },
 };

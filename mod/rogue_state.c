@@ -24,6 +24,9 @@ void Rogue_NewRun(CharacterKind kind, u32 seed)
     RogueRoute_Reset(&g_rogue_run.route);
     g_rogue_run.phase = ROGUE_PHASE_ROUTE;
     g_rogue_run.player_kind = kind;
+    g_rogue_run.difficulty = 2;
+    g_rogue_run.player_stocks = 3;
+    g_rogue_run.continues = 1;
     g_rogue_run.floor = 1;
     Rogue_ResetStats(&g_rogue_run.stats);
     RogueRoute_Prepare(&g_rogue_run.route, &g_rogue_run.route_rng,
