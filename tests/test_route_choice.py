@@ -21,10 +21,10 @@ class RouteChoiceTests(unittest.TestCase):
         self.assertIn("RogueRoute_UseBoss", c)
         self.assertIn("ROGUE_PHASE_ROUTE", c)
 
-    def test_progression_reuses_classic_intro_scene(self):
+    def test_progression_uses_safe_tournament_menu_scene(self):
         c = (ROOT / "mod/rogue.c").read_text(encoding="utf-8")
-        self.assertIn("GS_INTRO_EASY, &route_intro", c)
         self.assertIn("GS_TOU_BRACKET, NULL, NULL", c)
+        self.assertNotIn("GS_INTRO_EASY, &route_intro", c)
         self.assertIn("enterRouteMenu", c)
         self.assertIn("Rogue_RouteMenuSceneFrame", c)
         self.assertRegex(

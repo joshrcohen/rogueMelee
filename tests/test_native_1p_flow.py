@@ -47,16 +47,11 @@ class NativeOnePlayerFlowTests(unittest.TestCase):
             post,
         )
 
-    def test_progression_reuses_native_classic_matchup_scene(self):
-        self.assertIn("GS_INTRO_EASY, &route_intro", self.rogue)
-        self.assertIn("Rogue_RouteMenuSceneFrame", self.fixer)
-        self.assertIn("gm_GetCurrentSceneIndex() == 4", self.fixer)
-        self.assertIn(
-            "native Rogue flow: Classic intro frame hook changed",
-            self.fixer,
-        )
-        # Hand-boss fallback keeps the crash-safe Tournament/SIS host.
+    def test_progression_uses_safe_non_gameplay_menu_host(self):
         self.assertIn("GS_TOU_BRACKET, NULL, NULL", self.rogue)
+        self.assertNotIn("GS_INTRO_EASY, &route_intro", self.rogue)
+        self.assertIn("Rogue_RouteMenuSceneFrame", self.fixer)
+        self.assertNotIn("gm_GetCurrentSceneIndex() == 4", self.fixer)
         self.assertIn(
             'HSD_SisLib_803A62A0(0, fn_8018F5F0(), "SIS_TournamentData");',
             self.fixer,

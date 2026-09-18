@@ -37,8 +37,9 @@ static GXColor ui_orange = {255, 104, 0, 255};
 static GXColor ui_screen = {0, 0, 0, 214};
 static GXColor ui_panel = {18, 22, 38, 210};
 
-/* ROGUE_NATIVE_ROUTE_TARGET_C6AD3F5
- * Route framing only; normal matchup art is Melee's Classic intro scene. */
+/* Dedicated route/progression palette.
+ * The safe Tournament/SIS host provides the scene; fighter portraits use
+ * Melee's existing ifStock assets rather than a second live fighter scene. */
 static GXColor ui_route_bg = {8, 18, 48, 224};
 static GXColor ui_route_panel = {13, 27, 63, 238};
 static GXColor ui_route_panel2 = {22, 40, 82, 244};
@@ -1005,6 +1006,34 @@ static void routeDrawRunStats(void)
     ui_at(9.92f, 6.98f, .0175f, ui_gold, "%d", route_score);
 }
 
+static void routeDrawUpgradeStatus(void)
+{
+    const char* title;
+    const char* detail;
+
+    if (g_rogue_run.phase == ROGUE_PHASE_ENCOUNTER &&
+        g_rogue_run.current_encounter.type == ROGUE_ENCOUNTER_BOSS)
+    {
+        title = "BUILD READY";
+        detail = "SHOP COMPLETE - CONFIRM THE BOSS MATCH BELOW";
+    } else {
+        title = "UPGRADES";
+        detail = "WIN A MATCH TO CHOOSE 1 OF 3 UPGRADES";
+    }
+
+    ui_panel_box(-14.55f, -6.40f, 29.10f, 5.35f, ui_route_bg);
+    ui_at(-13.85f, -6.03f, .0195f, ui_gold, "%s", title);
+    ui_at(-13.85f, -4.58f, .0125f, ui_muted, "%s", detail);
+
+    routeFrameBox(-13.75f, -3.25f, 8.55f, 1.65f, 0);
+    routeFrameBox(-4.60f, -3.25f, 8.55f, 1.65f, 0);
+    routeFrameBox(4.55f, -3.25f, 8.55f, 1.65f, 0);
+
+    ui_at(-11.78f, -2.75f, .0110f, ui_muted, "UPGRADE 1");
+    ui_at(-2.63f, -2.75f, .0110f, ui_muted, "UPGRADE 2");
+    ui_at(6.52f, -2.75f, .0110f, ui_muted, "UPGRADE 3");
+}
+
 static void routeDraw(void)
 {
     const RogueRoute* route = &g_rogue_run.route;
@@ -1016,10 +1045,11 @@ static void routeDraw(void)
     ui_clear_native_icons();
 
     /*
-     * Do not draw the old full-screen black backdrop. The lower half is now
-     * the real Classic matchup presentation, so Rogue only owns these panels.
+     * Stable full-screen menu background. No live fighter scene is running
+     * behind this screen, which avoids the character-select transition crash.
      */
-    ui_panel_box(-15.55f, -14.15f, 31.10f, 6.25f, ui_route_bg);
+    ui_panel_box(-20.0f, -15.0f, 40.0f, 30.0f, ui_route_bg);
+    ui_panel_box(-15.55f, -14.15f, 31.10f, 6.25f, ui_route_panel);
     ui_rule(-15.25f, -10.55f, 30.50f, ui_route_frame);
 
     ui_at(-14.60f, -13.35f, .0330f, ui_white, "ROGUE ROUTE");
@@ -1036,6 +1066,8 @@ static void routeDraw(void)
     if (route_had_reward) {
         ui_panel_box(-14.55f, -6.40f, 29.10f, 5.35f, ui_route_bg);
         routeDrawRewards();
+    } else {
+        routeDrawUpgradeStatus();
     }
 
     routeDrawFightChoices();
@@ -1057,7 +1089,12 @@ void RogueUI_OpenRoute(void)
     openCanvas();
 
     route_had_reward = g_rogue_run.phase == ROGUE_PHASE_REWARD;
-    route_mode = route_had_reward ? ROUTE_UI_UPGRADE : ROUTE_UI_FIGHT;
+    route_mode =
+        route_had_reward ? ROUTE_UI_UPGRADE :
+        (g_rogue_run.phase == ROGUE_PHASE_ENCOUNTER &&
+         g_rogue_run.current_encounter.type == ROGUE_ENCOUNTER_BOSS)
+            ? ROUTE_UI_BOSS
+            : ROUTE_UI_FIGHT;
     route_reward_cursor = 0;
     route_reward_taken = -1;
     route_cursor = 0;
@@ -1169,6 +1206,14 @@ int RogueUI_RouteFrame(void)
                 g_rogue_run.wins * 10000 + g_rogue_run.currency * 100;
             routeDraw();
             sfxForward();
+
+            /*
+             * After Match 4 the reward advances to the boss encounter.
+             * Enter Shop/Rest immediately; exiting Shop comes back to this
+             * screen in BOSS mode for final confirmation.
+             */
+            if (g_rogue_run.phase == ROGUE_PHASE_ENCOUNTER)
+                return ROGUE_ROUTE_CHOICES;
         }
         return -1;
     }
@@ -1185,8 +1230,11 @@ int RogueUI_RouteFrame(void)
 
     if (input & (MenuInput_Left | MenuInput_Right |
                  MenuInput_Up | MenuInput_Down)) {
+        /*
+         * Fighter previews are native ifStock art on this same menu scene.
+         * Redraw in place; do not reload the scene when changing choices.
+         */
         route_cursor ^= 1;
-        route_refresh_requested = true;
         routeDraw();
         sfxMove();
     }
