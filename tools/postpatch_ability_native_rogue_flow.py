@@ -87,6 +87,50 @@ if new not in text:
         raise SystemExit("native Rogue flow: tournament frame hook changed")
     text = text.replace(old, new, 1)
 
+
+# Rogue must bypass Tournament OnEnter/OnExit as well as OnFrame.
+old = """void gm_Scene_TouBracket_OnEnter(void* arg0)
+{
+    lbl_804D6668 = NULL;"""
+new = """void gm_Scene_TouBracket_OnEnter(void* arg0)
+{
+    if (gm_GetCurrentGameMode() == GM_ROGUE) {
+        /*
+         * Rogue uses this only as a non-gameplay menu host.
+         * Do not initialize Tournament bracket/model state.
+         * SIS creates the ortho camera RogueUI needs.
+         */
+        HSD_SisLib_803A62A0(0, fn_8018F5F0(), "SIS_TournamentData");
+        return;
+    }
+
+    lbl_804D6668 = NULL;"""
+if new not in text:
+    if old not in text:
+        raise SystemExit("native Rogue flow: tournament enter hook changed")
+    text = text.replace(old, new, 1)
+
+old = """void gm_Scene_TouBracket_OnExit(void* arg0)
+{
+    lbArchive_80016EFC(lbl_804D6660);"""
+new = """void gm_Scene_TouBracket_OnExit(void* arg0)
+{
+    if (gm_GetCurrentGameMode() == GM_ROGUE) {
+        /*
+         * Rogue did not load Tournament's model archives above.
+         * Release only the SIS slot it created.
+         */
+        HSD_SisLib_803A5F50(0);
+        return;
+    }
+
+    lbArchive_80016EFC(lbl_804D6660);"""
+if new not in text:
+    if old not in text:
+        raise SystemExit("native Rogue flow: tournament exit hook changed")
+    text = text.replace(old, new, 1)
+
+
 path.write_text(text, encoding="utf-8")
 
 
