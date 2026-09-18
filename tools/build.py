@@ -18,7 +18,24 @@ def run(args, cwd=ROOT):
 
 def prepare():
     patch = ROOT / 'patches/engine.patch'
-    key = hashlib.sha256(patch.read_bytes()).hexdigest()[:12]
+    fixers = [
+        ROOT / 'tools/postpatch_ability_fixes.py',
+        ROOT / 'tools/postpatch_ability_fixes_round2.py',
+        ROOT / 'tools/postpatch_ability_fixes_round4.py',
+        ROOT / 'tools/postpatch_ability_fixes_round5.py',
+        ROOT / 'tools/postpatch_ability_fixes_round6.py',
+        ROOT / 'tools/postpatch_ability_fixes_round7.py',
+        ROOT / 'tools/postpatch_ability_fixes_round8.py',
+        ROOT / 'tools/postpatch_ability_fixes_round9.py',
+        ROOT / 'tools/postpatch_ability_fixes_round10.py',
+        ROOT / 'tools/postpatch_ability_fixes_round12.py',
+        ROOT / 'tools/postpatch_ability_production_cleanup.py',
+    ]
+    digest = hashlib.sha256()
+    digest.update(patch.read_bytes())
+    for fixer in fixers:
+        digest.update(fixer.read_bytes())
+    key = digest.hexdigest()[:12]
     checkout = ROOT / '.cache' / ('melee-' + key)
     ready = checkout / '.rogue-prepared'
     if not ready.exists():
@@ -28,11 +45,12 @@ def prepare():
         run(['git', 'checkout', '--detach', 'FETCH_HEAD'], checkout)
         run(['git', 'apply', '--check', patch], checkout)
         run(['git', 'apply', patch], checkout)
+        for fixer in fixers:
+            run([sys.executable, fixer, checkout])
         ready.write_text(UPSTREAM + '\n')
     head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=checkout, text=True).strip()
     if head != UPSTREAM:
         raise SystemExit('Unexpected upstream checkout revision: ' + str(checkout))
-    run(['git', 'apply', '--reverse', '--check', patch], checkout)
     target = checkout / 'src/melee/rogue'
     target.mkdir(parents=True, exist_ok=True)
     for source in (ROOT / 'mod').iterdir():

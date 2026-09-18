@@ -4,11 +4,18 @@
 #include <melee/ef/efasync.h>
 #include <melee/ef/eflib.h>
 #include <melee/ft/ftdata.h>
+#include <melee/ft/ftlib.h>
 #include <melee/ft/ftparts.h>
 #include <melee/ft/inlines.h>
 #include <melee/ft/kinds/ftCommon/forward.h>
 #include <melee/ft/kinds/ftFox/types.h>
 #include <melee/ft/kinds/ftFox/ftfoxspecialn.h>
+#include <melee/ft/kinds/ftCaptain/ftcaptainspecials.h>
+#include <melee/ft/kinds/ftDonkey/ftdonkeyspecialhi.h>
+#include <melee/ft/kinds/ftGameWatch/ftgamewatch.h>
+#include <melee/ft/kinds/ftLink/ftlinkspecialn.h>
+#include <melee/ft/kinds/ftLink/ftlinkspecials.h>
+#include <melee/ft/kinds/ftPeach/ftpeachspecialhi.h>
 #include <melee/ft/kinds/ftMario/ftmariospecials.h>
 #include <melee/ft/kinds/ftSamus/inlines.h>
 #include <melee/ft/kinds/ftMewtwo/ftmewtwospecialn.h>
@@ -32,7 +39,8 @@ typedef struct RogueFighterState {
     union { double align; unsigned char bytes[0x424]; } attrs[Ft_Kind_Max];
     union Fighter_FighterVars native_vars;
     union Fighter_FighterVars source_vars[Ft_Kind_Max];
-    HSD_GObjEvent native_death[3];
+    /* Fighter callbacks fp+0x2190..0x21F8 are contiguous (0x6C bytes). */
+    u8 native_callbacks[0x6C];
 } RogueFighterState;
 static RogueFighterState fighter_state;
 
@@ -76,10 +84,8 @@ void Rogue_AbilityFighterCreated(Fighter* fp)
         if (fighter_state.loaded_sources[source]) { fighter_state.loaded[i] = true; continue; }
         /* Fresh match heaps exist here; load dependencies before play starts.
          * Enqueueing asynchronous preloads from mode entry precedes heap setup. */
-        ftData_8008572C(def->internal_kind);
-        ftData_80085A14(def->internal_kind);
-        if (ftData_UnkBytePerCharacter[source] != 255)
-            efAsync_LoadSync(ftData_UnkBytePerCharacter[source]);
+        /* Match the engine's normal complete fighter preload path. */
+        ftLib_80087508(def->internal_kind, 0);
         if (def->attrs_size > sizeof(fighter_state.attrs[source])) continue;
         memcpy(fighter_state.attrs[source].bytes, gFtDataList[source]->ext_attr, def->attrs_size);
         {
@@ -198,6 +204,15 @@ void Rogue_AbilityFighterCreated(Fighter* fp)
         fighter_state.loaded[def->id] = true;
         fighter_state.loaded_sources[source] = true;
         if (source == Ft_Kind_Kirby) fighter_state.source_vars[source].kb.hat.kind = Ft_Kind_Kirby;
+        if (source == Ft_Kind_GameWatch) {
+            fighter_state.source_vars[source].gw.x222C_judgeVar1 = 1;
+            fighter_state.source_vars[source].gw.x2230_judgeVar2 = 0;
+            fighter_state.source_vars[source].gw.x2234 = 0;
+            fighter_state.source_vars[source].gw.x2238_panicCharge = 0;
+            fighter_state.source_vars[source].gw.x223C_panicDamage = 0;
+            fighter_state.source_vars[source].gw.x2240_chefVar1 = 1;
+            fighter_state.source_vars[source].gw.x2244_chefVar2 = 3;
+        }
     }
 }
 
@@ -208,51 +223,73 @@ bool Rogue_IsAbilityState(const Fighter* fp)
 
 void Rogue_AbilityCleanup(Fighter* fp)
 {
+    FighterKind source;
+    RogueAbilitySlot slot;
     if (!Rogue_IsAbilityState(fp)) return;
-    /* Remove attached articles before restoring the recipient's union. Their
-     * destruction callbacks still require the source's attributes and vars. */
-    switch (fighter_state.active->internal_kind) {
+
+    source = fighter_state.active->internal_kind;
+    slot = fighter_state.active->native_slot;
+
+    /*
+     * Tear down source-owned attached state while source attrs/vars are still
+     * installed. Free projectiles/items may outlive the animation; their owner
+     * callbacks use Rogue_AbilityVars() to reach persistent source state.
+     */
+    switch (source) {
+    case Ft_Kind_Donkey:
+        if (slot == ROGUE_ABILITY_UP)
+            ftDk_SpecialHi_DestroyAllEffects(fp->gobj);
+        break;
+    case Ft_Kind_GameWatch:
+        ftGw_Init_OnDamage(fp->gobj);
+        break;
     case Ft_Kind_Samus:
-        if (fighter_state.active->native_slot == ROGUE_ABILITY_NEUTRAL)
+        if (slot == ROGUE_ABILITY_NEUTRAL)
             ftSamus_UnkAndDestroyAllEF(fp->gobj);
         break;
     case Ft_Kind_Mewtwo:
-        if (fighter_state.active->native_slot == ROGUE_ABILITY_NEUTRAL) {
+        if (slot == ROGUE_ABILITY_NEUTRAL) {
             int charge = fp->u.mt.x2234_shadowBallCharge;
             ftMt_SpecialN_OnDeath(fp->gobj);
             fp->u.mt.x2234_shadowBallCharge = charge;
         }
         break;
     case Ft_Kind_Peach:
-        if (fighter_state.active->native_slot == ROGUE_ABILITY_NEUTRAL)
+        if (slot == ROGUE_ABILITY_NEUTRAL)
             ftPe_SpecialN_OnDeath2(fp->gobj);
+        else if (slot == ROGUE_ABILITY_UP)
+            ftPe_8011D598(fp->gobj);
         break;
     case Ft_Kind_Seak:
-        if (fighter_state.active->native_slot == ROGUE_ABILITY_SIDE)
+        if (slot == ROGUE_ABILITY_SIDE)
             ftSk_SpecialS_CheckAndDestroyChain(fp->gobj);
         break;
-    default: break;
+    case Ft_Kind_Captain:
+    case Ft_Kind_Ganon:
+        if (slot == ROGUE_ABILITY_SIDE)
+            ftCa_SpecialS_RemoveGFX(fp->gobj);
+        break;
+    default:
+        break;
     }
-    if ((fighter_state.active->internal_kind == Ft_Kind_Mario ||
-         fighter_state.active->internal_kind == Ft_Kind_DrMario) &&
-        fighter_state.active->native_slot == ROGUE_ABILITY_SIDE)
+
+    if ((source == Ft_Kind_Mario || source == Ft_Kind_DrMario) &&
+        slot == ROGUE_ABILITY_SIDE)
         ftMr_SpecialS_RemoveCape(fp->gobj);
-    if ((fighter_state.active->internal_kind == Ft_Kind_Fox ||
-         fighter_state.active->internal_kind == Ft_Kind_Falco) &&
-        fighter_state.active->native_slot == ROGUE_ABILITY_NEUTRAL)
+
+    if ((source == Ft_Kind_Fox || source == Ft_Kind_Falco) &&
+        slot == ROGUE_ABILITY_NEUTRAL)
         ftFx_SpecialN_RemoveBlaster(fp->gobj);
-    fighter_state.source_vars[fighter_state.active->internal_kind] = fp->u;
+
+    fighter_state.source_vars[source] = fp->u;
     fp->u = fighter_state.native_vars;
-    fp->death1_cb = fighter_state.native_death[0];
-    fp->death2_cb = fighter_state.native_death[1];
-    fp->death3_cb = fighter_state.native_death[2];
+    memcpy(&fp->grab_cb, fighter_state.native_callbacks,
+           sizeof(fighter_state.native_callbacks));
     fp->dat_attrs = fighter_state.native_attrs;
     fp->x24 = fighter_state.native_anims;
     fp->x28 = fighter_state.native_anim_flags;
     fp->x58C = fighter_state.native_anim_count;
     fp->reflecting = false;
-    fp->reflect_hit_cb = NULL;
-    /* The ordinary motion transition removes hitboxes and source effects. */
     fighter_state.active = NULL;
 }
 
@@ -396,9 +433,8 @@ bool Rogue_TrySpecial(Fighter_GObj* gobj, RogueAbilitySlot slot, bool airborne)
     fighter_state.native_anim_flags = fp->x28;
     fighter_state.native_anim_count = fp->x58C;
     fighter_state.native_vars = fp->u;
-    fighter_state.native_death[0] = fp->death1_cb;
-    fighter_state.native_death[1] = fp->death2_cb;
-    fighter_state.native_death[2] = fp->death3_cb;
+    memcpy(fighter_state.native_callbacks, &fp->grab_cb,
+           sizeof(fighter_state.native_callbacks));
     fp->u = fighter_state.source_vars[def->internal_kind];
     fighter_state.active = def;
     source = gFtDataList[def->internal_kind];
