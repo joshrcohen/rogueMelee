@@ -913,32 +913,47 @@ static void routeDrawMatchup(const RogueEncounter* encounter,
     }
 
     /*
-     * Hand bosses use the current crash-safe Tournament/SIS fallback and
-     * Melee's existing ifStock art. No new portrait asset is created.
+     * SIS-ONLY MATCHUP PREVIEW.
+     *
+     * Do NOT call ui_fighter_icon() from the progression menu. That helper
+     * initializes IfAll/ifStock, which is the full in-match HUD subsystem.
+     * On the first route screen there is no VS match/player HUD state yet;
+     * initializing that subsystem here can stall during the CSS -> menu
+     * transition. Keep this screen strictly non-gameplay.
+     *
+     * This still uses Melee's native SIS font, menu host, sounds and layout.
+     * Fighter names are shown in VS-style framed panels without loading the
+     * battle HUD archive.
      */
     ui_panel_box(-14.25f, .18f, 28.50f, 6.15f, ui_route_frame);
     ui_panel_box(-14.05f, .38f, 28.10f, 5.75f, ui_route_bg);
     ui_rule(-14.05f, .38f, 28.10f, ui_route_blue);
 
     ui_at(-3.35f, .75f, .0107f, ui_muted, "%s", subtitle);
-    ui_fighter_icon(g_rogue_run.player_kind,
-                    g_rogue_run.player_costume,
-                    -7.85f, 3.20f, 4.85f);
-    ui_fighter_icon(encounter->enemy_kind,
-                    encounter->enemy_count
-                        ? encounter->enemies[0].costume
-                        : 0,
-                    7.85f, 3.20f, 4.85f);
-    ui_at(-1.43f, 2.35f, .057f, ui_orange, "VS");
-    ui_at(-11.30f, 5.25f, .0235f, ui_white, "%s",
-          RogueRoute_CharacterName(g_rogue_run.player_kind));
-    ui_at(5.15f, 5.25f, strlen(opponent) > 16 ? .0170f : .0235f,
-          ui_white, "%s", opponent);
 
-    if (modifier[0])
-        ui_at(-2.90f, 5.18f, .0108f,
+    routeFrameBox(-12.65f, 1.55f, 9.20f, 3.25f, 0);
+    routeFrameBox(3.45f, 1.55f, 9.20f, 3.25f,
+                  route_mode == ROUTE_UI_FIGHT);
+
+    ui_at(-11.95f, 2.05f, .0102f, ui_muted, "PLAYER");
+    ui_at(4.15f, 2.05f, .0102f, ui_muted,
+          encounter->enemy_count > 1 ? "OPPONENTS" : "OPPONENT");
+
+    ui_at(-11.95f, 3.12f, .0215f, ui_white, "%s",
+          RogueRoute_CharacterName(g_rogue_run.player_kind));
+    ui_at(4.15f, 3.12f,
+          strlen(opponent) > 16 ? .0155f : .0215f,
+          route_mode == ROUTE_UI_FIGHT ? ui_gold : ui_white,
+          "%s", opponent);
+
+    ui_at(-1.43f, 2.55f, .057f, ui_orange, "VS");
+
+    if (modifier[0]) {
+        ui_panel_box(-3.65f, 5.28f, 7.30f, .70f, ui_route_panel2);
+        ui_at(-2.95f, 5.45f, .0102f,
               encounter->modifier ? ui_gold : ui_muted,
               "%s", modifier);
+    }
 }
 
 static void routeDrawFightChoices(void)

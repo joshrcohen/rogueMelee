@@ -16,7 +16,14 @@ class NativeOnePlayerUiTests(unittest.TestCase):
         self.assertIn("routeDrawMatchup", self.ui)
         self.assertIn("ROUTE_UI_UPGRADE", self.ui)
         self.assertIn("ROUTE_UI_FIGHT", self.ui)
-        self.assertIn("ui_fighter_icon(", self.ui)
+        route_matchup = self.ui.split(
+            "static void routeDrawMatchup", 1
+        )[1].split("static void routeDrawFightChoices", 1)[0]
+        self.assertNotRegex(
+            route_matchup,
+            r"(?m)^\s*ui_fighter_icon\s*\(",
+        )
+        self.assertIn("SIS-ONLY MATCHUP PREVIEW", route_matchup)
         self.assertIn("GS_TOU_BRACKET, NULL, NULL", self.rogue)
         self.assertNotIn("GS_INTRO_EASY, &route_intro", self.rogue)
 

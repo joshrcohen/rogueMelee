@@ -36,6 +36,17 @@ class ProgressionFlowTests(unittest.TestCase):
         ):
             self.assertIn(token, self.ui)
 
+    def test_progression_does_not_boot_battle_hud_for_portraits(self):
+        route_matchup = self.ui.split(
+            "static void routeDrawMatchup", 1
+        )[1].split("static void routeDrawFightChoices", 1)[0]
+        self.assertNotRegex(
+            route_matchup,
+            r"(?m)^\s*ui_fighter_icon\s*\(",
+        )
+        self.assertNotIn("ifAll_802F390C", route_matchup)
+        self.assertIn("SIS-ONLY MATCHUP PREVIEW", route_matchup)
+
     def test_route_choice_redraws_without_scene_reload(self):
         frame = self.ui.split("int RogueUI_RouteFrame(void)", 1)[1]
         frame = frame.split("/* Camp signs", 1)[0]
