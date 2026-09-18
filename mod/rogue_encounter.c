@@ -60,30 +60,92 @@ void Rogue_GenerateEncounter(RogueEncounter* encounter, RogueRng* rng,
     }
     variant = RogueRng_Bounded(rng, 8);
     if (encounter->type == ROGUE_ENCOUNTER_ELITE) {
-        static const char* names[] = {
-            "Metal Mario & Luigi", "Giant Donkey Kong", "Giant Bowser",
-            "Armored Samus", "Kirby Brigade"
-        };
-        static const CharacterKind kinds[] = {
-            CKind_Mario, CKind_Donkey, CKind_Koopa, CKind_Samus, CKind_Kirby
-        };
-        if (variant < 5) {
-            encounter->name = names[variant];
-            encounter->enemy_kind = kinds[variant];
-            encounter->enemy_count = variant == 0 ? 2 : variant == 4 ? 3 : 1;
-            encounter->stage = variant == 4 ? St_Kind_Story : St_Kind_Battle;
-        } else {
-            /*
-             * Generic elites can use the entire playable roster instead of
-             * repeatedly drawing from five hard-coded characters.
-             */
-            encounter->name = variant == 5 ? "Champion" :
-                              variant == 6 ? "Juggernaut" : "Glass Cannon";
-            encounter->enemy_kind =
-                enemies[RogueRng_Bounded(rng, sizeof(enemies) / sizeof(enemies[0]))];
-            encounter->enemy_count = 1;
-            encounter->stage =
-                stages[RogueRng_Bounded(rng, sizeof(stages) / sizeof(stages[0]))];
+        variant = RogueRng_Bounded(rng, 16);
+        encounter->enemy_kind =
+            enemies[RogueRng_Bounded(rng, sizeof(enemies) / sizeof(enemies[0]))];
+        encounter->stage =
+            stages[RogueRng_Bounded(rng, sizeof(stages) / sizeof(stages[0]))];
+
+        switch (variant) {
+        case 0:
+            encounter->name = "Metal Mario & Luigi";
+            encounter->modifier = "METAL DUO / 2 STOCKS EACH";
+            encounter->enemy_kind = CKind_Mario;
+            encounter->enemy_count = 2;
+            encounter->stage = St_Kind_Battle;
+            break;
+        case 1:
+            encounter->name = "Giant Donkey Kong";
+            encounter->modifier = "GIANT / HEAVY HITTER";
+            encounter->enemy_kind = CKind_Donkey;
+            encounter->stage = St_Kind_Battle;
+            break;
+        case 2:
+            encounter->name = "Giant Bowser";
+            encounter->modifier = "GIANT / HIGH DEFENSE";
+            encounter->enemy_kind = CKind_Koopa;
+            encounter->stage = St_Kind_Battle;
+            break;
+        case 3:
+            encounter->name = "Armored Samus";
+            encounter->modifier = "METAL / HIGH DEFENSE";
+            encounter->enemy_kind = CKind_Samus;
+            encounter->stage = St_Kind_Battle;
+            break;
+        case 4:
+            encounter->name = "Kirby Brigade";
+            encounter->modifier = "3 MINI KIRBYS";
+            encounter->enemy_kind = CKind_Kirby;
+            encounter->enemy_count = 3;
+            encounter->stage = St_Kind_Story;
+            break;
+        case 5:
+            encounter->name = "Champion";
+            encounter->modifier = "RANDOM FIGHTER / ALL-AROUND BUFF";
+            break;
+        case 6:
+            encounter->name = "Juggernaut";
+            encounter->modifier = "LARGE / EXTREME DEFENSE";
+            break;
+        case 7:
+            encounter->name = "Glass Cannon";
+            encounter->modifier = "VERY HIGH DAMAGE / LOWER DEFENSE";
+            break;
+        case 8:
+            encounter->name = "Phantom";
+            encounter->modifier = "INVISIBLE / HIGH DAMAGE";
+            break;
+        case 9:
+            encounter->name = "Shadow Duo";
+            encounter->modifier = "2 INVISIBLE FIGHTERS / 1 STOCK EACH";
+            encounter->enemy_count = 2;
+            break;
+        case 10:
+            encounter->name = "Titanium Colossus";
+            encounter->modifier = "GIANT + METAL / 1 STOCK";
+            break;
+        case 11:
+            encounter->name = "Berserker";
+            encounter->modifier = "STARTS AT 80% / HUGE DAMAGE";
+            break;
+        case 12:
+            encounter->name = "Tiny Terror";
+            encounter->modifier = "TINY / HIGH DAMAGE";
+            break;
+        case 13:
+            encounter->name = "Iron Pair";
+            encounter->modifier = "2 METAL FIGHTERS / 1 STOCK EACH";
+            encounter->enemy_count = 2;
+            break;
+        case 14:
+            encounter->name = "Sudden Death Rival";
+            encounter->modifier = "STARTS AT 150% / EXTREME DAMAGE";
+            break;
+        default:
+            encounter->name = "Elite Squad";
+            encounter->modifier = "METAL + PHANTOM + MINI";
+            encounter->enemy_count = 3;
+            break;
         }
     }
     for (i = 0; i < encounter->enemy_count; ++i) {
@@ -96,6 +158,9 @@ void Rogue_GenerateEncounter(RogueEncounter* encounter, RogueRng* rng,
         enemy->attack_ratio = 1.0f + act * 0.08f;
         enemy->defense_ratio = 1.0f + act * 0.05f;
         enemy->model_scale = 1.0f;
+        enemy->start_damage = 0;
+        enemy->metal = false;
+        enemy->invisible = false;
         if (encounter->type == ROGUE_ENCOUNTER_SWARM) {
             enemy->stocks = 1;
             enemy->model_scale = 0.75f;
@@ -105,34 +170,105 @@ void Rogue_GenerateEncounter(RogueEncounter* encounter, RogueRng* rng,
         } else if (encounter->type == ROGUE_ENCOUNTER_ELITE) {
             enemy->kind = encounter->enemy_kind;
             enemy->attack_ratio += 0.12f;
-            if (variant == 0) {
+            enemy->stocks = 2;
+            switch (variant) {
+            case 0:
                 enemy->kind = i == 0 ? CKind_Mario : CKind_Luigi;
                 enemy->metal = true;
-                enemy->stocks = 2;
-            } else if (variant == 1 || variant == 2) {
-                enemy->model_scale = 1.6f;
-                enemy->stocks = 2;
-            } else if (variant == 3) {
-                enemy->metal = true;
+                break;
+            case 1:
+                enemy->model_scale = 1.65f;
+                enemy->attack_ratio += 0.12f;
+                enemy->defense_ratio += 0.10f;
+                break;
+            case 2:
+                enemy->model_scale = 1.55f;
+                enemy->attack_ratio += 0.08f;
                 enemy->defense_ratio += 0.20f;
-                enemy->stocks = 2;
-            } else if (variant == 4) {
-                enemy->model_scale = 0.8f;
-                enemy->stocks = 2;
-            } else if (variant == 5) {
-                enemy->stocks = 2;
-                enemy->attack_ratio += 0.10f;
-                enemy->defense_ratio += 0.08f;
-            } else if (variant == 6) {
-                enemy->stocks = 2;
+                break;
+            case 3:
+                enemy->metal = true;
+                enemy->defense_ratio += 0.28f;
+                break;
+            case 4:
+                enemy->model_scale = 0.78f;
+                enemy->stocks = 1;
+                enemy->attack_ratio += 0.08f;
+                break;
+            case 5:
+                enemy->attack_ratio += 0.18f;
+                enemy->defense_ratio += 0.12f;
+                break;
+            case 6:
                 enemy->model_scale = 1.25f;
                 enemy->attack_ratio += 0.05f;
-                enemy->defense_ratio += 0.18f;
-            } else {
-                enemy->stocks = 2;
+                enemy->defense_ratio += 0.30f;
+                break;
+            case 7:
                 enemy->model_scale = 0.95f;
-                enemy->attack_ratio += 0.28f;
+                enemy->attack_ratio += 0.35f;
+                enemy->defense_ratio -= 0.08f;
+                break;
+            case 8:
+                enemy->invisible = true;
+                enemy->attack_ratio += 0.20f;
+                break;
+            case 9:
+                if (i > 0)
+                    enemy->kind = enemies[RogueRng_Bounded(
+                        rng, sizeof(enemies) / sizeof(enemies[0]))];
+                enemy->invisible = true;
+                enemy->stocks = 1;
+                enemy->attack_ratio += 0.15f;
+                break;
+            case 10:
+                enemy->metal = true;
+                enemy->model_scale = 1.35f;
+                enemy->stocks = 1;
+                enemy->attack_ratio += 0.10f;
+                enemy->defense_ratio += 0.35f;
+                break;
+            case 11:
+                enemy->start_damage = 80;
+                enemy->attack_ratio += 0.40f;
                 enemy->defense_ratio -= 0.05f;
+                break;
+            case 12:
+                enemy->model_scale = 0.65f;
+                enemy->attack_ratio += 0.25f;
+                enemy->defense_ratio -= 0.05f;
+                break;
+            case 13:
+                if (i > 0)
+                    enemy->kind = enemies[RogueRng_Bounded(
+                        rng, sizeof(enemies) / sizeof(enemies[0]))];
+                enemy->metal = true;
+                enemy->stocks = 1;
+                enemy->attack_ratio += 0.08f;
+                enemy->defense_ratio += 0.15f;
+                break;
+            case 14:
+                enemy->start_damage = 150;
+                enemy->stocks = 1;
+                enemy->attack_ratio += 0.60f;
+                enemy->defense_ratio -= 0.10f;
+                break;
+            default:
+                if (i > 0)
+                    enemy->kind = enemies[RogueRng_Bounded(
+                        rng, sizeof(enemies) / sizeof(enemies[0]))];
+                enemy->stocks = 1;
+                if (i == 0) {
+                    enemy->metal = true;
+                    enemy->defense_ratio += 0.15f;
+                } else if (i == 1) {
+                    enemy->invisible = true;
+                    enemy->attack_ratio += 0.15f;
+                } else {
+                    enemy->model_scale = 0.72f;
+                    enemy->attack_ratio += 0.22f;
+                }
+                break;
             }
         } else if (encounter->type == ROGUE_ENCOUNTER_BOSS) {
             enemy->attack_ratio += 0.15f;
@@ -184,7 +320,9 @@ void Rogue_SetupEncounter(VsModeData* data, const RogueEncounter* encounter,
         player->attack_ratio = enemy->attack_ratio;
         player->defense_ratio = enemy->defense_ratio;
         player->model_scale = enemy->model_scale;
+        player->damage1 = enemy->start_damage;
         player->vs_metal = enemy->metal;
+        player->vs_invisible = enemy->invisible;
         player->team = 1;
         player->color = player_kind == enemy->kind ? 1 : 0;
         if (enemy->kind == CKind_MasterH || enemy->kind == CKind_CrezyH) {

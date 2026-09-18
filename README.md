@@ -4,6 +4,13 @@ Offline roguelite mod for Melee US 1.02, played through Dolphin or Slippi Dolphi
 This repository contains only the mod. The build fetches the pinned upstream
 [decompilation](https://github.com/doldecomp/melee) automatically.
 
+## Current gameplay release
+
+- All **26 playable Melee fighters** can start a Rogue run and appear in the opponent pool.
+- All **104 character specials** (Neutral-B, Side-B, Up-B, Down-B for all 26 fighters) are in the borrowed-special registry and can be offered as post-fight rewards.
+- Elite encounters now draw from **16 profiles** including metal, giant, tiny, invisible, starting-damage, duo, and mixed-effect squad fights.
+- Runs remain 3 acts / 15 encounters with elites, bosses, rewards, shops, rest/training rooms, build inspection, and run history.
+
 ## Contents
 
 - `mod/` — Rogue mode source.
@@ -132,36 +139,7 @@ CI checks packaging tests and compiles the portable patch, manual updater,
 manual launcher, and automatic `RogueMelee.exe` launcher. The C regression
 sources require the PC port's host compatibility headers and are not run by CI.
 
-This is an unfinished offline playtest. Physical adapter validation, full-run
-compatibility and borrowed-special compatibility remain outstanding. Phillip AI
-and online play are not enabled. Controller routing follows the port that
-selects Rogue Mode.
-
-## Borrowed-special compatibility QA
-
-The ability registry contains all four special slots for all 26 playable
-characters (104 source specials). Cross-character behavior is validated with a
-host-driven Dolphin matrix rather than assuming that a loaded animation is safe.
-
-Build and run the full recipient × source × slot × ground/air matrix:
-
-```powershell
-Run Ability Matrix.bat --iso "C:\path\Melee.iso" --dolphin "C:\path\Dolphin.exe" --fresh
-```
-
-That is 5,408 automated cases. Progress is written after every case, so the run
-can be stopped and resumed by running the same command again without `--fresh`.
-For a quick harness check first:
-
-```powershell
-Run Ability Matrix.bat --iso "C:\path\Melee.iso" --dolphin "C:\path\Dolphin.exe" --recipient Mario --source Falco --slot neutral --limit 2
-```
-
-The runner watches an in-game heartbeat. A process exit is recorded as a crash;
-a stopped heartbeat is recorded as a hang. It restarts Dolphin and continues.
-Results are written under `qa-results/` as CSV, JSON compatibility data, a
-Markdown summary, and per-crash diagnostics. Use `--rerun-failures` after fixes
-to repeat only cases that did not pass.
-
-The QA build is local only (`ROGUE_QA=3`) and is never published by
-`Publish Update.bat`; a normal build reconfigures without the QA flag.
+This is an offline playtest. The full 26-fighter / 104-special borrowed-ability
+set is enabled in the current build. Physical adapter validation and broader
+full-run balance testing remain ongoing. Phillip AI and online play are not
+enabled. Controller routing follows the port that selects Rogue Mode.

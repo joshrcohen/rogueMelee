@@ -405,4 +405,6 @@ void RogueUI_IntroFrame(void)
     openCanvas();
     ui_at(-15,-11,.030f,ui_gold,"STAGE %d",g_rogue_run.floor);
     ui_at(-15,-8.5f,.021f,ui_white,"Act %d   %s",g_rogue_run.current_encounter.act,g_rogue_run.current_encounter.name);
+    if (g_rogue_run.current_encounter.modifier)
+        ui_at(-15,-6.2f,.017f,ui_gold,"%s",g_rogue_run.current_encounter.modifier);
 }

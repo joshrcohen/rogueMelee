@@ -14,7 +14,8 @@ typedef struct RogueEnemy {
     CharacterKind kind;
     u8 cpu_level, stocks, costume;
     float attack_ratio, defense_ratio, model_scale;
-    bool metal;
+    unsigned short start_damage;
+    bool metal, invisible;
 } RogueEnemy;
 
 typedef struct RogueEncounter {
@@ -23,6 +24,7 @@ typedef struct RogueEncounter {
     int enemy_count;
     int act, act_floor;
     const char* name;
+    const char* modifier;
     /* Primary opponent used for encounter identity and themed rewards. */
     CharacterKind enemy_kind;
     StKind stage;

@@ -86,7 +86,7 @@ if errorlevel 1 (
       "dist\RogueMelee-Update.zip" ^
       --target "%COMMIT%" ^
       --title "RogueMelee %VERSION%" ^
-      --notes "RogueMelee playtest build %VERSION%." ^
+      --notes "Full-roster RogueMelee release: all 26 playable fighters, all 104 borrowed specials, and expanded 16-profile elite encounters with metal, giant, tiny, invisible, starting-damage, duo, and mixed-effect fights." ^
       --latest
     if errorlevel 1 goto :fail
 ) else (
