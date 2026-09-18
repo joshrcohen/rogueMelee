@@ -13,18 +13,18 @@ class NativeStageClearRewardTests(unittest.TestCase):
             ROOT / "tools/postpatch_native_stage_clear_rewards.py"
         ).read_text(encoding="utf-8")
 
-    def test_reward_canvas_replaces_fight_hud_canvas(self):
+    def test_reward_text_reuses_native_regclear_canvas(self):
         section = self.ui.split("void RogueUI_OpenResults(void)", 1)[1]
         section = section.split("int RogueUI_Frame(void)", 1)[0]
         self.assertIn("RogueUI_Clear();", section)
-        self.assertIn("overlay_sis = 2;", section)
-        self.assertIn("openCanvas();", section)
-        self.assertNotIn("SCREEN_STAGE_CLEAR", section)
-        self.assertNotIn("ready = true;", section)
+        self.assertIn("overlay_sis = 0;", section)
+        self.assertIn("overlay_canvas = 0;", section)
+        self.assertIn("ready = true;", section)
+        self.assertNotIn("openCanvas();", section)
 
     def test_native_result_boxes_show_currency(self):
-        self.assertIn('"GOLD GAINED"', self.ui)
-        self.assertIn('"TOTAL GOLD"', self.ui)
+        self.assertIn('"GOLD"', self.ui)
+        self.assertIn('"TOTAL"', self.ui)
         self.assertIn('"+%d", earned', self.ui)
 
     def test_special_bonus_panel_is_upgrade_picker(self):
@@ -32,7 +32,7 @@ class NativeStageClearRewardTests(unittest.TestCase):
         self.assertIn("g_rogue_run.current_rewards[i]", self.ui)
         self.assertIn("Rogue_DescribeReward", self.ui)
         self.assertIn(
-            '"STICK: CHOOSE    A: TAKE UPGRADE    B: BUILD"',
+            '"A / START: TAKE    B: BUILD"',
             self.ui,
         )
 

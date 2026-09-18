@@ -78,13 +78,13 @@ class NativeMatchupIntroTests(unittest.TestCase):
         )
         self.assertIn("gm_SetNextGameModeStateId(2);", self.rogue)
 
-    def test_all_direct_fight_transitions_use_intro_selector(self):
+    def test_route_preview_replaces_duplicate_normal_intro(self):
         self.assertIn(
-            "gm_SetNextGameModeStateId(Rogue_IntroState());",
+            "gm_SetNextGameModeStateId(Rogue_BeginCamp() ? 3 : 2);",
             self.rogue,
         )
         self.assertIn(
-            "Rogue_BeginCamp() ? 3 : Rogue_IntroState()",
+            "gm_SetNextGameModeStateId(Rogue_IntroState());",
             self.rogue,
         )
 

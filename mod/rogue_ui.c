@@ -459,55 +459,45 @@ static void drawHistory(void)
 static void drawStageClear(void)
 {
     const RogueEncounter* encounter = &g_rogue_run.current_encounter;
+    RogueReward* reward = &g_rogue_run.current_rewards[cursor];
     int earned = encounterGold(encounter);
     int i;
     char detail[256];
 
     /*
-     * Keep Melee's real STAGE CLEAR shell and score box. Rogue only draws the
-     * reward-selection content inside the native result regions.
+     * GmRegClr owns every panel, frame, SCORE element and background here.
+     * Rogue only adds text to the existing native result regions.
      */
     ui_clear_native_icons();
 
-    /* Left-side result region: actual reward selection. */
-    ui_at(-14.95f, -4.65f, .0108f, ui_gold, "CHOOSE UPGRADE");
+    /* Left result area: three upgrade choices. */
+    ui_at(-14.95f, -4.45f, .0108f, ui_gold, "CHOOSE UPGRADE");
 
     for (i = 0; i < 3; ++i) {
-        RogueReward* reward = &g_rogue_run.current_rewards[i];
-        float y = -2.85f + i * 1.45f;
+        RogueReward* choice = &g_rogue_run.current_rewards[i];
 
-        ui_at(-14.45f, y, .0145f,
+        ui_at(-14.45f, -2.55f + i * 1.75f, .0140f,
               cursor == i ? ui_gold : ui_white,
-              "%s %s", cursor == i ? ">" : " ", reward->name);
-
-        ui_at(-5.35f, y, .0105f,
-              cursor == i ? ui_gold : ui_muted,
-              "%s", Rogue_RarityName(reward->rarity));
+              "%s %s", cursor == i ? ">" : " ", choice->name);
     }
 
-    /* Lower-left native result box: run currency summary. */
-    ui_at(-14.95f, 2.10f, .0108f, ui_muted, "GOLD GAINED");
-    ui_at(-14.15f, 3.55f, .0235f, ui_gold, "+%d", earned);
-
-    ui_at(-14.95f, 5.15f, .0108f, ui_muted, "TOTAL GOLD");
-    ui_at(-14.15f, 6.60f, .0235f, ui_white, "%d",
+    /* Existing lower-left result box: currency summary. */
+    ui_at(-14.25f, 4.75f, .0108f, ui_muted, "GOLD");
+    ui_at(-11.75f, 4.65f, .0155f, ui_gold, "+%d", earned);
+    ui_at(-8.80f, 4.75f, .0108f, ui_muted, "TOTAL");
+    ui_at(-5.85f, 4.65f, .0155f, ui_white, "%d",
           g_rogue_run.currency);
 
-    /*
-     * Right-side SPECIAL BONUS panel becomes the selected reward detail view.
-     * Leave the native SPECIAL BONUS heading in place above it.
-     */
-    Rogue_DescribeReward(&g_rogue_run.current_rewards[cursor],
-                         detail, sizeof(detail));
+    /* Existing SPECIAL BONUS area: selected reward details. */
+    Rogue_DescribeReward(reward, detail, sizeof(detail));
 
-    ui_at(-3.35f, -4.60f, .0135f, ui_gold, "REWARD DETAILS");
-    ui_wrapped_at(-3.05f, -2.55f, .0108f, ui_white, detail, 44, 4);
+    ui_at(-3.10f, -2.85f, .0150f, ui_gold, "%s", reward->name);
+    ui_at(-3.10f, -1.30f, .0105f, ui_muted, "%s   %s",
+          rewardCategory(reward), Rogue_RarityName(reward->rarity));
+    ui_wrapped_at(-3.10f, .25f, .0108f, ui_white, detail, 44, 3);
 
-    ui_at(-3.05f, 4.55f, .0105f, ui_muted, "RUN FLOOR");
-    ui_at(-0.15f, 4.55f, .0108f, ui_white, "%d", g_rogue_run.floor);
-
-    ui_at(-3.05f, 6.35f, .0108f, ui_white,
-          "STICK: CHOOSE    A: TAKE UPGRADE    B: BUILD");
+    ui_at(-3.10f, 4.55f, .0108f, ui_white,
+          "A / START: TAKE    B: BUILD");
 }
 
 static void drawRunEnd(void)
@@ -585,13 +575,15 @@ static void draw(void)
 void RogueUI_OpenResults(void)
 {
     /*
-     * The fight HUD already owns a SIS canvas in this same GS_VS scene.
-     * Clear its tracked text and reset ready before creating slot 2 for the
-     * reward picker. GmRegClr uses slots 0 and 3, so slot 2 stays independent.
+     * GmRegClr has already created native SIS slot 0 / canvas 0.
+     * Remove Rogue's fight HUD strings, then attach reward text directly to
+     * that existing canvas so SCORE and the native result geometry remain
+     * completely Melee-owned.
      */
     RogueUI_Clear();
-    overlay_sis = 2;
-    openCanvas();
+    overlay_sis = 0;
+    overlay_canvas = 0;
+    ready = true;
 
     cursor = page = delay = 0;
     inspect = false;
@@ -672,7 +664,7 @@ int RogueUI_Frame(void)
         sfxMove();
     }
 
-    if (input & MenuInput_Confirm) {
+    if (input & (MenuInput_Confirm | MenuInput_StartButton)) {
         if (g_rogue_run.phase == ROGUE_PHASE_REWARD) {
             if (!Rogue_SelectReward(cursor))
                 return ROGUE_UI_WAIT;

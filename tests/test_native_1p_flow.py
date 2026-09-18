@@ -40,7 +40,8 @@ class NativeOnePlayerFlowTests(unittest.TestCase):
     def test_real_stage_clear_shell_is_enabled(self):
         self.assertIn("start->rules.x4_4 = true;", self.rogue)
         self.assertIn('"CHOOSE UPGRADE"', self.ui)
-        self.assertIn("overlay_sis = 2;", self.ui)
+        self.assertIn("overlay_sis = 0;", self.ui)
+        self.assertIn("overlay_canvas = 0;", self.ui)
         self.assertIn("RogueUI_Clear();", self.ui)
 
     def test_reward_selection_happens_inside_regclear(self):

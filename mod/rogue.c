@@ -402,7 +402,7 @@ static void exitRoute(GameModeState* state)
         return;
     }
 
-    gm_SetNextGameModeStateId(Rogue_BeginCamp() ? 3 : Rogue_IntroState());
+    gm_SetNextGameModeStateId(Rogue_BeginCamp() ? 3 : 2);
 }
 
 static void encounterFrame(void)

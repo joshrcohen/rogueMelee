@@ -11,10 +11,11 @@ class NativeOnePlayerUiTests(unittest.TestCase):
 
     def test_stage_clear_reward_screen(self):
         self.assertIn('"CHOOSE UPGRADE"', self.ui)
-        self.assertIn('"GOLD GAINED"', self.ui)
-        self.assertIn('"TOTAL GOLD"', self.ui)
-        self.assertIn('"STICK: CHOOSE    A: TAKE UPGRADE    B: BUILD"', self.ui)
+        self.assertIn('"GOLD"', self.ui)
+        self.assertIn('"TOTAL"', self.ui)
+        self.assertIn('"A / START: TAKE    B: BUILD"', self.ui)
         self.assertIn("start->rules.x4_4 = true", self.rogue)
+        self.assertIn("start->rules.x18", self.rogue)
 
     def test_native_classic_matchup_intro(self):
         self.assertIn("GS_INTRO_EASY, &stage_intro", self.rogue)
