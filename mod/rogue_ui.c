@@ -299,6 +299,14 @@ static void ui_wrapped_at(float x, float y, float size, GXColor color,
 
 static int cursor, page, delay, camp_zone = -2, camp_branch;
 static bool ready, inspect, history_open, hud_ready;
+
+/* Native Stage Clear progression popup state. */
+static bool stage_progress_active;
+static bool stage_upgrade_chosen;
+static int stage_upgrade_taken = -1;
+static int stage_route_cursor;
+static int stage_route_locked = -1;
+static int stage_route_confirm;
 static int history_cursor;
 static const RogueHistoryEntry* viewed_record;
 static HSD_Text* markers[5];
@@ -322,6 +330,12 @@ void RogueUI_Reset(void)
     RogueCamp_Reset();
     history_open=false;history_cursor=0;viewed_record=NULL;
     hud_ready = false;
+    stage_progress_active = false;
+    stage_upgrade_chosen = false;
+    stage_upgrade_taken = -1;
+    stage_route_cursor = 0;
+    stage_route_locked = -1;
+    stage_route_confirm = 0;
     native_icon_count = 0;
     native_ifall_owned = false;
     memset(native_icons, 0, sizeof(native_icons));
@@ -456,52 +470,196 @@ static void drawHistory(void)
               "Memory card unavailable. Recent history is in memory.");
 }
 
-static void drawStageClear(void)
+static void stageProgressNode(float x, int active, int complete,
+                              const char* label)
 {
-    const RogueEncounter* encounter = &g_rogue_run.current_encounter;
-    RogueReward* reward = &g_rogue_run.current_rewards[cursor];
-    int earned = encounterGold(encounter);
-    int i;
-    char detail[256];
+    GXColor bg = active ? ui_gold : complete ? ui_panel : ui_black;
+    GXColor fg = active ? ui_black : complete ? ui_white : ui_muted;
 
-    /*
-     * The entire right half of GmRegClr stays retail Melee:
-     * SCORE, SPECIAL BONUS, PRESS START, frames and animations.
-     * Rogue only fills the native left-side result regions.
-     */
-    ui_clear_native_icons();
+    ui_panel_box(x, -8.72f, 4.30f, 1.30f, bg);
+    ui_at(x + .30f, -8.33f, .0108f, fg, "%s", label);
+}
 
-    /* Upper-left native result area: the three upgrade choices. */
-    ui_at(-14.95f, -4.45f, .0108f, ui_gold, "CHOOSE UPGRADE");
+static void stageRewardBox(float x, int index)
+{
+    RogueReward* reward = &g_rogue_run.current_rewards[index];
+    char detail[160];
+    char meta[64];
+    int selected = !stage_upgrade_chosen && cursor == index;
+    int chosen = stage_upgrade_chosen && stage_upgrade_taken == index;
+    GXColor bg = selected || chosen ? ui_gold : ui_panel;
+    GXColor fg = selected || chosen ? ui_black : ui_white;
+    GXColor sub = selected || chosen ? ui_black : ui_muted;
+    float title_size;
 
-    for (i = 0; i < 3; ++i) {
-        RogueReward* choice = &g_rogue_run.current_rewards[i];
+    Rogue_DescribeReward(reward, detail, sizeof(detail));
+    snprintf(meta, sizeof(meta), "%s   %s%s",
+             rewardCategory(reward),
+             Rogue_RarityName(reward->rarity),
+             chosen ? "   SELECTED" : "");
 
-        ui_at(-14.45f, -2.85f + i * 1.55f, .0138f,
-              cursor == i ? ui_gold : ui_white,
-              "%s %s", cursor == i ? ">" : " ", choice->name);
+    ui_panel_box(x, -5.75f, 9.20f, 3.45f, bg);
+
+    title_size = strlen(reward->name) > 18 ? .0118f :
+                 strlen(reward->name) > 14 ? .0130f : .0143f;
+    ui_at(x + .35f, -5.28f, title_size, fg, "%s", reward->name);
+    ui_at(x + .35f, -4.18f, .0082f, sub, "%s", meta);
+    ui_wrapped_at(x + .35f, -3.30f, .0080f, fg, detail, 22, 1);
+}
+
+static void stageFightBox(float x, const RogueEncounter* encounter, int index)
+{
+    char opponent[80];
+    char subtitle[100];
+    char tag[100];
+    char stocks[32];
+    int selected = stage_upgrade_chosen &&
+                   (stage_route_locked >= 0 ?
+                        stage_route_locked == index :
+                        stage_route_cursor == index);
+    GXColor bg = selected ? ui_gold : ui_panel;
+    GXColor fg = selected ? ui_black :
+                 stage_upgrade_chosen ? ui_white : ui_muted;
+    GXColor sub = selected ? ui_black : ui_muted;
+
+    encounterOpponent(opponent, sizeof(opponent), encounter);
+    snprintf(subtitle, sizeof(subtitle), "%s   %s",
+             RogueRoute_StageName(encounter->stage),
+             RogueRoute_TypeName(encounter->type));
+
+    if (encounter->enemy_count > 0) {
+        snprintf(stocks, sizeof(stocks), "%d STOCK%s",
+                 encounter->enemies[0].stocks,
+                 encounter->enemies[0].stocks == 1 ? "" : "S");
+    } else {
+        stocks[0] = 0;
     }
 
-    /* Second left result area: details for the highlighted upgrade. */
-    Rogue_DescribeReward(reward, detail, sizeof(detail));
+    if (!stage_upgrade_chosen) {
+        snprintf(tag, sizeof(tag), "LOCKED - PICK UPGRADE");
+    } else if (encounter->modifier && *encounter->modifier) {
+        if (stocks[0])
+            snprintf(tag, sizeof(tag), "%s   %s",
+                     encounter->modifier, stocks);
+        else
+            snprintf(tag, sizeof(tag), "%s", encounter->modifier);
+    } else {
+        snprintf(tag, sizeof(tag), "%s",
+                 stocks[0] ? stocks : "STANDARD");
+    }
 
-    ui_at(-14.95f, 1.85f, .0098f, ui_gold, "UPGRADE DETAILS");
-    ui_at(-14.45f, 2.80f, .0128f, ui_white, "%s", reward->name);
-    ui_at(-14.45f, 3.65f, .0095f, ui_muted, "%s   %s",
-          rewardCategory(reward), Rogue_RarityName(reward->rarity));
-    ui_wrapped_at(-14.45f, 4.45f, .0094f, ui_white, detail, 30, 2);
+    ui_panel_box(x, -1.42f, 13.95f, 3.30f, bg);
+    ui_at(x + .45f, -.96f,
+          strlen(opponent) > 18 ? .0123f : .0145f,
+          fg, "%s", opponent);
+    ui_at(x + .45f, .02f, .0090f, sub, "%s", subtitle);
+    ui_at(x + .45f, .92f, .0086f, sub, "%s", tag);
+}
 
-    /* Existing yellow lower-left result box: run currency only. */
-    ui_at(-14.10f, 6.35f, .0100f, ui_muted, "GOLD");
-    ui_at(-11.95f, 6.25f, .0148f, ui_gold, "+%d", earned);
-    ui_at(-9.10f, 6.35f, .0100f, ui_muted, "TOTAL");
-    ui_at(-6.15f, 6.25f, .0148f, ui_white, "%d",
-          g_rogue_run.currency);
+static void drawStageClear(void)
+{
+    const RogueRoute* route = &g_rogue_run.route;
+    const RogueRouteRound* current = RogueRoute_Current(route);
+    const RogueStats* stats = &g_rogue_run.stats;
+    static const char* node_names[6] = {
+        "MATCH 1", "MATCH 2", "ELITE", "MATCH 4", "SHOP", "BOSS"
+    };
+    int target_floor =
+        stage_upgrade_chosen ? g_rogue_run.floor : g_rogue_run.floor + 1;
+    int target_act_floor =
+        ((target_floor - 1) % ROGUE_FLOORS_PER_ACT) + 1;
+    int i;
 
     /*
-     * Do not draw anything into the right SCORE / SPECIAL BONUS side.
-     * A or Start still confirms the highlighted reward in RogueUI_Frame.
+     * Retail GmRegClr remains the scene underneath. This is a popup on its
+     * existing SIS canvas, not a new mode state and not a Rest Area scene.
      */
+    ui_clear_native_icons();
+    ui_panel_box(-15.55f, -10.55f, 31.10f, 19.25f, ui_dark);
+
+    ui_at(-14.85f, -10.10f, .0205f, ui_gold, "ROGUE PROGRESSION");
+    ui_at(8.75f, -9.92f, .0118f, ui_white,
+          "ACT %d   WIN %d / %d",
+          route->act, g_rogue_run.wins, ROGUE_RUN_ENCOUNTERS);
+
+    ui_at(-14.85f, -9.25f, .0100f, ui_muted, "ROUTE");
+    for (i = 0; i < 6; ++i) {
+        int complete = 0;
+        int active = 0;
+
+        if (i < ROGUE_ROUTE_ROUNDS)
+            complete = route->rounds[i].selected >= 0;
+
+        if (target_act_floor < ROGUE_FLOORS_PER_ACT)
+            active = i == target_act_floor - 1;
+        else
+            active = i == 4;
+
+        stageProgressNode(-14.75f + i * 4.80f,
+                          active, complete, node_names[i]);
+    }
+
+    ui_at(-14.85f, -6.40f, .0100f,
+          stage_upgrade_chosen ? ui_muted : ui_gold,
+          stage_upgrade_chosen ? "UPGRADE SELECTED" : "CHOOSE UPGRADE");
+
+    for (i = 0; i < 3; ++i)
+        stageRewardBox(-14.75f + i * 9.72f, i);
+
+    ui_at(-14.85f, -1.95f, .0100f,
+          stage_upgrade_chosen ? ui_gold : ui_muted,
+          "CHOOSE NEXT FIGHT");
+
+    if (target_act_floor == ROGUE_FLOORS_PER_ACT) {
+        ui_panel_box(-14.75f, -1.42f, 28.60f, 3.30f, ui_panel);
+        ui_at(-14.20f, -.86f, .0142f,
+              stage_upgrade_chosen ? ui_white : ui_muted,
+              "SHOP / REST AREA");
+        ui_at(-14.20f, .15f, .0102f, ui_muted,
+              "NEXT: BOSS - %s",
+              RogueRoute_CharacterName(route->boss.enemy_kind));
+        ui_at(-14.20f, 1.02f, .0088f, ui_muted,
+              stage_upgrade_chosen ?
+                  "UPGRADE LOCKED IN - CONTINUING TO CAMP" :
+                  "PICK AN UPGRADE FIRST");
+    } else if (current && current->generated) {
+        for (i = 0; i < ROGUE_ROUTE_CHOICES; ++i)
+            stageFightBox(-14.75f + i * 14.45f,
+                          &current->choices[i], i);
+    } else {
+        ui_panel_box(-14.75f, -1.42f, 28.60f, 3.30f, ui_panel);
+        ui_at(-14.15f, -.10f, .0135f, ui_muted,
+              "Preparing next fight choices...");
+    }
+
+    ui_panel_box(-14.75f, 2.55f, 28.60f, 3.85f, ui_panel);
+    ui_at(-14.20f, 2.98f, .0095f, ui_gold, "RUN STATS");
+    ui_at(-14.20f, 4.00f, .0102f, ui_white,
+          "GOLD %d   DAMAGE %.0f%%   DEFENSE %.0f%%   RUN %.0f%%",
+          g_rogue_run.currency,
+          stats->damage_dealt * 100.0f,
+          stats->damage_received * 100.0f,
+          stats->run_speed * 100.0f);
+    ui_at(-14.20f, 5.03f, .0098f, ui_white,
+          "SHIELD %.0f%%   AIR +%.0f%%   JUMPS +%d   KB +%.0f%%",
+          stats->shield_health * 100.0f,
+          stats->air_control_bonus * 100.0f,
+          stats->extra_jumps,
+          stats->knockback_dealt_bonus * 100.0f);
+
+    if (!stage_upgrade_chosen) {
+        ui_at(-14.20f, 7.32f, .0104f, ui_white,
+              "Left / Right: upgrade     A: select     B: build");
+    } else if (target_act_floor == ROGUE_FLOORS_PER_ACT) {
+        ui_at(-14.20f, 7.32f, .0104f, ui_gold,
+              "UPGRADE SELECTED - CONTINUING TO SHOP / REST");
+    } else if (stage_route_confirm > 0) {
+        ui_at(-14.20f, 7.32f, .0104f, ui_gold,
+              "MATCH SET - STARTING ENCOUNTER");
+    } else {
+        ui_at(-14.20f, 7.32f, .0104f, ui_white,
+              "Left / Right: fight       A: select     B: build");
+    }
 }
 
 static void drawRunEnd(void)
@@ -570,7 +728,7 @@ static void draw(void)
         return;
     }
 
-    if (g_rogue_run.phase == ROGUE_PHASE_REWARD)
+    if (stage_progress_active)
         drawStageClear();
     else
         drawRunEnd();
@@ -591,6 +749,15 @@ void RogueUI_OpenResults(void)
 
     cursor = page = delay = 0;
     inspect = false;
+
+    stage_progress_active =
+        g_rogue_run.phase == ROGUE_PHASE_REWARD;
+    stage_upgrade_chosen = false;
+    stage_upgrade_taken = -1;
+    stage_route_cursor = 0;
+    stage_route_locked = -1;
+    stage_route_confirm = 0;
+
     draw();
 }
 
@@ -655,7 +822,74 @@ int RogueUI_Frame(void)
         return ROGUE_UI_WAIT;
     }
 
-    count = g_rogue_run.phase == ROGUE_PHASE_REWARD ? 3 : 4;
+    if (stage_progress_active) {
+        if (stage_route_confirm > 0) {
+            --stage_route_confirm;
+            if (stage_route_confirm == 0)
+                return ROGUE_UI_CONTINUE;
+            return ROGUE_UI_WAIT;
+        }
+
+        if (!stage_upgrade_chosen) {
+            if (input & (MenuInput_Left | MenuInput_Up)) {
+                cursor = (cursor + 2) % 3;
+                draw();
+                sfxMove();
+            }
+            if (input & (MenuInput_Right | MenuInput_Down)) {
+                cursor = (cursor + 1) % 3;
+                draw();
+                sfxMove();
+            }
+
+            if (input & (MenuInput_Confirm | MenuInput_StartButton)) {
+                int chosen = cursor;
+
+                if (!Rogue_SelectReward(chosen))
+                    return ROGUE_UI_WAIT;
+
+                stage_upgrade_chosen = true;
+                stage_upgrade_taken = chosen;
+                stage_route_cursor = 0;
+                sfxForward();
+                draw();
+
+                if (g_rogue_run.phase == ROGUE_PHASE_ENCOUNTER)
+                    return ROGUE_UI_CONTINUE;
+            }
+
+            return ROGUE_UI_WAIT;
+        }
+
+        if (g_rogue_run.phase == ROGUE_PHASE_ROUTE) {
+            if (input & (MenuInput_Left | MenuInput_Right |
+                         MenuInput_Up | MenuInput_Down))
+            {
+                stage_route_cursor ^= 1;
+                draw();
+                sfxMove();
+            }
+
+            if (input & (MenuInput_Confirm | MenuInput_StartButton)) {
+                if (RogueRoute_Select(&g_rogue_run.route,
+                                      stage_route_cursor,
+                                      &g_rogue_run.current_encounter))
+                {
+                    stage_route_locked = stage_route_cursor;
+                    stage_route_confirm = 18;
+                    g_rogue_run.phase = ROGUE_PHASE_ENCOUNTER;
+                    draw();
+                    sfxForward();
+                }
+            }
+
+            return ROGUE_UI_WAIT;
+        }
+
+        return ROGUE_UI_CONTINUE;
+    }
+
+    count = 4;
 
     if (input & (MenuInput_Left | MenuInput_Up)) {
         cursor = (cursor + count - 1) % count;
@@ -669,13 +903,6 @@ int RogueUI_Frame(void)
     }
 
     if (input & (MenuInput_Confirm | MenuInput_StartButton)) {
-        if (g_rogue_run.phase == ROGUE_PHASE_REWARD) {
-            if (!Rogue_SelectReward(cursor))
-                return ROGUE_UI_WAIT;
-            sfxForward();
-            return ROGUE_UI_CONTINUE;
-        }
-
         if (cursor == 2) {
             history_open = true;
             history_cursor = 0;

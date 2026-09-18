@@ -534,7 +534,6 @@ bool Rogue_PostFight(void)
     if (Rogue_DebugMatrixEnabled()) return false;
 #endif
     if (gm_GetCurrentGameMode() != GM_ROGUE || in_camp || in_route ||
-        g_rogue_run.phase == ROGUE_PHASE_ROUTE ||
         g_rogue_run.phase == ROGUE_PHASE_REST ||
         g_rogue_run.phase == ROGUE_PHASE_SHOP)
         return false;
@@ -561,6 +560,28 @@ bool Rogue_PostFight(void)
         }
 
         RogueHistory_Record();
+
+        /*
+         * Keep post-fight progression on the native Stage Clear scene.
+         * Generate the next ordinary route round before opening the popup so
+         * the two fight choices are available immediately.
+         */
+        if (g_rogue_run.phase == ROGUE_PHASE_REWARD) {
+            int next_floor = g_rogue_run.floor + 1;
+            int next_act_floor =
+                ((next_floor - 1) % ROGUE_FLOORS_PER_ACT) + 1;
+
+            if (next_act_floor < ROGUE_FLOORS_PER_ACT) {
+                if (!RogueRoute_Prepare(&g_rogue_run.route,
+                                        &g_rogue_run.route_rng,
+                                        next_floor))
+                {
+                    destination = -1;
+                    return false;
+                }
+            }
+        }
+
         RogueUI_OpenResults();
     }
     int action = RogueUI_Frame();
