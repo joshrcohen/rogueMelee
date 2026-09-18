@@ -28,5 +28,5 @@ class RouteChoiceTests(unittest.TestCase):
     def test_bracket_ui(self):
         c=(ROOT/'mod/rogue_ui.c').read_text(encoding='utf-8')
         self.assertIn('"ROGUE ROUTE"',c)
-        self.assertIn('"MATCH SET"',c)
+        self.assertIn("MATCH SET  -  STARTING ENCOUNTER", c)
 if __name__=='__main__': unittest.main()
