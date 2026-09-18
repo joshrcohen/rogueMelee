@@ -17,7 +17,21 @@ static const CharacterKind enemies[] = {
 };
 
 static const StKind stages[] = {
-    St_Kind_Battle, St_Kind_Last, St_Kind_Story, St_Kind_Izumi,
+    St_Kind_Battle,     /* Battlefield */
+    St_Kind_Last,       /* Final Destination */
+    St_Kind_OldPupupu,  /* Dream Land 64 */
+    St_Kind_Story,      /* Yoshi's Story */
+    St_Kind_PStadium,   /* Pokemon Stadium */
+    St_Kind_Izumi,      /* Fountain of Dreams */
+    St_Kind_RCruise,    /* Rainbow Cruise */
+    St_Kind_Kongo,      /* Kongo Jungle */
+    St_Kind_Garden,     /* Jungle Japes */
+    St_Kind_Greens,     /* Green Greens */
+    St_Kind_Corneria,   /* Corneria */
+    St_Kind_Zebes,      /* Brinstar */
+    St_Kind_MuteCity,   /* Mute City */
+    St_Kind_Pura,       /* Poke Floats */
+    St_Kind_OldKongo,   /* Kongo Jungle 64 */
 };
 
 void Rogue_GenerateEncounter(RogueEncounter* encounter, RogueRng* rng,

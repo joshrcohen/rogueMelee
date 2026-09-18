@@ -184,8 +184,19 @@ const char* RogueRoute_StageName(StKind stage)
     switch (stage) {
     case St_Kind_Battle: return "BATTLEFIELD";
     case St_Kind_Last: return "FINAL DESTINATION";
+    case St_Kind_OldPupupu: return "DREAM LAND 64";
     case St_Kind_Story: return "YOSHI'S STORY";
+    case St_Kind_PStadium: return "POKEMON STADIUM";
     case St_Kind_Izumi: return "FOUNTAIN OF DREAMS";
+    case St_Kind_RCruise: return "RAINBOW CRUISE";
+    case St_Kind_Kongo: return "KONGO JUNGLE";
+    case St_Kind_Garden: return "JUNGLE JAPES";
+    case St_Kind_Greens: return "GREEN GREENS";
+    case St_Kind_Corneria: return "CORNERIA";
+    case St_Kind_Zebes: return "BRINSTAR";
+    case St_Kind_MuteCity: return "MUTE CITY";
+    case St_Kind_Pura: return "POKE FLOATS";
+    case St_Kind_OldKongo: return "KONGO JUNGLE 64";
     case St_Kind_Heal: return "REST AREA";
     default: return "STAGE";
     }
