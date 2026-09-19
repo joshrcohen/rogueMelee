@@ -1157,6 +1157,7 @@ static void aerialShopDraw(void)
               Rogue_AerialSlotName(aerial_shop_slot));
         ui_at(-13,-5.15f,.0145f,ui_muted,"Current: %s",
               equipped==g_rogue_run.player_kind?"Native":RogueRoute_CharacterName(equipped));
+        ui_at(3.2f,-5.15f,.0145f,ui_gold,"APPLIES NEXT FIGHT");
         for(i=start;i<end;i++) {
             int selected=i==aerial_shop_source;
             int equipped_here=i==equipped;
@@ -1231,6 +1232,7 @@ static void campDraw(int zone)
         ui_at(-17,-10.8f,.023f,ui_gold,"AERIAL SHOP  -  FREE");
         ui_at(-17,-9.2f,.017f,ui_white,"Choose any Nair, Fair, Bair, Uair or Dair");
         ui_at(-17,-8.05f,.017f,ui_white,"from any playable fighter.");
+        ui_at(-17,-6.95f,.0155f,ui_gold,"Selections apply when the next fight loads.");
         ui_at(-17,-6.6f,.016f,camp_branch==2?ui_muted:ui_gold,
               camp_branch==2?"Unavailable after Rest / Training.":"A: browse full aerial catalog");
     } else if(zone>=2) {

@@ -42,6 +42,15 @@ class AerialShopTests(unittest.TestCase):
         self.assertNotIn("prepareAerialSource",attempt)
         self.assertIn("aerial_loaded_sources[source]",attempt)
 
+    def test_shop_purchase_never_loads_donor_assets(self):
+        purchase=self.ability.split("bool Rogue_BuyAerial",1)[1]
+        purchase=purchase.split("bool Rogue_AerialTryEnter",1)[0]
+        self.assertNotIn("prepareAerialSource",purchase)
+        self.assertNotIn("ftLib_80087508",purchase)
+        self.assertNotIn("ftData_8008572C",purchase)
+        self.assertIn("selection only",purchase)
+        self.assertIn("APPLIES NEXT FIGHT",self.ui)
+
     def test_aerials_prepare_during_ready_countdown(self):
         self.assertIn("void Rogue_AerialPrepareFrame(void)",self.ability)
         self.assertIn("prepareAerialSource(fp, source)",self.ability)

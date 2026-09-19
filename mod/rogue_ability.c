@@ -595,20 +595,16 @@ bool Rogue_BuyAerial(RogueAerialSlot slot, CharacterKind source)
     g_rogue_run.phase = ROGUE_PHASE_SHOP;
 
     /*
-     * The shop fighter already exists when the player buys an aerial. Warm
-     * just this source now so the newly selected move can be tested in the
-     * rest area immediately instead of remaining the base fighter's aerial.
+     * IMPORTANT: selection only.
+     *
+     * Do not load donor fighter/action/effect data in the Rest Area. Rogue
+     * intentionally tears down the shop heap before the progression / fight
+     * scenes. Carrying relocated donor pointers across that boundary can leave
+     * gFtDataList / animation data pointing into freed scene memory.
+     *
+     * The selected source is prepared later from the actual encounter's fresh
+     * fighter heap during the READY countdown.
      */
-    {
-        Fighter_GObj* gobj = Player_GetEntity(0);
-        Fighter* fp = gobj ? GET_FIGHTER(gobj) : NULL;
-        FighterKind internal = Rogue_InternalKindForCharacter(source);
-
-        if (fp != NULL && fighter_state.fighter == fp &&
-            Rogue_AerialCanEquip(slot, source))
-            prepareAerialSource(fp, internal);
-    }
-
     return true;
 }
 
