@@ -18,7 +18,7 @@ class NativeOnePlayerUiTests(unittest.TestCase):
 
     def test_three_upgrade_cards_exist(self):
         self.assertIn("static const float x[3] = {27.0f, 225.0f, 423.0f}", self.progress)
-        self.assertIn("draw_reward_text", self.progress)
+        self.assertIn("draw_reward_card_text", self.progress)
         self.assertIn("draw_reward_card_panels", self.progress)
 
     def test_cards_disappear_after_upgrade(self):

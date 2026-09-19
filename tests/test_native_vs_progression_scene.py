@@ -30,6 +30,11 @@ class NativeVsProgressionSceneTests(unittest.TestCase):
         self.assertIn("intro->enemy_count", self.progress)
         self.assertIn("lbDvd_80018C2C(0xC7);", self.progress)
 
+    def test_progression_gets_results_sized_sis_arena(self):
+        self.assertIn('root / "src" / "melee" / "gm" / "gm_1A3F.c"', self.fix)
+        self.assertIn("gm_GetCurrentGameMode() == GM_ROGUE && state->id == 7", self.fix)
+        self.assertIn("HSD_SisLib_803A6048(0xC000);", self.fix)
+
     def test_master_hand_is_never_passed_to_intro_easy(self):
         self.assertIn("CKind_MasterH", self.progress)
         self.assertIn("CKind_CrezyH", self.progress)

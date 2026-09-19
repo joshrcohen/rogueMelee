@@ -98,6 +98,55 @@ if new not in text:
 path.write_text(text, encoding="utf-8")
 
 # ---------------------------------------------------------------------------
+# Rogue progression: reward UI needs more SIS headroom than retail IntroEasy.
+#
+# Retail allocates only 0x4800 bytes for ordinary GameScenes, including
+# GS_INTRO_EASY. The Rogue progression scene layers route/fight/build/reward
+# text onto the retail Classic presentation. Give only Rogue state 7 the same
+# 0xC000 SIS arena that retail already uses for GS_RESULTS.
+# ---------------------------------------------------------------------------
+path = root / "src" / "melee" / "gm" / "gm_1A3F.c"
+text = path.read_text(encoding="utf-8")
+
+old = """    switch (state->info.scene_kind) {
+    case GS_STAFFROLL:
+    case GS_RESULTS:
+        HSD_SisLib_803A6048(0xC000);
+        break;
+    case GS_CSS:
+        HSD_SisLib_803A6048(0x2400);
+        break;
+    default:
+        HSD_SisLib_803A6048(0x4800);
+        break;
+    }"""
+
+new = """    switch (state->info.scene_kind) {
+    case GS_STAFFROLL:
+    case GS_RESULTS:
+        HSD_SisLib_803A6048(0xC000);
+        break;
+    case GS_CSS:
+        HSD_SisLib_803A6048(0x2400);
+        break;
+    default:
+        if (gm_GetCurrentGameMode() == GM_ROGUE && state->id == 7)
+            HSD_SisLib_803A6048(0xC000);
+        else
+            HSD_SisLib_803A6048(0x4800);
+        break;
+    }"""
+
+if new not in text:
+    if old not in text:
+        raise SystemExit(
+            "native Rogue flow: progression SIS arena anchor changed"
+        )
+    text = text.replace(old, new, 1)
+
+path.write_text(text, encoding="utf-8")
+
+# ---------------------------------------------------------------------------
 # Wii 1.7 + -lang c99 compatibility for modified vanilla translation units.
 # ---------------------------------------------------------------------------
 path = root / "src" / "melee" / "gm" / "types.h"

@@ -12,7 +12,7 @@ class ProgressionVisualPolishTests(unittest.TestCase):
         )
 
     def test_v5_safe_sis_panels_are_installed(self):
-        self.assertIn("PROGRESSION V5: SAFE SIS PANEL LAYER", self.src)
+        self.assertIn("PROGRESSION V6: SPLIT SIS BUFFERS", self.src)
         self.assertIn("static HSD_Text* ui_rect(", self.src)
 
     def test_raw_gx_panel_rendering_is_gone(self):
@@ -33,9 +33,11 @@ class ProgressionVisualPolishTests(unittest.TestCase):
         self.assertIn("text->box_size_x = w;", rect)
         self.assertIn("text->font_size.x = 1.0f;", rect)
 
-    def test_reward_screen_keeps_small_object_budget(self):
-        self.assertIn("Peak: about 9 objects.", self.src)
+    def test_reward_screen_splits_dynamic_sis_buffers(self):
         self.assertIn("draw_reward_card_panels", self.src)
+        self.assertIn("draw_reward_card_text", self.src)
+        self.assertIn("for (i = 0; i < 3; ++i)", self.src)
+        self.assertIn("Keep every section in a modest independent buffer", self.src)
 
     def test_pixel_space_text_remains(self):
         self.assertIn("text->pos_x = 0.0f;", self.src)

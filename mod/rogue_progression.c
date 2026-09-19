@@ -23,7 +23,7 @@
 RogueProgressionIntroData g_rogue_progression_intro;
 
 /*
- * PROGRESSION V5: SAFE SIS PANEL LAYER
+ * PROGRESSION V6: SPLIT SIS BUFFERS
  *
  * V4 proved that the layout direction was right, but its implementation was
  * not: calling DrawRectangle() from HSD_Text::render_callback can disturb the
@@ -44,7 +44,10 @@ RogueProgressionIntroData g_rogue_progression_intro;
  *   bottom HUD                1
  *   all Rogue text            1
  *
- * Peak: about 9 objects.
+ * V6 note:
+ * Reward-screen text is intentionally split into section-local HSD_Text
+ * buffers. This avoids growing one monolithic SIS command buffer when the
+ * three reward-card descriptions are added after Stage Clear.
  */
 
 static HSD_Text* lines[24];
@@ -480,46 +483,47 @@ static void draw_phase_text(HSD_Text* text)
     }
 }
 
-static void draw_reward_text(HSD_Text* text)
+static void draw_reward_card_text(HSD_Text* text, int i)
 {
     static const float x[3] = {39.0f, 237.0f, 435.0f};
-    int i;
+    RogueReward* reward;
+    GXColor* accent;
+    char meta[80];
+    char detail[180];
+    char line1[64];
+    char line2[64];
 
-    for (i = 0; i < 3; ++i) {
-        RogueReward* reward = &g_rogue_run.current_rewards[i];
-        GXColor* accent =
-            upgrade_cursor == i ? &ui_gold : &ui_white;
-        char meta[80];
-        char detail[180];
-        char line1[64];
-        char line2[64];
+    if (text == NULL || i < 0 || i >= 3)
+        return;
 
-        Rogue_DescribeReward(reward, detail, sizeof(detail));
-        split_description(detail,
-                          line1, sizeof(line1),
-                          line2, sizeof(line2),
-                          25);
+    reward = &g_rogue_run.current_rewards[i];
+    accent = upgrade_cursor == i ? &ui_gold : &ui_white;
 
-        snprintf(meta, sizeof(meta), "%s / %s",
-                 reward_category(reward),
-                 Rogue_RarityName(reward->rarity));
+    Rogue_DescribeReward(reward, detail, sizeof(detail));
+    split_description(detail,
+                      line1, sizeof(line1),
+                      line2, sizeof(line2),
+                      25);
 
-        ui_title(text, x[i], 143.0f, .44f,
-                 accent, reward_icon_letter(reward));
+    snprintf(meta, sizeof(meta), "%s / %s",
+             reward_category(reward),
+             Rogue_RarityName(reward->rarity));
 
-        ui_title(text, x[i] + 28.0f, 140.0f, .47f,
-                 accent, reward->name);
+    ui_title(text, x[i], 143.0f, .44f,
+             accent, reward_icon_letter(reward));
 
-        ui_entry_raw(text, x[i] + 28.0f, 159.0f,
-                     .31f, &ui_muted, meta);
+    ui_title(text, x[i] + 28.0f, 140.0f, .47f,
+             accent, reward->name);
 
-        ui_entry_raw(text, x[i], 184.0f,
-                     .36f, &ui_white, line1);
+    ui_entry_raw(text, x[i] + 28.0f, 159.0f,
+                 .31f, &ui_muted, meta);
 
-        if (line2[0]) {
-            ui_entry_raw(text, x[i], 199.0f,
-                         .36f, &ui_white, line2);
-        }
+    ui_entry_raw(text, x[i], 184.0f,
+                 .36f, &ui_white, line1);
+
+    if (line2[0]) {
+        ui_entry_raw(text, x[i], 199.0f,
+                     .36f, &ui_white, line2);
     }
 }
 
@@ -707,6 +711,7 @@ static void draw_full_build_text(HSD_Text* text)
 static void draw_progression(void)
 {
     HSD_Text* text;
+    int i;
 
     ui_clear();
 
@@ -721,25 +726,46 @@ static void draw_progression(void)
     }
 
     /*
-     * Create all background-only SIS objects first. The text object is created
-     * last, so it renders above our panels in the same SIS context.
+     * Background-only SIS objects are created first so all text renders above
+     * them in the same retail IntroEasy SIS context.
      */
     draw_base_panels();
 
     if (has_reward && !upgrade_chosen)
         draw_reward_card_panels();
 
+    /*
+     * Do NOT put the whole progression screen into one dynamic SIS command
+     * buffer. HSD_SisLib_803A6B98 grows that buffer by reallocating it in the
+     * scene's SIS arena. The post-Stage-Clear reward screen adds substantially
+     * more entries than the initial chooser, which is exactly the path that
+     * was hanging.
+     *
+     * Keep every section in a modest independent buffer instead.
+     */
     text = ui_text_group();
     if (text == NULL)
         return;
-
     draw_route_text(text);
     draw_phase_text(text);
 
-    if (has_reward && !upgrade_chosen)
-        draw_reward_text(text);
+    if (has_reward && !upgrade_chosen) {
+        for (i = 0; i < 3; ++i) {
+            text = ui_text_group();
+            if (text == NULL)
+                return;
+            draw_reward_card_text(text, i);
+        }
+    }
 
+    text = ui_text_group();
+    if (text == NULL)
+        return;
     draw_fight_text(text);
+
+    text = ui_text_group();
+    if (text == NULL)
+        return;
     draw_build_strip_text(text);
 }
 
