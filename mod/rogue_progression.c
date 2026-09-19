@@ -23,18 +23,17 @@
 RogueProgressionIntroData g_rogue_progression_intro;
 
 /*
- * PROGRESSION V8: ROGUE ROUTE + CLEAN LAYOUT
+ * PROGRESSION V10: CLEAN NATIVE ROUTE
  *
- * Stability rules:
- *   - SIS-only rendering; no raw GX callbacks
- *   - split text buffers from V6 remain intact
- *   - Rogue progression retains the 0xC000 SIS arena
+ * Keep the stable V6 SIS architecture and retail IntroEasy presentation.
  *
- * Presentation:
- *   - the unused retail IrRdMap is hidden for Rogue state 7
- *   - Rogue draws its own six-node route in native 640x480 SIS space
- *   - there is no Rogue background panel behind the route
- *   - reward/fight/build text is constrained to its panel bounds
+ * Route rule:
+ *   - retail road-map art supplies every route icon / node
+ *   - Rogue draws NO fake route nodes, connector lines, labels, or pointers
+ *   - Rogue adds only centered ACT / FLOOR text beneath the native route
+ *
+ * This removes the text glyphs (O, [], V) and dashed line that made the
+ * route look like debug UI instead of native Melee presentation.
  */
 
 static HSD_Text* lines[24];
@@ -58,7 +57,6 @@ static GXColor ui_gold = {255, 204, 0, 255};
 static GXColor ui_muted = {178, 190, 220, 255};
 static GXColor ui_dark = {7, 12, 30, 244};
 static GXColor ui_black = {3, 6, 16, 252};
-static GXColor ui_red = {204, 31, 24, 255};
 static GXColor ui_panel = {12, 18, 40, 230};
 static GXColor ui_panel_soft = {15, 22, 48, 224};
 static GXColor ui_blue = {83, 119, 242, 255};
@@ -471,68 +469,15 @@ static void draw_full_build_panels(void)
 
 static void draw_route_map(HSD_Text* text)
 {
-    static const char* names[6] = {
-        "CLEAR", "NEXT", "ELITE", "MATCH 4", "SHOP", "BOSS"
-    };
-    static const float node_x[6] = {
-        73.0f, 171.0f, 269.0f, 367.0f, 465.0f, 563.0f
-    };
-    static const float label_x[6] = {
-        55.0f, 154.0f, 251.0f, 339.0f, 449.0f, 548.0f
-    };
     const RogueRoute* route = &g_rogue_run.route;
-    int active;
-    int i;
-
-    active = target_act_floor - 1;
-    if (active < 0)
-        active = 0;
-    if (active > 4)
-        active = 4;
 
     /*
-     * Native-looking road line. All geometry lives inside this one HSD_Text
-     * command buffer, avoiding the object-count problems from older passes.
+     * No custom route geometry here. The retail route scene already provides
+     * the actual Melee node/icon art and animation. Rogue only identifies
+     * the act/floor beneath it.
      */
-    for (i = 0; i < 5; ++i) {
-        ui_entry_raw(text, node_x[i] + 14.0f, 18.0f,
-                     .23f, &ui_muted, "------------");
-    }
-
-    for (i = 0; i < 6; ++i) {
-        GXColor* node_color;
-        GXColor* label_color;
-
-        if (i < active) {
-            node_color = &ui_red;
-            label_color = &ui_white;
-        } else if (i == active) {
-            node_color = &ui_gold;
-            label_color = &ui_gold;
-        } else {
-            node_color = &ui_muted;
-            label_color = &ui_muted;
-        }
-
-        if (i == active) {
-            ui_entry_raw(text, node_x[i] + 3.0f, 1.0f,
-                         .24f, &ui_gold, "V");
-        }
-
-        ui_entry_raw(text, node_x[i], 11.0f,
-                     i == 3 ? .34f : .40f,
-                     node_color,
-                     i == 3 ? "[]" : "O");
-
-        ui_entry_raw(text, label_x[i], 36.0f,
-                     .25f, label_color, names[i]);
-    }
-
-    ui_title(text, 253.0f, 58.0f, .32f, &ui_white, "ACT");
-    ui_entryf(text, 281.0f, 58.0f, .32f, &ui_white, "%d", route->act);
-    ui_entry_raw(text, 304.0f, 58.0f, .32f, &ui_muted, "-");
-    ui_title(text, 326.0f, 58.0f, .32f, &ui_white, "FLOOR");
-    ui_entryf(text, 371.0f, 58.0f, .32f, &ui_white, "%d", target_floor);
+    ui_entryf(text, 248.0f, 58.0f, .32f, &ui_white,
+              "ACT %d  -  FLOOR %d", route->act, target_floor);
 }
 
 static void draw_phase_text(HSD_Text* text)
@@ -1029,7 +974,7 @@ void RogueProgression_Enter(GameModeState* state)
     g_rogue_progression_intro.game_type = 0;
     g_rogue_progression_intro.port = Rogue_ControllerPort();
     g_rogue_progression_intro.nametag = GM_NAMETAG_NONE;
-    g_rogue_progression_intro.stage_number = (u8) target_floor;
+    g_rogue_progression_intro.stage_number = (u8) target_act_floor;
 
     for (i = 0; i < 3; ++i) {
         g_rogue_progression_intro.allies[i] = ChKind_None;

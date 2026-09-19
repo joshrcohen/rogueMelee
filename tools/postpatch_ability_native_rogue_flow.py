@@ -96,34 +96,11 @@ if new not in text:
     text = text.replace(old, new, 1)
 
 # ---------------------------------------------------------------------------
-# Rogue progression: hide retail IrRdMap for Rogue's six-node map.
+# Rogue progression: keep the retail route-map model untouched.
 #
-# The retail map is tied to Classic's fixed stage sequence. Keep it loaded so
-# GS_INTRO_EASY's normal object/camera setup stays untouched, but hide only its
-# JObj tree in Rogue state 7. Rogue draws the route with safe SIS text instead.
+# The pinned IntroEasy scene already loads and animates the native road-map
+# assets. Rogue V10 intentionally adds no JObj visibility/transform patch.
 # ---------------------------------------------------------------------------
-old = """    HSD_JObjReqAnimAll(jobj, (f32) ((lbl_8047368C.xEE - 1) * 0x32));
-    HSD_JObjAnimAll(jobj);
-    lb_80011E24(jobj, &lbl_804735A8.x4[4], 0xE, -1);
-    lb_80011E24(jobj, &lbl_804735A8.x4[5], 1, -1);"""
-
-new = """    HSD_JObjReqAnimAll(jobj, (f32) ((lbl_8047368C.xEE - 1) * 0x32));
-    HSD_JObjAnimAll(jobj);
-
-    if (gm_GetCurrentGameMode() == GM_ROGUE &&
-        gm_GetCurrentSceneIndex() == ROGUE_STATE_PROGRESSION)
-    {
-        HSD_JObjSetFlagsAll(jobj, JOBJ_HIDDEN);
-    }
-
-    lb_80011E24(jobj, &lbl_804735A8.x4[4], 0xE, -1);
-    lb_80011E24(jobj, &lbl_804735A8.x4[5], 1, -1);"""
-
-if new not in text:
-    if old not in text:
-        raise SystemExit("native Rogue flow: IrRdMap hide anchor changed")
-    text = text.replace(old, new, 1)
-
 path.write_text(text, encoding="utf-8")
 
 # ---------------------------------------------------------------------------
@@ -199,4 +176,5 @@ for old, new in replacements.items():
 path.write_text(text, encoding="utf-8")
 
 print("postpatch: pre-combined Rogue flow compatibility applied")
-print("postpatch: retail IrRdMap hidden; Rogue six-node route enabled")
+
+print("postpatch: native retail route map left untouched for Rogue progression")

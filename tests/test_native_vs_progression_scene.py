@@ -35,9 +35,9 @@ class NativeVsProgressionSceneTests(unittest.TestCase):
         self.assertIn("gm_GetCurrentGameMode() == GM_ROGUE && state->id == 7", self.fix)
         self.assertIn("HSD_SisLib_803A6048(0xC000);", self.fix)
 
-    def test_progression_hides_stock_classic_map_only_in_state_7(self):
-        self.assertIn("hide retail IrRdMap for Rogue's six-node map", self.fix)
-        self.assertIn("HSD_JObjSetFlagsAll(jobj, JOBJ_HIDDEN);", self.fix)
+    def test_progression_keeps_native_route_model(self):
+        self.assertIn("native retail route map left untouched", self.fix)
+        self.assertNotIn("HSD_JObjSetFlagsAll(jobj, JOBJ_HIDDEN);", self.fix)
         self.assertIn("ROGUE_STATE_PROGRESSION", self.fix)
         self.assertNotIn("rogue_map_scale", self.fix)
         self.assertNotIn("rogue_map_pos", self.fix)
