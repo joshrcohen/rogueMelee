@@ -9,6 +9,7 @@ class AerialShopTests(unittest.TestCase):
         cls.ability=(ROOT/"mod/rogue_ability.c").read_text(encoding="utf-8")
         cls.header=(ROOT/"mod/rogue_ability.h").read_text(encoding="utf-8")
         cls.ui=(ROOT/"mod/rogue_ui.c").read_text(encoding="utf-8")
+        cls.rogue=(ROOT/"mod/rogue.c").read_text(encoding="utf-8")
         cls.camp=(ROOT/"mod/rogue_camp.c").read_text(encoding="utf-8")
         cls.build=(ROOT/"tools/build.py").read_text(encoding="utf-8")
         cls.post=(ROOT/"tools/postpatch_aerial_shop.py").read_text(encoding="utf-8")
@@ -34,12 +35,25 @@ class AerialShopTests(unittest.TestCase):
         self.assertIn("ftPartsRemap(fp->kind, source, bone)",self.ability)
         self.assertIn("Rogue_AerialLandingLag",self.post)
 
-    def test_aerial_sources_are_loaded_lazily(self):
-        created=self.ability.split("void Rogue_AbilityFighterCreated",1)[1]
-        created=created.split("bool Rogue_IsAbilityState",1)[0]
-        self.assertNotIn("for (i = 0; i < ROGUE_AERIAL_SLOTS; ++i)",created)
-        self.assertIn("ensureAerialSourceLoaded(fp, source)",self.ability)
-        self.assertIn("ensureAerialSourceLoaded(fp, internal)",self.ability)
+    def test_aerial_runtime_never_loads_files_on_attack(self):
+        attempt=self.ability.split("bool Rogue_AerialTryEnter",1)[1]
+        attempt=attempt.split("float Rogue_AerialLandingLag",1)[0]
+        self.assertNotIn("ftLib_80087508",attempt)
+        self.assertNotIn("prepareAerialSource",attempt)
+        self.assertIn("aerial_loaded_sources[source]",attempt)
+
+    def test_aerials_prepare_during_ready_countdown(self):
+        self.assertIn("void Rogue_AerialPrepareFrame(void)",self.ability)
+        self.assertIn("prepareAerialSource(fp, source)",self.ability)
+        self.assertIn("gm_GetFrameCount() < 30",self.rogue)
+        self.assertIn("Rogue_AerialPrepareFrame();",self.rogue)
+
+    def test_gamewatch_custom_item_aerials_are_guarded(self):
+        self.assertIn("source == Ft_Kind_GameWatch",self.ability)
+        self.assertIn("ROGUE_AERIAL_NAIR",self.ability)
+        self.assertIn("ROGUE_AERIAL_BAIR",self.ability)
+        self.assertIn("ROGUE_AERIAL_UAIR",self.ability)
+        self.assertIn("UNSUPPORTED",self.ui)
 
     def test_camp_zone(self):
         self.assertIn("i==1?It_Kind_Sword",self.camp)

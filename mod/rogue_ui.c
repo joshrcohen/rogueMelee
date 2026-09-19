@@ -1160,11 +1160,18 @@ static void aerialShopDraw(void)
         for(i=start;i<end;i++) {
             int selected=i==aerial_shop_source;
             int equipped_here=i==equipped;
-            GXColor color=selected?ui_gold:equipped_here?ui_muted:ui_white;
+            int compatible=Rogue_AerialCanEquip(
+                (RogueAerialSlot)aerial_shop_slot,(CharacterKind)i);
+            GXColor color=selected?(compatible?ui_gold:ui_red):
+                          equipped_here?ui_muted:compatible?ui_white:ui_muted;
             ui_at(-12.6f,-3.55f+(i-start)*1.18f,selected?.0185f:.0165f,color,
                   "%s %-18s %s",selected?">":" ",RogueRoute_CharacterName(i),
-                  equipped_here?"EQUIPPED":"");
+                  equipped_here?"EQUIPPED":compatible?"":"UNSUPPORTED");
         }
+        if(!Rogue_AerialCanEquip((RogueAerialSlot)aerial_shop_slot,
+                                 (CharacterKind)aerial_shop_source))
+            ui_at(-12.8f,8.55f,.0145f,ui_red,
+                  "CUSTOM AERIAL STATE - ADAPTER REQUIRED");
         ui_at(-12.8f,9.55f,.0155f,ui_white,"UP/DOWN: fighter   A: buy   B: slots");
     }
 }

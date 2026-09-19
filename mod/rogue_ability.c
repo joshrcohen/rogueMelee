@@ -37,6 +37,7 @@ typedef struct RogueFighterState {
     bool loaded[ROGUE_ABILITY_COUNT];
     bool loaded_sources[Ft_Kind_Max];
     bool aerial_loaded_sources[Ft_Kind_Max];
+    int aerial_prepare_slot;
     void* native_attrs;
     struct Fighter_WaitAnimData* native_anims;
     u8 (*native_anim_flags)[2];
@@ -49,7 +50,7 @@ typedef struct RogueFighterState {
 } RogueFighterState;
 static RogueFighterState fighter_state;
 
-static bool ensureAerialSourceLoaded(Fighter* fp, FighterKind source)
+static bool prepareAerialSource(Fighter* fp, FighterKind source)
 {
     if (fp == NULL || source < 0 || source >= Ft_Kind_Max)
         return false;
@@ -57,23 +58,92 @@ static bool ensureAerialSourceLoaded(Fighter* fp, FighterKind source)
     if (source == fp->kind)
         return true;
 
-    if (gFtDataList[source] != NULL) {
-        fighter_state.aerial_loaded_sources[source] = true;
+    if (fighter_state.aerial_loaded_sources[source] &&
+        gFtDataList[source] != NULL &&
+        ftData_Table_Unk0[source].data != NULL)
         return true;
-    }
 
     /*
-     * Load only the source that is actually needed. Loading all five selected
-     * aerial fighters from Rogue_AbilityFighterCreated can synchronously pull
-     * several fighter archives while the VS scene is still being constructed.
-     * That is both unnecessary and a likely source of first-fight stalls.
+     * A borrowed aerial needs the donor's fighter data, action/animation file,
+     * and effect bank, but NOT its costume/model. Avoid ftLib_80087508 here:
+     * that full loader also brings in donor costume data and was too heavy
+     * when several different aerial donors were equipped.
+     *
+     * This function is never called from Rogue_AerialTryEnter. It runs either
+     * in the shop after a purchase or during the READY countdown before play.
      */
-    ftLib_80087508(source, 0);
+    ftData_8008572C(source);
     if (gFtDataList[source] == NULL)
+        return false;
+
+    if (ftData_UnkBytePerCharacter[source] != (u8) -1)
+        efAsync_LoadSync(ftData_UnkBytePerCharacter[source]);
+
+    ftData_80085A14(source);
+    ftData_800857E0(source);
+
+    if (ftData_Table_Unk0[source].data == NULL)
         return false;
 
     fighter_state.aerial_loaded_sources[source] = true;
     return true;
+}
+
+bool Rogue_AerialCanEquip(RogueAerialSlot slot, CharacterKind source_character)
+{
+    FighterKind source;
+
+    if (slot < 0 || slot >= ROGUE_AERIAL_SLOTS ||
+        source_character < 0 || source_character >= CKind_Playable_Count)
+        return false;
+
+    source = Rogue_InternalKindForCharacter(source_character);
+    if (source < 0 || source >= Ft_Kind_Max)
+        return false;
+
+    /*
+     * Game & Watch Nair/Bair/Uair are custom item-backed action states
+     * (parachute/turtle/sparky), not ordinary common AttackAir states. They
+     * need a dedicated adapter before they can safely run on another fighter.
+     */
+    if (source == Ft_Kind_GameWatch &&
+        (slot == ROGUE_AERIAL_NAIR ||
+         slot == ROGUE_AERIAL_BAIR ||
+         slot == ROGUE_AERIAL_UAIR))
+        return false;
+
+    return true;
+}
+
+void Rogue_AerialPrepareFrame(void)
+{
+    Fighter* fp = fighter_state.fighter;
+
+    if (fp == NULL || !Rogue_IsRunPlayer(fp))
+        return;
+
+    while (fighter_state.aerial_prepare_slot < ROGUE_AERIAL_SLOTS) {
+        RogueAerialSlot slot =
+            (RogueAerialSlot) fighter_state.aerial_prepare_slot++;
+        CharacterKind source_character = g_rogue_run.aerial_source[slot];
+        FighterKind source;
+
+        if (source_character == g_rogue_run.player_kind ||
+            !Rogue_AerialCanEquip(slot, source_character))
+            continue;
+
+        source = Rogue_InternalKindForCharacter(source_character);
+        if (source == fp->kind || fighter_state.aerial_loaded_sources[source])
+            continue;
+
+        /*
+         * Prepare at most one unique donor per frame. The fight is still in
+         * its READY countdown, so all five slots are ready before control is
+         * handed to the player without a large scene-entry load spike.
+         */
+        prepareAerialSource(fp, source);
+        return;
+    }
 }
 
 bool Rogue_DebugGrantAbility(const char* key)
@@ -98,6 +168,7 @@ void Rogue_AbilityFighterCreated(Fighter* fp)
     if (!Rogue_IsRunPlayer(fp)) return;
     memset(&fighter_state, 0, sizeof(fighter_state));
     fighter_state.fighter = fp;
+    fighter_state.aerial_prepare_slot = 0;
 
     for (i = 1; i < ROGUE_ABILITY_COUNT; ++i) {
         const RogueAbilityDefinition* def = Rogue_GetAbility(i);
@@ -510,7 +581,7 @@ bool Rogue_BuyAerial(RogueAerialSlot slot, CharacterKind source)
 {
     if (!Rogue_IsActive() || slot < 0 || slot >= ROGUE_AERIAL_SLOTS ||
         source < 0 || source >= CKind_Playable_Count ||
-        Rogue_InternalKindForCharacter(source) >= Ft_Kind_Max ||
+        !Rogue_AerialCanEquip(slot, source) ||
         g_rogue_run.currency < ROGUE_AERIAL_PRICE ||
         g_rogue_run.aerial_source[slot] == source)
         return false;
@@ -533,8 +604,9 @@ bool Rogue_BuyAerial(RogueAerialSlot slot, CharacterKind source)
         Fighter* fp = gobj ? GET_FIGHTER(gobj) : NULL;
         FighterKind internal = Rogue_InternalKindForCharacter(source);
 
-        if (fp != NULL && fighter_state.fighter == fp)
-            ensureAerialSourceLoaded(fp, internal);
+        if (fp != NULL && fighter_state.fighter == fp &&
+            Rogue_AerialCanEquip(slot, source))
+            prepareAerialSource(fp, internal);
     }
 
     return true;
@@ -555,8 +627,15 @@ bool Rogue_AerialTryEnter(Fighter_GObj* gobj, FtMotionId msid)
     source = Rogue_InternalKindForCharacter(source_character);
     if (source_character == g_rogue_run.player_kind || source == fp->kind)
         return false;
+    /*
+     * Absolutely no file/effect loading is allowed here. If preparation did
+     * not complete, use the recipient's native aerial for this input instead
+     * of blocking the active match.
+     */
     if (source < 0 || source >= Ft_Kind_Max ||
-        !ensureAerialSourceLoaded(fp, source))
+        !fighter_state.aerial_loaded_sources[source] ||
+        gFtDataList[source] == NULL ||
+        ftData_Table_Unk0[source].data == NULL)
         return false;
 
     Rogue_AbilityCleanup(fp);

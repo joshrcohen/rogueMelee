@@ -424,6 +424,14 @@ static void exitRoute(GameModeState* state)
 
 static void encounterFrame(void)
 {
+    /*
+     * The READY countdown gives us time to prepare selected aerial donor data
+     * one source per frame. Do this before effects/AI and long before the
+     * player can issue an aerial attack.
+     */
+    if (gm_GetFrameCount() < 30)
+        Rogue_AerialPrepareFrame();
+
     RogueEffects_OnFrame();
     RogueAI_OnFrame();
 #ifdef ROGUE_QA

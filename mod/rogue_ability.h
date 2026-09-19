@@ -72,7 +72,9 @@ FighterKind Rogue_InternalKindForCharacter(CharacterKind character);
 
 const char* Rogue_AerialSlotName(RogueAerialSlot slot);
 CharacterKind Rogue_AerialSource(RogueAerialSlot slot);
+bool Rogue_AerialCanEquip(RogueAerialSlot slot, CharacterKind source);
 bool Rogue_BuyAerial(RogueAerialSlot slot, CharacterKind source);
+void Rogue_AerialPrepareFrame(void);
 bool Rogue_AerialTryEnter(Fighter_GObj* gobj, FtMotionId msid);
 float Rogue_AerialLandingLag(Fighter* fp, FtMotionId msid, float native_lag);
 #endif
