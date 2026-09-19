@@ -49,6 +49,33 @@ typedef struct RogueFighterState {
 } RogueFighterState;
 static RogueFighterState fighter_state;
 
+static bool ensureAerialSourceLoaded(Fighter* fp, FighterKind source)
+{
+    if (fp == NULL || source < 0 || source >= Ft_Kind_Max)
+        return false;
+
+    if (source == fp->kind)
+        return true;
+
+    if (gFtDataList[source] != NULL) {
+        fighter_state.aerial_loaded_sources[source] = true;
+        return true;
+    }
+
+    /*
+     * Load only the source that is actually needed. Loading all five selected
+     * aerial fighters from Rogue_AbilityFighterCreated can synchronously pull
+     * several fighter archives while the VS scene is still being constructed.
+     * That is both unnecessary and a likely source of first-fight stalls.
+     */
+    ftLib_80087508(source, 0);
+    if (gFtDataList[source] == NULL)
+        return false;
+
+    fighter_state.aerial_loaded_sources[source] = true;
+    return true;
+}
+
 bool Rogue_DebugGrantAbility(const char* key)
 {
     int i;
@@ -71,17 +98,6 @@ void Rogue_AbilityFighterCreated(Fighter* fp)
     if (!Rogue_IsRunPlayer(fp)) return;
     memset(&fighter_state, 0, sizeof(fighter_state));
     fighter_state.fighter = fp;
-
-    for (i = 0; i < ROGUE_AERIAL_SLOTS; ++i) {
-        CharacterKind source_character = g_rogue_run.aerial_source[i];
-        FighterKind source = Rogue_InternalKindForCharacter(source_character);
-        if (source < 0 || source >= Ft_Kind_Max || source == fp->kind)
-            continue;
-        if (!fighter_state.aerial_loaded_sources[source]) {
-            ftLib_80087508(source, 0);
-            fighter_state.aerial_loaded_sources[source] = true;
-        }
-    }
 
     for (i = 1; i < ROGUE_ABILITY_COUNT; ++i) {
         const RogueAbilityDefinition* def = Rogue_GetAbility(i);
@@ -506,6 +522,21 @@ bool Rogue_BuyAerial(RogueAerialSlot slot, CharacterKind source)
     g_rogue_run.currency -= ROGUE_AERIAL_PRICE;
     g_rogue_run.aerial_source[slot] = source;
     g_rogue_run.phase = ROGUE_PHASE_SHOP;
+
+    /*
+     * The shop fighter already exists when the player buys an aerial. Warm
+     * just this source now so the newly selected move can be tested in the
+     * rest area immediately instead of remaining the base fighter's aerial.
+     */
+    {
+        Fighter_GObj* gobj = Player_GetEntity(0);
+        Fighter* fp = gobj ? GET_FIGHTER(gobj) : NULL;
+        FighterKind internal = Rogue_InternalKindForCharacter(source);
+
+        if (fp != NULL && fighter_state.fighter == fp)
+            ensureAerialSourceLoaded(fp, internal);
+    }
+
     return true;
 }
 
@@ -525,8 +556,7 @@ bool Rogue_AerialTryEnter(Fighter_GObj* gobj, FtMotionId msid)
     if (source_character == g_rogue_run.player_kind || source == fp->kind)
         return false;
     if (source < 0 || source >= Ft_Kind_Max ||
-        !fighter_state.aerial_loaded_sources[source] ||
-        gFtDataList[source] == NULL)
+        !ensureAerialSourceLoaded(fp, source))
         return false;
 
     Rogue_AbilityCleanup(fp);

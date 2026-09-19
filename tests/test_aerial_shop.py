@@ -34,6 +34,13 @@ class AerialShopTests(unittest.TestCase):
         self.assertIn("ftPartsRemap(fp->kind, source, bone)",self.ability)
         self.assertIn("Rogue_AerialLandingLag",self.post)
 
+    def test_aerial_sources_are_loaded_lazily(self):
+        created=self.ability.split("void Rogue_AbilityFighterCreated",1)[1]
+        created=created.split("bool Rogue_IsAbilityState",1)[0]
+        self.assertNotIn("for (i = 0; i < ROGUE_AERIAL_SLOTS; ++i)",created)
+        self.assertIn("ensureAerialSourceLoaded(fp, source)",self.ability)
+        self.assertIn("ensureAerialSourceLoaded(fp, internal)",self.ability)
+
     def test_camp_zone(self):
         self.assertIn("i==1?It_Kind_Sword",self.camp)
         self.assertIn('"UPGRADE","AERIALS","REST","TRAIN","NEXT FIGHT"',self.ui)
