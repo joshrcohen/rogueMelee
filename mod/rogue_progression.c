@@ -23,17 +23,18 @@
 RogueProgressionIntroData g_rogue_progression_intro;
 
 /*
- * PROGRESSION V10: CLEAN NATIVE ROUTE
+ * PROGRESSION V11: NATIVE ROUTE SPACING + 15-FLOOR STATE
  *
  * Keep the stable V6 SIS architecture and retail IntroEasy presentation.
  *
- * Route rule:
- *   - retail road-map art supplies every route icon / node
- *   - Rogue draws NO fake route nodes, connector lines, labels, or pointers
- *   - Rogue adds only centered ACT / FLOOR text beneath the native route
+ * Route:
+ *   - native IrRdMap supplies all route-node art and animation
+ *   - native animation is driven by target_act_floor (1..5)
+ *   - each Rogue act therefore uses exactly five logical route steps
+ *   - ACT x/3 and FLOOR x/15 expose the full run state
+ *   - the Rogue header starts below the native map so node art is not clipped
  *
- * This removes the text glyphs (O, [], V) and dashed line that made the
- * route look like debug UI instead of native Melee presentation.
+ * Three acts x five floors = the full 15-floor Rogue run.
  */
 
 static HSD_Text* lines[24];
@@ -402,16 +403,13 @@ static void draw_base_panels(void)
     bool right_selected;
 
     /*
-     * Intentionally draw NOTHING behind the route. The top of IntroEasy is
-     * already black; V8's six-node route sits directly on it.
+     * Reserve 0..95 entirely for IrRdMap. Do not place Rogue panels over the
+     * native node rings. The header begins below the route at y=96.
      */
-
-    /* Mask only the retail STAGE title band. */
-    ui_rect(0.0f, 74.0f, 640.0f, 49.0f, ui_black);
+    ui_rect(0.0f, 96.0f, 640.0f, 48.0f, ui_black);
 
     /*
-     * Mask the small native ALLY tag without covering the red VS graphic.
-     * This is deliberately narrow instead of another full-width overlay.
+     * Mask only the small native ALLY tag without covering the central VS.
      */
     ui_rect(250.0f, 229.0f, 58.0f, 24.0f, ui_glass);
 
@@ -442,11 +440,11 @@ static void draw_reward_card_panels(void)
     static const float x[3] = {24.0f, 222.0f, 420.0f};
     int i;
 
-    ui_rect(x[upgrade_cursor] - 3.0f, 118.0f,
-            202.0f, 111.0f, ui_gold);
+    ui_rect(x[upgrade_cursor] - 3.0f, 143.0f,
+            202.0f, 116.0f, ui_gold);
 
     for (i = 0; i < 3; ++i) {
-        ui_rect(x[i], 121.0f, 196.0f, 105.0f,
+        ui_rect(x[i], 146.0f, 196.0f, 110.0f,
                 i == upgrade_cursor ? ui_dark : ui_panel);
     }
 }
@@ -472,12 +470,13 @@ static void draw_route_map(HSD_Text* text)
     const RogueRoute* route = &g_rogue_run.route;
 
     /*
-     * No custom route geometry here. The retail route scene already provides
-     * the actual Melee node/icon art and animation. Rogue only identifies
-     * the act/floor beneath it.
+     * IrRdMap is driven separately by target_act_floor (1..5). This text
+     * exposes the full Rogue run state: 3 acts, 15 total floors.
      */
-    ui_entryf(text, 248.0f, 58.0f, .32f, &ui_white,
-              "ACT %d  -  FLOOR %d", route->act, target_floor);
+    ui_entryf(text, 221.0f, 101.0f, .29f, &ui_white,
+              "ACT %d/%d     FLOOR %d/%d",
+              route->act, ROGUE_ACTS,
+              target_floor, ROGUE_RUN_ENCOUNTERS);
 }
 
 static void draw_phase_text(HSD_Text* text)
@@ -496,10 +495,10 @@ static void draw_phase_text(HSD_Text* text)
         x = 223.0f;
     }
 
-    ui_title(text, x, 88.0f, .40f, &ui_gold, phase);
+    ui_title(text, x, 122.0f, .38f, &ui_gold, phase);
 
     if (has_reward && upgrade_chosen && upgrade_taken >= 0) {
-        ui_entryf(text, 247.0f, 108.0f, .24f, &ui_muted,
+        ui_entryf(text, 247.0f, 139.0f, .22f, &ui_muted,
                   "LOCKED: %s",
                   g_rogue_run.current_rewards[upgrade_taken].name);
     }
@@ -524,45 +523,40 @@ static void draw_reward_card_text(HSD_Text* text, int i)
     accent = upgrade_cursor == i ? &ui_gold : &ui_white;
 
     Rogue_DescribeReward(reward, detail, sizeof(detail));
-
-    /*
-     * The full build screen already explains slot retention. Removing this
-     * sentence from ability cards keeps the choice card concise.
-     */
     trim_suffix(detail, " Other slots stay equipped.");
 
     wrap_description3(detail,
                       line1, sizeof(line1),
                       line2, sizeof(line2),
                       line3, sizeof(line3),
-                      22);
+                      19);
 
     snprintf(meta, sizeof(meta), "%s / %s",
              reward_category(reward),
              Rogue_RarityName(reward->rarity));
 
-    title_scale = fit_text_scale(reward->name, .39f, .28f, 16);
+    title_scale = fit_text_scale(reward->name, .37f, .26f, 15);
 
-    ui_title(text, x[i], 135.0f, .34f,
+    ui_title(text, x[i], 158.0f, .32f,
              accent, reward_icon_letter(reward));
 
-    ui_title(text, x[i] + 30.0f, 132.0f,
+    ui_title(text, x[i] + 30.0f, 156.0f,
              title_scale, accent, reward->name);
 
-    ui_entry_raw(text, x[i] + 30.0f, 151.0f,
-                 .23f, &ui_muted, meta);
+    ui_entry_raw(text, x[i] + 30.0f, 175.0f,
+                 .21f, &ui_muted, meta);
 
-    ui_entry_raw(text, x[i], 175.0f,
-                 .24f, &ui_white, line1);
+    ui_entry_raw(text, x[i], 197.0f,
+                 .21f, &ui_white, line1);
 
     if (line2[0]) {
-        ui_entry_raw(text, x[i], 193.0f,
-                     .24f, &ui_white, line2);
+        ui_entry_raw(text, x[i], 214.0f,
+                     .21f, &ui_white, line2);
     }
 
     if (line3[0]) {
-        ui_entry_raw(text, x[i], 211.0f,
-                     .24f, &ui_white, line3);
+        ui_entry_raw(text, x[i], 231.0f,
+                     .21f, &ui_white, line3);
     }
 }
 
@@ -974,6 +968,10 @@ void RogueProgression_Enter(GameModeState* state)
     g_rogue_progression_intro.game_type = 0;
     g_rogue_progression_intro.port = Rogue_ControllerPort();
     g_rogue_progression_intro.nametag = GM_NAMETAG_NONE;
+    /*
+     * IrRdMap is an act-local visual: floors 1..5 map to native progress
+     * states 1..5. route->act + target_floor report the full 15-floor run.
+     */
     g_rogue_progression_intro.stage_number = (u8) target_act_floor;
 
     for (i = 0; i < 3; ++i) {

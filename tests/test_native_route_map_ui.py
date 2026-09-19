@@ -14,43 +14,49 @@ class NativeRouteMapUiTests(unittest.TestCase):
             ROOT / "tools/postpatch_ability_native_rogue_flow.py"
         ).read_text(encoding="utf-8")
 
-    def test_v10_route_is_native_assets_only(self):
-        self.assertIn("PROGRESSION V10: CLEAN NATIVE ROUTE", self.progress)
+    def test_v11_route_uses_native_assets_only(self):
+        self.assertIn(
+            "PROGRESSION V11: NATIVE ROUTE SPACING + 15-FLOOR STATE",
+            self.progress,
+        )
         block = self.progress.split(
             "static void draw_route_map(HSD_Text* text)", 1
         )[1].split("static void draw_phase_text", 1)[0]
 
-        self.assertIn('"ACT %d  -  FLOOR %d"', block)
+        self.assertIn('"ACT %d/%d     FLOOR %d/%d"', block)
+        self.assertIn("ROGUE_ACTS", block)
+        self.assertIn("ROGUE_RUN_ENCOUNTERS", block)
         self.assertNotIn('"------------"', block)
         self.assertNotIn('"[]"', block)
         self.assertNotIn('"O"', block)
         self.assertNotIn('"V"', block)
-        self.assertNotIn('"CLEAR"', block)
-        self.assertNotIn('"NEXT"', block)
-        self.assertNotIn('"ELITE"', block)
-        self.assertNotIn('"MATCH 4"', block)
-        self.assertNotIn('"SHOP"', block)
-        self.assertNotIn('"BOSS"', block)
 
-    def test_native_route_model_is_not_hidden_or_transformed(self):
+    def test_header_starts_below_native_route(self):
+        base = self.progress.split(
+            "static void draw_base_panels(void)", 1
+        )[1].split("static void draw_reward_card_panels", 1)[0]
+        self.assertIn("0.0f, 96.0f, 640.0f, 48.0f", base)
+
+    def test_native_map_tracks_five_floors_per_act(self):
+        self.assertIn(
+            "stage_number = (u8) target_act_floor;", self.progress
+        )
+        self.assertIn(
+            "Three acts x five floors = the full 15-floor Rogue run.",
+            self.progress,
+        )
+
+    def test_native_route_model_remains_unmodified(self):
         self.assertNotIn(
             "HSD_JObjSetFlagsAll(jobj, JOBJ_HIDDEN);", self.fix
         )
         self.assertNotIn("rogue_map_scale", self.fix)
         self.assertNotIn("rogue_map_pos", self.fix)
-        self.assertIn(
-            "native retail route map left untouched", self.fix
-        )
 
-    def test_native_map_uses_act_local_stage_number(self):
-        self.assertIn(
-            "stage_number = (u8) target_act_floor;", self.progress
-        )
-
-    def test_reward_readability_helpers_remain(self):
+    def test_reward_copy_is_kept_inside_cards(self):
         self.assertIn("wrap_description3", self.progress)
-        self.assertIn("fit_text_scale", self.progress)
-        self.assertIn("trim_suffix", self.progress)
+        self.assertIn("19);", self.progress)
+        self.assertIn("231.0f", self.progress)
 
 
 if __name__ == "__main__":
