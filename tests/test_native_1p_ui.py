@@ -14,13 +14,12 @@ class NativeOnePlayerUiTests(unittest.TestCase):
         self.assertIn('"CHOOSE UPGRADE"', self.progress)
         self.assertIn('"CHOOSE NEXT FIGHT"', self.progress)
         self.assertIn('"CURRENT CHARACTER BUILD / UPGRADES"', self.progress)
-        self.assertIn('"GOLD +%d   TOTAL %d   SCORE %d', self.progress)
-        self.assertIn("draw_node(", self.progress)
+        self.assertIn('"GOLD +%d  |  TOTAL %d  |  SCORE %d', self.progress)
 
-    def test_three_upgrade_cards_across_middle(self):
-        self.assertIn("for (i = 0; i < 3; ++i)", self.progress)
-        self.assertIn("-14.75f + i * 9.80f", self.progress)
-        self.assertIn("draw_reward_card(", self.progress)
+    def test_three_upgrade_cards_exist(self):
+        self.assertIn("static const float card_x[3]", self.progress)
+        self.assertIn("draw_reward_text", self.progress)
+        self.assertIn("draw_reward_panels", self.progress)
 
     def test_cards_disappear_after_upgrade(self):
         self.assertIn("has_reward && !upgrade_chosen", self.progress)
@@ -39,11 +38,10 @@ class NativeOnePlayerUiTests(unittest.TestCase):
     def test_native_continue_screen_remains(self):
         self.assertIn("GS_GAMEOVER, &game_over_data, &game_over_data", self.rogue)
 
-    def test_v3_uses_absolute_global_text(self):
-        self.assertIn("PROGRESSION LAYOUT V3", self.progress)
-        self.assertIn('ui_at(-4.75f, -11.55f', self.progress)
-        self.assertIn('ui_at(-14.25f, 10.18f', self.progress)
-        self.assertIn("ui_glass", self.progress)
+    def test_v4_uses_native_640x480_coordinates(self):
+        self.assertIn("640.0f", self.progress)
+        self.assertIn("480.0f", self.progress)
+        self.assertIn("text->font_size.x = 1.0f", self.progress)
 
 
 if __name__ == "__main__":
