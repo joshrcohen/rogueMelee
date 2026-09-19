@@ -23,7 +23,7 @@
 RogueProgressionIntroData g_rogue_progression_intro;
 
 /*
- * PROGRESSION V12: COMPACT HUD + MINIMAL ENCOUNTER TEXT
+ * PROGRESSION V13: COMPACT HUD + HELD NATIVE INTRO
  *
  * Goals:
  *   - keep the stable native IrRdMap + act-local five-step route behavior
@@ -1082,7 +1082,7 @@ bool Rogue_ProgressionIntroFrame(void)
                  * boss encounter. There is no left/right branch here.
                  */
                 if (g_rogue_run.phase == ROGUE_PHASE_ENCOUNTER)
-                    confirm_timer = 30;
+                    confirm_timer = 6;
             }
         }
 
@@ -1104,7 +1104,7 @@ bool Rogue_ProgressionIntroFrame(void)
             {
                 fight_locked = fight_cursor;
                 g_rogue_run.phase = ROGUE_PHASE_ENCOUNTER;
-                confirm_timer = 18;
+                confirm_timer = 6;
                 draw_progression();
             }
         }

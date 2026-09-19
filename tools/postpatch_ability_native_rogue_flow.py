@@ -68,6 +68,38 @@ if new not in text:
         raise SystemExit("native Rogue flow: gm_1832 include anchor changed")
     text = text.replace(old, new, 1)
 
+# ---------------------------------------------------------------------------
+# Rogue state 7 freezes the retail IntroEasy timeline before NOW LOADING.
+#
+# gm_Scene_IntroEasy_OnFrame is already held by Rogue input, but fn_80184AB8
+# is a separate GObj proc and otherwise continues advancing the retail intro
+# model until its terminal/loading animation. State 7 owns its own lifetime,
+# so stop only that presentation timeline after the VS composition is ready.
+# The native IrRdMap has a separate proc (fn_8018504C) and keeps animating.
+# ---------------------------------------------------------------------------
+old = """    jobj = arg0->hsd_obj;
+    HSD_JObjAnimAll(jobj);
+
+    if (lbl_804735A8.x38 < 0x8CU) {"""
+
+new = """    jobj = arg0->hsd_obj;
+
+    if (gm_GetCurrentGameMode() == GM_ROGUE &&
+        gm_GetCurrentSceneIndex() == ROGUE_STATE_PROGRESSION &&
+        lbl_804735A8.x38 >= 0x63U)
+    {
+        return;
+    }
+
+    HSD_JObjAnimAll(jobj);
+
+    if (lbl_804735A8.x38 < 0x8CU) {"""
+
+if new not in text:
+    if old not in text:
+        raise SystemExit("native Rogue flow: IntroEasy timeline anchor changed")
+    text = text.replace(old, new, 1)
+
 old = (
     'void gm_Scene_IntroEasy_OnFrame(void)\n'
     '{\n'

@@ -20,6 +20,15 @@ class NativeVsProgressionSceneTests(unittest.TestCase):
         self.assertIn("if (Rogue_ProgressionIntroFrame())", self.fix)
         self.assertIn("return;", self.fix)
 
+    def test_progression_freezes_retail_intro_before_loading_tail(self):
+        self.assertIn(
+            "Rogue state 7 freezes the retail IntroEasy timeline",
+            self.fix,
+        )
+        self.assertIn("lbl_804735A8.x38 >= 0x63U", self.fix)
+        self.assertIn("ROGUE_STATE_PROGRESSION", self.fix)
+        self.assertIn("fn_8018504C", self.fix)
+
     def test_frame_guards_mode_and_state(self):
         frame = self.progress.split("bool Rogue_ProgressionIntroFrame(void)", 1)[1]
         self.assertIn("gm_GetCurrentGameMode() != GM_ROGUE", frame)
