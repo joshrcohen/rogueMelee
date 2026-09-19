@@ -14,10 +14,10 @@ class NativeOnePlayerUiTests(unittest.TestCase):
         self.assertIn('"CHOOSE UPGRADE"', self.progress)
         self.assertIn('"CHOOSE NEXT FIGHT"', self.progress)
         self.assertIn('"CURRENT CHARACTER BUILD / UPGRADES"', self.progress)
-        self.assertIn('"GOLD +%d  |  TOTAL %d  |  SCORE %d', self.progress)
+        self.assertIn('"GOLD +%d   TOTAL %d   SCORE %d"', self.progress)
 
     def test_three_upgrade_cards_exist(self):
-        self.assertIn("static const float x[3] = {27.0f, 225.0f, 423.0f}", self.progress)
+        self.assertIn("static const float x[3] = {24.0f, 222.0f, 420.0f}", self.progress)
         self.assertIn("draw_reward_card_text", self.progress)
         self.assertIn("draw_reward_card_panels", self.progress)
 

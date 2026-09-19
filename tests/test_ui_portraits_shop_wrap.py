@@ -18,7 +18,7 @@ class UiPortraitShopWrapTests(unittest.TestCase):
 
     def test_reward_cards_keep_description_text(self):
         self.assertIn("Rogue_DescribeReward", self.progress)
-        self.assertIn("split_description", self.progress)
+        self.assertIn("wrap_description3", self.progress)
 
     def test_build_strip_has_all_abilities_and_stats(self):
         self.assertIn("ability_name(ROGUE_ABILITY_NEUTRAL)", self.progress)

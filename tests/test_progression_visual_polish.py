@@ -12,7 +12,7 @@ class ProgressionVisualPolishTests(unittest.TestCase):
         )
 
     def test_v5_safe_sis_panels_are_installed(self):
-        self.assertIn("PROGRESSION V7: NATIVE ROAD MAP POLISH", self.src)
+        self.assertIn("PROGRESSION V8: ROGUE ROUTE + CLEAN LAYOUT", self.src)
         self.assertIn("static HSD_Text* ui_rect(", self.src)
 
     def test_raw_gx_panel_rendering_is_gone(self):
@@ -43,6 +43,12 @@ class ProgressionVisualPolishTests(unittest.TestCase):
         self.assertIn("text->pos_x = 0.0f;", self.src)
         self.assertIn("text->font_size.x = 1.0f;", self.src)
         self.assertIn("ui_entry_raw(", self.src)
+
+    def test_route_has_no_rogue_background_panel(self):
+        base = self.src.split("static void draw_base_panels(void)", 1)[1]
+        base = base.split("static void draw_reward_card_panels", 1)[0]
+        self.assertIn("Intentionally draw NOTHING behind the route", base)
+        self.assertNotIn("ui_route_glass", self.src)
 
     def test_build_has_four_distinct_slots(self):
         self.assertIn('static const char* keys[4] = {"N", "S", "U", "D"}', self.src)
