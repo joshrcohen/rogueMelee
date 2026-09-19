@@ -30,6 +30,7 @@ def prepare():
         ROOT / 'tools/postpatch_ability_fixes_round10.py',
         ROOT / 'tools/postpatch_ability_fixes_round12.py',
         ROOT / 'tools/postpatch_ability_production_cleanup.py',
+        ROOT / 'tools/postpatch_aerial_shop.py',
         ROOT / 'tools/postpatch_ability_native_rogue_flow.py',
     ]
     digest = hashlib.sha256()

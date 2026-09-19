@@ -155,3 +155,13 @@ RogueAbilityID Rogue_AbilityForOpponent(CharacterKind opponent, RogueAbilitySlot
             return abilities[i].id;
     return ROGUE_ABILITY_NATIVE;
 }
+
+FighterKind Rogue_InternalKindForCharacter(CharacterKind character)
+{
+    unsigned i;
+    for (i = 0; i < sizeof(abilities) / sizeof(*abilities); ++i) {
+        if (abilities[i].source_kind == character)
+            return abilities[i].internal_kind;
+    }
+    return Ft_Kind_Max;
+}

@@ -83,7 +83,8 @@ void RogueCamp_Create(void)
             continue;
         }
         if(!valid[i]) continue;
-        int kind=i<2?rewardModel(g_rogue_run.shop_rewards[i].type):
+        int kind=i==0?rewardModel(g_rogue_run.shop_rewards[0].type):
+            i==1?It_Kind_Sword:
             i==2?It_Kind_Heart:i==3?It_Kind_RabbitC:It_Kind_Star;
         Article* article=it_804D6D24?it_804D6D24[kind]:NULL;
         if(!article || !article->x10_modelDesc || !article->x10_modelDesc->x0_joint) continue;
@@ -116,7 +117,8 @@ void RogueCamp_Update(int selected,int branch)
     selected_zone=selected;
     float frame=gm_GetFrameCount();
     for(int i=0;i<ZONES;i++) {
-        disabled[i]=i<2?(g_rogue_run.shop_sold[i] || branch==2):i<4?branch!=0:false;
+        disabled[i]=i==0?(g_rogue_run.shop_sold[0] || branch==2):
+            i==1?(branch==2):i<4?branch!=0:false;
         HSD_JObj* j=icons[i];if(!j) continue;
         if(disabled[i]) { HSD_JObjSetFlagsAll(j,JOBJ_HIDDEN);continue; }
         HSD_JObjClearFlagsAll(j,JOBJ_HIDDEN);

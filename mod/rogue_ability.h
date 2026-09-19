@@ -7,6 +7,17 @@ typedef enum RogueAbilitySlot {
     ROGUE_ABILITY_NEUTRAL, ROGUE_ABILITY_SIDE,
     ROGUE_ABILITY_UP, ROGUE_ABILITY_DOWN, ROGUE_ABILITY_SLOTS
 } RogueAbilitySlot;
+
+typedef enum RogueAerialSlot {
+    ROGUE_AERIAL_NAIR,
+    ROGUE_AERIAL_FAIR,
+    ROGUE_AERIAL_BAIR,
+    ROGUE_AERIAL_UAIR,
+    ROGUE_AERIAL_DAIR,
+    ROGUE_AERIAL_SLOTS
+} RogueAerialSlot;
+
+#define ROGUE_AERIAL_PRICE 100
 typedef enum RogueAbilityID {
     ROGUE_ABILITY_NATIVE,
     ROGUE_ABILITY_FOX_REFLECTOR = 1 + Ft_Kind_Fox * 4 + ROGUE_ABILITY_DOWN,
@@ -57,4 +68,11 @@ union Fighter_FighterVars;
 union Fighter_FighterVars* Rogue_AbilityVars(Fighter* fp, FighterKind family);
 bool Rogue_BorrowedTransform(Fighter_GObj* gobj, HSD_GObjEvent finish);
 RogueAbilityID Rogue_AbilityForOpponent(CharacterKind opponent, RogueAbilitySlot slot);
+FighterKind Rogue_InternalKindForCharacter(CharacterKind character);
+
+const char* Rogue_AerialSlotName(RogueAerialSlot slot);
+CharacterKind Rogue_AerialSource(RogueAerialSlot slot);
+bool Rogue_BuyAerial(RogueAerialSlot slot, CharacterKind source);
+bool Rogue_AerialTryEnter(Fighter_GObj* gobj, FtMotionId msid);
+float Rogue_AerialLandingLag(Fighter* fp, FtMotionId msid, float native_lag);
 #endif

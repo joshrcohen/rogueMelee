@@ -8,6 +8,7 @@
 #include <melee/ft/ftparts.h>
 #include <melee/ft/inlines.h>
 #include <melee/ft/kinds/ftCommon/forward.h>
+#include <melee/ft/kinds/ftCommon/ftCo_AttackAir.h>
 #include <melee/ft/kinds/ftFox/types.h>
 #include <melee/ft/kinds/ftFox/ftfoxspecialn.h>
 #include <melee/ft/kinds/ftCaptain/ftcaptainspecials.h>
@@ -30,8 +31,12 @@
 typedef struct RogueFighterState {
     Fighter* fighter;
     const RogueAbilityDefinition* active;
+    bool aerial_active;
+    FighterKind aerial_source_kind;
+    RogueAerialSlot aerial_slot;
     bool loaded[ROGUE_ABILITY_COUNT];
     bool loaded_sources[Ft_Kind_Max];
+    bool aerial_loaded_sources[Ft_Kind_Max];
     void* native_attrs;
     struct Fighter_WaitAnimData* native_anims;
     u8 (*native_anim_flags)[2];
@@ -66,6 +71,18 @@ void Rogue_AbilityFighterCreated(Fighter* fp)
     if (!Rogue_IsRunPlayer(fp)) return;
     memset(&fighter_state, 0, sizeof(fighter_state));
     fighter_state.fighter = fp;
+
+    for (i = 0; i < ROGUE_AERIAL_SLOTS; ++i) {
+        CharacterKind source_character = g_rogue_run.aerial_source[i];
+        FighterKind source = Rogue_InternalKindForCharacter(source_character);
+        if (source < 0 || source >= Ft_Kind_Max || source == fp->kind)
+            continue;
+        if (!fighter_state.aerial_loaded_sources[source]) {
+            ftLib_80087508(source, 0);
+            fighter_state.aerial_loaded_sources[source] = true;
+        }
+    }
+
     for (i = 1; i < ROGUE_ABILITY_COUNT; ++i) {
         const RogueAbilityDefinition* def = Rogue_GetAbility(i);
         int slot, source;
@@ -218,7 +235,8 @@ void Rogue_AbilityFighterCreated(Fighter* fp)
 
 bool Rogue_IsAbilityState(const Fighter* fp)
 {
-    return fp && fighter_state.fighter == fp && fighter_state.active != NULL;
+    return fp && fighter_state.fighter == fp &&
+           (fighter_state.active != NULL || fighter_state.aerial_active);
 }
 
 void Rogue_AbilityCleanup(Fighter* fp)
@@ -226,6 +244,15 @@ void Rogue_AbilityCleanup(Fighter* fp)
     FighterKind source;
     RogueAbilitySlot slot;
     if (!Rogue_IsAbilityState(fp)) return;
+
+    if (fighter_state.aerial_active && fighter_state.active == NULL) {
+        fp->x24 = fighter_state.native_anims;
+        fp->x28 = fighter_state.native_anim_flags;
+        fp->x58C = fighter_state.native_anim_count;
+        fighter_state.aerial_active = false;
+        fighter_state.aerial_source_kind = Ft_Kind_Max;
+        return;
+    }
 
     source = fighter_state.active->internal_kind;
     slot = fighter_state.active->native_slot;
@@ -295,12 +322,20 @@ void Rogue_AbilityCleanup(Fighter* fp)
 
 FighterKind Rogue_AbilitySourceKind(const Fighter* fp)
 {
-    return Rogue_IsAbilityState(fp) ? fighter_state.active->internal_kind : fp->kind;
+    if (!Rogue_IsAbilityState(fp))
+        return fp->kind;
+    if (fighter_state.active != NULL)
+        return fighter_state.active->internal_kind;
+    return fighter_state.aerial_source_kind;
 }
 
 ftData* Rogue_AbilityData(Fighter* fp)
 {
-    return Rogue_IsAbilityState(fp) ? gFtDataList[fighter_state.active->internal_kind] : fp->ft_data;
+    FighterKind source;
+    if (!Rogue_IsAbilityState(fp))
+        return fp->ft_data;
+    source = Rogue_AbilitySourceKind(fp);
+    return source >= 0 && source < Ft_Kind_Max ? gFtDataList[source] : fp->ft_data;
 }
 
 static FighterKind abilityFamily(FighterKind kind)
@@ -398,7 +433,16 @@ MotionState* Rogue_AbilityMotionState(Fighter* fp, int motion)
 {
     const RogueAbilityDefinition* def;
     if (!Rogue_IsAbilityState(fp)) return NULL;
+
+    if (fighter_state.aerial_active && fighter_state.active == NULL) {
+        if (motion >= ftCo_MS_AttackAirN && motion <= ftCo_MS_AttackAirLw)
+            return NULL;
+        Rogue_AbilityCleanup(fp);
+        return NULL;
+    }
+
     def = fighter_state.active;
+    if (!def) return NULL;
     if (!Rogue_IsRunPlayer(fp) || motion < def->first_state || motion > def->last_state) {
         Rogue_AbilityCleanup(fp);
         return NULL;
@@ -409,12 +453,120 @@ MotionState* Rogue_AbilityMotionState(Fighter* fp, int motion)
 int Rogue_AbilityMapBone(Fighter* fp, int bone)
 {
     int mapped;
+    FighterKind source;
     if (!Rogue_IsAbilityState(fp)) return bone;
-    mapped = ftPartsRemap(fp->kind, fighter_state.active->internal_kind, bone);
+    source = Rogue_AbilitySourceKind(fp);
+    mapped = ftPartsRemap(fp->kind, source, bone);
     /* Unmapped decorative bones cannot index outside the recipient skeleton. */
     if (mapped < 0 || mapped >= 0x8C || !fp->parts[mapped].joint)
         mapped = ftParts_GetBoneIndex(fp, FtPart_TransN);
     return mapped;
+}
+
+static RogueAerialSlot aerialSlotFromMotion(FtMotionId msid)
+{
+    switch (msid) {
+    case ftCo_MS_AttackAirN: return ROGUE_AERIAL_NAIR;
+    case ftCo_MS_AttackAirF: return ROGUE_AERIAL_FAIR;
+    case ftCo_MS_AttackAirB: return ROGUE_AERIAL_BAIR;
+    case ftCo_MS_AttackAirHi: return ROGUE_AERIAL_UAIR;
+    case ftCo_MS_AttackAirLw: return ROGUE_AERIAL_DAIR;
+    default: return ROGUE_AERIAL_SLOTS;
+    }
+}
+
+const char* Rogue_AerialSlotName(RogueAerialSlot slot)
+{
+    static const char* names[ROGUE_AERIAL_SLOTS] = {
+        "Neutral Air", "Forward Air", "Back Air", "Up Air", "Down Air"
+    };
+    return slot >= 0 && slot < ROGUE_AERIAL_SLOTS ? names[slot] : "Aerial";
+}
+
+CharacterKind Rogue_AerialSource(RogueAerialSlot slot)
+{
+    if (slot < 0 || slot >= ROGUE_AERIAL_SLOTS)
+        return g_rogue_run.player_kind;
+    return g_rogue_run.aerial_source[slot];
+}
+
+bool Rogue_BuyAerial(RogueAerialSlot slot, CharacterKind source)
+{
+    if (!Rogue_IsActive() || slot < 0 || slot >= ROGUE_AERIAL_SLOTS ||
+        source < 0 || source >= CKind_Playable_Count ||
+        Rogue_InternalKindForCharacter(source) >= Ft_Kind_Max ||
+        g_rogue_run.currency < ROGUE_AERIAL_PRICE ||
+        g_rogue_run.aerial_source[slot] == source)
+        return false;
+
+    if (g_rogue_run.phase != ROGUE_PHASE_REST &&
+        g_rogue_run.phase != ROGUE_PHASE_SHOP)
+        return false;
+
+    g_rogue_run.currency -= ROGUE_AERIAL_PRICE;
+    g_rogue_run.aerial_source[slot] = source;
+    g_rogue_run.phase = ROGUE_PHASE_SHOP;
+    return true;
+}
+
+bool Rogue_AerialTryEnter(Fighter_GObj* gobj, FtMotionId msid)
+{
+    Fighter* fp = GET_FIGHTER(gobj);
+    RogueAerialSlot slot;
+    CharacterKind source_character;
+    FighterKind source;
+
+    if (!Rogue_IsRunPlayer(fp)) return false;
+    slot = aerialSlotFromMotion(msid);
+    if (slot >= ROGUE_AERIAL_SLOTS) return false;
+
+    source_character = g_rogue_run.aerial_source[slot];
+    source = Rogue_InternalKindForCharacter(source_character);
+    if (source_character == g_rogue_run.player_kind || source == fp->kind)
+        return false;
+    if (source < 0 || source >= Ft_Kind_Max ||
+        !fighter_state.aerial_loaded_sources[source] ||
+        gFtDataList[source] == NULL)
+        return false;
+
+    Rogue_AbilityCleanup(fp);
+    fighter_state.native_anims = fp->x24;
+    fighter_state.native_anim_flags = fp->x28;
+    fighter_state.native_anim_count = fp->x58C;
+    fighter_state.aerial_active = true;
+    fighter_state.aerial_source_kind = source;
+    fighter_state.aerial_slot = slot;
+
+    fp->x24 = gFtDataList[source]->xC;
+    fp->x28 = gFtDataList[source]->x10;
+    fp->x58C = ftData_Table_Unk0[source].count;
+
+    ftCo_AttackAir_EnterFromMsid(gobj, msid);
+    return true;
+}
+
+float Rogue_AerialLandingLag(Fighter* fp, FtMotionId msid, float native_lag)
+{
+    ftCo_DatAttrs* attrs;
+    FighterKind source;
+
+    if (!fp || !fighter_state.aerial_active || fighter_state.fighter != fp)
+        return native_lag;
+
+    source = fighter_state.aerial_source_kind;
+    if (source < 0 || source >= Ft_Kind_Max ||
+        gFtDataList[source] == NULL || gFtDataList[source]->x0 == NULL)
+        return native_lag;
+
+    attrs = gFtDataList[source]->x0;
+    switch (msid) {
+    case ftCo_MS_AttackAirN: return attrs->landingairn_lag;
+    case ftCo_MS_AttackAirF: return attrs->landingairf_lag;
+    case ftCo_MS_AttackAirB: return attrs->landingairb_lag;
+    case ftCo_MS_AttackAirHi: return attrs->landingairhi_lag;
+    case ftCo_MS_AttackAirLw: return attrs->landingairlw_lag;
+    default: return native_lag;
+    }
 }
 
 bool Rogue_TrySpecial(Fighter_GObj* gobj, RogueAbilitySlot slot, bool airborne)

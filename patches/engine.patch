@@ -38,7 +38,7 @@ index 1bd612513..a974e6666 100755
          ],
      ),
      Libc(
-@@ -2076,6 +2095,130 @@ def generate_compile_commands(objects: dict[str, Object], build_config: BuildCon
+@@ -2076,6 +2095,132 @@ def generate_compile_commands(objects: dict[str, Object], build_config: BuildCon
          json.dump(clangd_config, w, indent=2, default=default_format)
  
  
@@ -56,6 +56,8 @@ index 1bd612513..a974e6666 100755
 +    'melee/ft/kinds/ftCaptain/ftcaptainspecials.c',
 +    'melee/ft/kinds/ftCommon/ftCo_09F7.c',
 +    'melee/ft/kinds/ftCommon/ftCo_Attack100.c',
++    'melee/ft/kinds/ftCommon/ftCo_AttackAir.c',
++    'melee/ft/kinds/ftCommon/ftCo_LandingAir.c',
 +    'melee/ft/kinds/ftCommon/ftCo_Damage.c',
 +    'melee/ft/kinds/ftCommon/ftCo_Guard.c',
 +    'melee/ft/kinds/ftCommon/ftCo_JumpAerialF1.c',

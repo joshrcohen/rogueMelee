@@ -28,6 +28,11 @@ void Rogue_NewRun(CharacterKind kind, u32 seed)
     g_rogue_run.player_stocks = 3;
     g_rogue_run.continues = 1;
     g_rogue_run.floor = 1;
+    {
+        int i;
+        for (i = 0; i < ROGUE_AERIAL_SLOTS; ++i)
+            g_rogue_run.aerial_source[i] = kind;
+    }
     Rogue_ResetStats(&g_rogue_run.stats);
     RogueRoute_Prepare(&g_rogue_run.route, &g_rogue_run.route_rng,
                        g_rogue_run.floor);

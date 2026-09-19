@@ -299,6 +299,8 @@ static void ui_wrapped_at(float x, float y, float size, GXColor color,
 
 static int cursor, page, delay, camp_zone = -2, camp_branch;
 static bool ready, inspect, history_open, hud_ready;
+static bool aerial_shop_open, aerial_shop_source_mode;
+static int aerial_shop_slot, aerial_shop_source;
 
 /* Native Stage Clear progression popup state. */
 static bool stage_progress_active;
@@ -327,6 +329,10 @@ void RogueUI_Reset(void)
     line_count = 0; ready = false; cursor = page = delay = camp_branch = 0;
     overlay_sis = 0;
     camp_zone = -2; inspect = false;
+    aerial_shop_open = false;
+    aerial_shop_source_mode = false;
+    aerial_shop_slot = 0;
+    aerial_shop_source = 0;
     RogueCamp_Reset();
     history_open=false;history_cursor=0;viewed_record=NULL;
     hud_ready = false;
@@ -406,7 +412,7 @@ static void buildPage(void)
     ui_backdrop();
     ui_panel_box(-14.0f, -11.0f, 28.0f, 21.5f, ui_panel);
     ui_at(-13.2f, -10, .035f, ui_gold, "CURRENT BUILD");
-    ui_at(-13.2f, -7.6f, .019f, ui_muted, "Page %d / 4     Seed %u", page+1, viewed_record?viewed_record->seed:g_rogue_run.seed);
+    ui_at(-13.2f, -7.6f, .019f, ui_muted, "Page %d / 5     Seed %u", page+1, viewed_record?viewed_record->seed:g_rogue_run.seed);
     if (page == 0) {
         ui_at(-13, -5, .023f, ui_white, "Damage %.0f%%   Received %.0f%%", s->damage_dealt*100, s->damage_received*100);
         ui_at(-13, -2.5f, .023f, ui_white, "Run %.0f%%   Shield %.0f%%", s->run_speed*100, s->shield_health*100);
@@ -422,6 +428,17 @@ static void buildPage(void)
             ui_at(-13,-5+i*3,.022f,ui_white,"%s: %s",slots[i],d?d->name:"Native");
         }
     } else if(page==2) {
+        static const char* slots[ROGUE_AERIAL_SLOTS] = {"Nair","Fair","Bair","Uair","Dair"};
+        if (viewed_record) {
+            ui_at(-13,-4,.022f,ui_muted,"Aerial overrides not stored in old history.");
+        } else {
+            for(int i=0;i<ROGUE_AERIAL_SLOTS;i++) {
+                CharacterKind source=Rogue_AerialSource(i);
+                const char* name=source==g_rogue_run.player_kind?"Native":RogueRoute_CharacterName(source);
+                ui_at(-13,-5+i*2.4f,.021f,ui_white,"%s: %s",slots[i],name);
+            }
+        }
+    } else if(page==3) {
         ui_at(-13,-5,.023f,ui_white,"Knockback +%.0f%%   Resist %.0f%%",s->knockback_dealt_bonus*100,s->knockback_resistance*100);
         ui_at(-13,-2.5f,.022f,ui_white,"Executioner +%.0f%%   Aerial +%.0f%%",s->executioner_bonus*100,s->aerial_damage_bonus*100);
         ui_at(-13,0,.022f,ui_white,"Smash +%.0f%%   Armor %.0f",s->smash_damage_bonus*100,s->smash_armor);
@@ -723,12 +740,12 @@ int RogueUI_Frame(void)
 
     if (inspect) {
         if (input & (MenuInput_Left | MenuInput_LTrigger)) {
-            page = (page + 3) % 4;
+            page = (page + 4) % 5;
             draw();
             sfxMove();
         }
         if (input & (MenuInput_Right | MenuInput_RTrigger)) {
-            page = (page + 1) % 4;
+            page = (page + 1) % 5;
             draw();
             sfxMove();
         }
@@ -1067,13 +1084,13 @@ int RogueUI_RouteFrame(void)
 
     if (inspect) {
         if (input & (MenuInput_Left | MenuInput_LTrigger)) {
-            page = (page + 3) % 4;
+            page = (page + 4) % 5;
             ui_begin();
             buildPage();
             sfxMove();
         }
         if (input & (MenuInput_Right | MenuInput_RTrigger)) {
-            page = (page + 1) % 4;
+            page = (page + 1) % 5;
             ui_begin();
             buildPage();
             sfxMove();
@@ -1101,65 +1118,139 @@ int RogueUI_RouteFrame(void)
 /* Camp signs are projected from world coordinates every frame. Walking and
  * jumping continue normally; only grounded contact with a zone permits A. */
 
+static void aerialShopDraw(void)
+{
+    static const char* short_slot[ROGUE_AERIAL_SLOTS] = {"NAIR","FAIR","BAIR","UAIR","DAIR"};
+    int i;
+    ui_begin();
+    ui_backdrop();
+    ui_panel_box(-14,-11,28,21.5f,ui_panel);
+    ui_at(-13.2f,-10,.034f,ui_gold,"AERIAL SHOP");
+    ui_at(7.6f,-9.6f,.020f,ui_white,"GOLD %d",g_rogue_run.currency);
+    ui_rule(-13.2f,-8.2f,26.4f,ui_gold);
+
+    if(!aerial_shop_source_mode) {
+        ui_at(-13,-6.6f,.017f,ui_muted,"Choose the aerial slot to replace.");
+        for(i=0;i<ROGUE_AERIAL_SLOTS;i++) {
+            CharacterKind source=Rogue_AerialSource(i);
+            const char* current=source==g_rogue_run.player_kind?"Native":RogueRoute_CharacterName(source);
+            ui_at(-12.6f,-4.7f+i*2.25f,i==aerial_shop_slot?.023f:.020f,
+                  i==aerial_shop_slot?ui_gold:ui_white,"%s  %s  [%s]",
+                  i==aerial_shop_slot?">":" ",short_slot[i],current);
+        }
+        ui_at(-12.8f,8.9f,.016f,ui_white,"UP/DOWN: choose   A: fighters   B: close");
+        return;
+    }
+
+    {
+        CharacterKind equipped=Rogue_AerialSource(aerial_shop_slot);
+        int start=aerial_shop_source-4;
+        int end;
+        if(start<0) start=0;
+        end=start+9;
+        if(end>CKind_Playable_Count) {
+            end=CKind_Playable_Count;
+            start=end-9;
+            if(start<0) start=0;
+        }
+        ui_at(-13,-6.6f,.019f,ui_white,"%s     PRICE %dG",
+              Rogue_AerialSlotName(aerial_shop_slot),ROGUE_AERIAL_PRICE);
+        ui_at(-13,-5.15f,.0145f,ui_muted,"Current: %s",
+              equipped==g_rogue_run.player_kind?"Native":RogueRoute_CharacterName(equipped));
+        for(i=start;i<end;i++) {
+            int selected=i==aerial_shop_source;
+            int equipped_here=i==equipped;
+            GXColor color=selected?ui_gold:equipped_here?ui_muted:ui_white;
+            ui_at(-12.6f,-3.55f+(i-start)*1.18f,selected?.0185f:.0165f,color,
+                  "%s %-18s %s",selected?">":" ",RogueRoute_CharacterName(i),
+                  equipped_here?"EQUIPPED":"");
+        }
+        if(g_rogue_run.currency<ROGUE_AERIAL_PRICE)
+            ui_at(4,8.6f,.015f,ui_red,"NOT ENOUGH GOLD");
+        ui_at(-12.8f,9.55f,.0155f,ui_white,"UP/DOWN: fighter   A: buy   B: slots");
+    }
+}
+
+static void aerialShopFrame(void)
+{
+    u32 input=mn_80229624(Rogue_ControllerPort());
+    if(input&MenuInput_Back) {
+        if(aerial_shop_source_mode) { aerial_shop_source_mode=false; aerialShopDraw(); }
+        else { aerial_shop_open=false; camp_zone=-2; }
+        sfxBack(); return;
+    }
+    if(!aerial_shop_source_mode) {
+        if(input&MenuInput_Up) { aerial_shop_slot=(aerial_shop_slot+ROGUE_AERIAL_SLOTS-1)%ROGUE_AERIAL_SLOTS; aerialShopDraw(); sfxMove(); }
+        if(input&MenuInput_Down) { aerial_shop_slot=(aerial_shop_slot+1)%ROGUE_AERIAL_SLOTS; aerialShopDraw(); sfxMove(); }
+        if(input&MenuInput_Confirm) {
+            aerial_shop_source=Rogue_AerialSource(aerial_shop_slot);
+            if(aerial_shop_source<0||aerial_shop_source>=CKind_Playable_Count) aerial_shop_source=0;
+            aerial_shop_source_mode=true; aerialShopDraw(); sfxForward();
+        }
+        return;
+    }
+    if(input&MenuInput_Up) { aerial_shop_source=(aerial_shop_source+CKind_Playable_Count-1)%CKind_Playable_Count; aerialShopDraw(); sfxMove(); }
+    if(input&MenuInput_Down) { aerial_shop_source=(aerial_shop_source+1)%CKind_Playable_Count; aerialShopDraw(); sfxMove(); }
+    if(input&MenuInput_Left) { aerial_shop_source=(aerial_shop_source+CKind_Playable_Count-5)%CKind_Playable_Count; aerialShopDraw(); sfxMove(); }
+    if(input&MenuInput_Right) { aerial_shop_source=(aerial_shop_source+5)%CKind_Playable_Count; aerialShopDraw(); sfxMove(); }
+    if(input&MenuInput_Confirm) {
+        if(Rogue_BuyAerial((RogueAerialSlot)aerial_shop_slot,(CharacterKind)aerial_shop_source)) {
+            camp_branch=1; aerialShopDraw(); sfxForward();
+        } else sfxBack();
+    }
+}
+
 static void campDraw(int zone)
 {
     ui_begin();
     ui_at(-17,-13,.020f,ui_gold,"SHOP / REST AREA    Gold %d",g_rogue_run.currency);
     for(int i=0;i<5;i++) {
-        const char* names[]={"SHOP 1","SHOP 2","REST","TRAIN","NEXT FIGHT"};
+        const char* names[]={"UPGRADE","AERIALS","REST","TRAIN","NEXT FIGHT"};
         HSD_Text* t=ui_object(0,0,.013f,i==zone?ui_gold:ui_white);
-        t->default_alignment=1;
-        /* World labels are glyphs only. A SIS background uses the default
-         * text canvas bounds and would obscure the stage with large panels. */
-        t->bg_color.a=0;
-        if(i<2) HSD_SisLib_803A6B98(t,0,0,g_rogue_run.shop_sold[i]?"SOLD":"%d gold",g_rogue_run.shop_prices[i]);
+        t->default_alignment=1;t->bg_color.a=0;
+        if(i==0) HSD_SisLib_803A6B98(t,0,0,g_rogue_run.shop_sold[0]?"SOLD":"%d gold",g_rogue_run.shop_prices[0]);
+        else if(i==1) HSD_SisLib_803A6B98(t,0,0,"%d gold",ROGUE_AERIAL_PRICE);
         else HSD_SisLib_803A6B98(t,0,0,"%s",names[i]);
         markers[i]=t;
     }
-    if(zone>=0) {
-        char title[128],detail[256];
-        if(zone<2) {
-            RogueReward* r=&g_rogue_run.shop_rewards[zone];
-            snprintf(title,sizeof(title),"%s  -  %d gold",r->name,g_rogue_run.shop_prices[zone]);
-            Rogue_DescribeReward(r,detail,sizeof(detail));
-            if(g_rogue_run.shop_sold[zone]) strcpy(detail,"SOLD");
-            else if(camp_branch==2) strcpy(detail,"Rest or training already chosen.");
-            else if(g_rogue_run.currency<g_rogue_run.shop_prices[zone]) strcpy(detail,"Not enough gold.");
-        } else {
-            const char* titles[]={"Reinforce shield","Movement training","Next encounter"};
-            const char* details[]={"+15% shield capacity for this run.","+10% dash and run speed for this run.","Keep remaining gold and continue the run."};
-            strcpy(title,titles[zone-2]);strcpy(detail,details[zone-2]);
-            if(zone<4 && camp_branch) strcpy(detail,"Camp benefit already selected.");
-        }
-        /* Keep descriptions in the sky, clear of the fighter and native HUD.
-         * Use separate text rows so SIS never truncates a long description. */
-        ui_at(-17,-10.8f,.023f,ui_gold,"%s",title);
-        const char* remaining=detail;
-        int row=0;
-        while(*remaining && row<4) {
-            char text[72];
-            int count=(int)strlen(remaining);
-            if(count>60) {
-                count=60;
-                while(count>0 && remaining[count]!=' ') --count;
-                if(!count) count=60;
-            }
-            memcpy(text,remaining,count);text[count]=0;
-            ui_at(-17,-9.2f+row*1.15f,.017f,ui_white,"%s",text);
-            remaining+=count;
-            while(*remaining==' ') ++remaining;
-            ++row;
-        }
-        ui_at(-17,-9.2f+row*1.15f,.016f,ui_gold,
-              zone==4?"A: continue":"A: select while standing in this zone");
-    } else ui_at(-17,-10.8f,.017f,ui_white,"A: choose a camp item or enter the glowing exit.");
+    if(zone==0) {
+        char title[128],detail[256];RogueReward* r=&g_rogue_run.shop_rewards[0];
+        snprintf(title,sizeof(title),"%s  -  %d gold",r->name,g_rogue_run.shop_prices[0]);
+        Rogue_DescribeReward(r,detail,sizeof(detail));
+        if(g_rogue_run.shop_sold[0]) strcpy(detail,"SOLD");
+        else if(camp_branch==2) strcpy(detail,"Rest or training already chosen.");
+        else if(g_rogue_run.currency<g_rogue_run.shop_prices[0]) strcpy(detail,"Not enough gold.");
+        ui_at(-17,-10.8f,.023f,ui_gold,"%s",title);ui_wrapped_at(-17,-9.2f,.017f,ui_white,detail,60,4);
+        ui_at(-17,-4.55f,.016f,ui_gold,"A: buy upgrade");
+    } else if(zone==1) {
+        ui_at(-17,-10.8f,.023f,ui_gold,"AERIAL SHOP  -  %d gold each",ROGUE_AERIAL_PRICE);
+        ui_at(-17,-9.2f,.017f,ui_white,"Choose any Nair, Fair, Bair, Uair or Dair");
+        ui_at(-17,-8.05f,.017f,ui_white,"from any playable fighter.");
+        ui_at(-17,-6.6f,.016f,camp_branch==2?ui_muted:ui_gold,
+              camp_branch==2?"Unavailable after Rest / Training.":"A: browse full aerial catalog");
+    } else if(zone>=2) {
+        const char* titles[]={"Reinforce shield","Movement training","Next encounter"};
+        const char* details[]={"+15% shield capacity for this run.","+10% dash and run speed for this run.","Keep remaining gold and continue the run."};
+        ui_at(-17,-10.8f,.023f,ui_gold,"%s",titles[zone-2]);
+        ui_at(-17,-9.2f,.017f,ui_white,"%s",zone<4&&camp_branch?"Camp benefit already selected.":details[zone-2]);
+        ui_at(-17,-7.8f,.016f,ui_gold,zone==4?"A: continue":"A: select while standing in this zone");
+    }
 }
+
 bool RogueUI_CampFrame(void)
 {
     HSD_GObj* entity=Player_GetEntity(0);
     Fighter* fp=entity?entity->user_data:NULL;
     if(!fp) return false;
     if(!ready) { openCanvas();RogueCamp_Create(); }
+    if(aerial_shop_open) {
+        fp->input.lstick[0].x=fp->input.lstick[0].y=0;
+        fp->input.cstick[0].x=fp->input.cstick[0].y=0;
+        fp->self_vel.x=0;
+        aerialShopFrame();
+        if(!aerial_shop_open) campDraw(1);
+        return false;
+    }
     int zone=RogueCamp_ZoneAt(fp->cur_pos.x,fp->cur_pos.y,fp->ground_or_air==GA_Ground);
     RogueCamp_Update(zone,camp_branch);
     if(zone!=camp_zone) { camp_zone=zone;campDraw(zone); }
@@ -1180,10 +1271,14 @@ bool RogueUI_CampFrame(void)
     }
     if(zone>=0 && (HSD_PadMasterStatus[Rogue_ControllerPort()].trigger&HSD_PAD_A)) {
         bool changed=false;
-        if(zone<2 && camp_branch!=2) {
+        if(zone==0 && camp_branch!=2) {
             RoguePhase phase=g_rogue_run.phase;g_rogue_run.phase=ROGUE_PHASE_SHOP;
-            changed=Rogue_BuySupply(zone);
+            changed=Rogue_BuySupply(0);
             if(changed) camp_branch=1;else g_rogue_run.phase=phase;
+        } else if(zone==1 && camp_branch!=2) {
+            aerial_shop_open=true;aerial_shop_source_mode=false;
+            aerial_shop_slot=0;aerial_shop_source=g_rogue_run.player_kind;
+            aerialShopDraw();sfxForward();return false;
         } else if(zone<4 && !camp_branch) {
             changed=Rogue_Rest(zone-2);if(changed) camp_branch=2;
         } else if(zone==4) { Rogue_LeaveCamp();RogueUI_Clear();sfxForward();return true; }

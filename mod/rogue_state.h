@@ -42,6 +42,7 @@ typedef struct RogueRun {
         bool shell_used, last_stand_used;
     } effects;
     RogueAbilityID ability[ROGUE_ABILITY_SLOTS];
+    CharacterKind aerial_source[ROGUE_AERIAL_SLOTS];
     RogueReward current_rewards[3];
     RogueReward shop_rewards[2];
     int shop_prices[2];
