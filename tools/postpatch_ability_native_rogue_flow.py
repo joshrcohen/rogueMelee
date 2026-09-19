@@ -86,7 +86,7 @@ new = """    jobj = arg0->hsd_obj;
 
     if (gm_GetCurrentGameMode() == GM_ROGUE &&
         gm_GetCurrentSceneIndex() == ROGUE_STATE_PROGRESSION &&
-        lbl_804735A8.x38 >= 0x63U)
+        lbl_804735A8.x38 >= 0x50U)
     {
         return;
     }

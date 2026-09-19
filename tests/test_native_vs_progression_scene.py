@@ -25,9 +25,14 @@ class NativeVsProgressionSceneTests(unittest.TestCase):
             "Rogue state 7 freezes the retail IntroEasy timeline",
             self.fix,
         )
-        self.assertIn("lbl_804735A8.x38 >= 0x63U", self.fix)
+        self.assertIn("lbl_804735A8.x38 >= 0x50U", self.fix)
         self.assertIn("ROGUE_STATE_PROGRESSION", self.fix)
         self.assertIn("fn_8018504C", self.fix)
+
+    def test_stable_progression_transition_delays(self):
+        self.assertIn("confirm_timer = 18;", self.progress)
+        self.assertIn("confirm_timer = 30;", self.progress)
+        self.assertNotIn("confirm_timer = 6;", self.progress)
 
     def test_frame_guards_mode_and_state(self):
         frame = self.progress.split("bool Rogue_ProgressionIntroFrame(void)", 1)[1]

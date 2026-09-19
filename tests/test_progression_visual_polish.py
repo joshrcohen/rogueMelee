@@ -12,7 +12,7 @@ class ProgressionVisualPolishTests(unittest.TestCase):
         )
 
     def test_v5_safe_sis_panels_are_installed(self):
-        self.assertIn("PROGRESSION V13: COMPACT HUD + HELD NATIVE INTRO", self.src)
+        self.assertIn("PROGRESSION V14: STABLE HELD INTRO + TRANSITION", self.src)
         self.assertIn("static HSD_Text* ui_rect(", self.src)
 
     def test_raw_gx_panel_rendering_is_gone(self):
