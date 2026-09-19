@@ -13,10 +13,12 @@ class AerialShopTests(unittest.TestCase):
         cls.build=(ROOT/"tools/build.py").read_text(encoding="utf-8")
         cls.post=(ROOT/"tools/postpatch_aerial_shop.py").read_text(encoding="utf-8")
 
-    def test_five_slots_flat_100_gold(self):
+    def test_five_slots_are_free_for_now(self):
         for name in ("NAIR","FAIR","BAIR","UAIR","DAIR"):
             self.assertIn("ROGUE_AERIAL_"+name,self.header)
-        self.assertIn("#define ROGUE_AERIAL_PRICE 100",self.header)
+        self.assertIn("#define ROGUE_AERIAL_PRICE 0",self.header)
+        self.assertIn('"AERIAL SHOP  -  FREE"',self.ui)
+        self.assertIn('"%s     PRICE FREE"',self.ui)
 
     def test_run_stores_sources(self):
         self.assertIn("CharacterKind aerial_source[ROGUE_AERIAL_SLOTS]",self.state)

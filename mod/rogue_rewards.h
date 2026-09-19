@@ -73,6 +73,7 @@ void Rogue_DescribeReward(const RogueReward* reward, char* text, size_t size);
 
 void Rogue_GenerateRewards(void);
 bool Rogue_SelectReward(int index);
+bool Rogue_BeginOpeningCamp(void);
 bool Rogue_BeginCamp(void);
 bool Rogue_BuySupply(int index);
 bool Rogue_Rest(int choice);

@@ -9,6 +9,7 @@ class RouteChoiceTests(unittest.TestCase):
     def setUpClass(cls):
         cls.progress = (ROOT / "mod/rogue_progression.c").read_text(encoding="utf-8")
         cls.rogue = (ROOT / "mod/rogue.c").read_text(encoding="utf-8")
+        cls.rewards = (ROOT / "mod/rogue_rewards.c").read_text(encoding="utf-8")
         cls.patch = (ROOT / "patches/engine.patch").read_text(encoding="utf-8")
 
     def test_route_source_is_compiled(self):
@@ -20,10 +21,17 @@ class RouteChoiceTests(unittest.TestCase):
         self.assertIn("#define ROGUE_ROUTE_ROUNDS 4", h)
         self.assertIn("#define ROGUE_ROUTE_CHOICES 2", h)
 
-    def test_initial_choice_is_progression_scene(self):
+    def test_opening_shop_precedes_first_route_choice(self):
         css = self.rogue.split("static void exitCharacterSelect", 1)[1]
         css = css.split("static void enterStageIntro", 1)[0]
-        self.assertIn("ROGUE_STATE_PROGRESSION", css)
+        self.assertIn("Rogue_BeginOpeningCamp()", css)
+        self.assertIn("gm_SetNextGameModeStateId(3);", css)
+        self.assertIn("bool Rogue_BeginOpeningCamp(void)", self.rewards)
+
+        camp_exit = self.rogue.split("static void exitCamp", 1)[1]
+        camp_exit = camp_exit.split("static void routeFrame", 1)[0]
+        self.assertIn("g_rogue_run.opening_camp", camp_exit)
+        self.assertIn("ROGUE_STATE_PROGRESSION", camp_exit)
 
     def test_left_and_right_are_real_route_encounters(self):
         self.assertIn("left = &round->choices[0];", self.progress)

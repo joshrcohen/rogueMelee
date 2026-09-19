@@ -1153,8 +1153,8 @@ static void aerialShopDraw(void)
             start=end-9;
             if(start<0) start=0;
         }
-        ui_at(-13,-6.6f,.019f,ui_white,"%s     PRICE %dG",
-              Rogue_AerialSlotName(aerial_shop_slot),ROGUE_AERIAL_PRICE);
+        ui_at(-13,-6.6f,.019f,ui_white,"%s     PRICE FREE",
+              Rogue_AerialSlotName(aerial_shop_slot));
         ui_at(-13,-5.15f,.0145f,ui_muted,"Current: %s",
               equipped==g_rogue_run.player_kind?"Native":RogueRoute_CharacterName(equipped));
         for(i=start;i<end;i++) {
@@ -1165,8 +1165,6 @@ static void aerialShopDraw(void)
                   "%s %-18s %s",selected?">":" ",RogueRoute_CharacterName(i),
                   equipped_here?"EQUIPPED":"");
         }
-        if(g_rogue_run.currency<ROGUE_AERIAL_PRICE)
-            ui_at(4,8.6f,.015f,ui_red,"NOT ENOUGH GOLD");
         ui_at(-12.8f,9.55f,.0155f,ui_white,"UP/DOWN: fighter   A: buy   B: slots");
     }
 }
@@ -1209,7 +1207,7 @@ static void campDraw(int zone)
         HSD_Text* t=ui_object(0,0,.013f,i==zone?ui_gold:ui_white);
         t->default_alignment=1;t->bg_color.a=0;
         if(i==0) HSD_SisLib_803A6B98(t,0,0,g_rogue_run.shop_sold[0]?"SOLD":"%d gold",g_rogue_run.shop_prices[0]);
-        else if(i==1) HSD_SisLib_803A6B98(t,0,0,"%d gold",ROGUE_AERIAL_PRICE);
+        else if(i==1) HSD_SisLib_803A6B98(t,0,0,"FREE");
         else HSD_SisLib_803A6B98(t,0,0,"%s",names[i]);
         markers[i]=t;
     }
@@ -1223,7 +1221,7 @@ static void campDraw(int zone)
         ui_at(-17,-10.8f,.023f,ui_gold,"%s",title);ui_wrapped_at(-17,-9.2f,.017f,ui_white,detail,60,4);
         ui_at(-17,-4.55f,.016f,ui_gold,"A: buy upgrade");
     } else if(zone==1) {
-        ui_at(-17,-10.8f,.023f,ui_gold,"AERIAL SHOP  -  %d gold each",ROGUE_AERIAL_PRICE);
+        ui_at(-17,-10.8f,.023f,ui_gold,"AERIAL SHOP  -  FREE");
         ui_at(-17,-9.2f,.017f,ui_white,"Choose any Nair, Fair, Bair, Uair or Dair");
         ui_at(-17,-8.05f,.017f,ui_white,"from any playable fighter.");
         ui_at(-17,-6.6f,.016f,camp_branch==2?ui_muted:ui_gold,

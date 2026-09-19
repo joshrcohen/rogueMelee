@@ -17,7 +17,7 @@ typedef enum RogueAerialSlot {
     ROGUE_AERIAL_SLOTS
 } RogueAerialSlot;
 
-#define ROGUE_AERIAL_PRICE 100
+#define ROGUE_AERIAL_PRICE 0
 typedef enum RogueAbilityID {
     ROGUE_ABILITY_NATIVE,
     ROGUE_ABILITY_FOX_REFLECTOR = 1 + Ft_Kind_Fox * 4 + ROGUE_ABILITY_DOWN,

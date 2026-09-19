@@ -48,6 +48,7 @@ typedef struct RogueRun {
     int shop_prices[2];
     bool shop_sold[2];
     int camp_floor;
+    bool opening_camp;
     bool reward_pending;
     RogueRoute route;
     RogueEncounter current_encounter;

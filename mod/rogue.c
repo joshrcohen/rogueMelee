@@ -133,8 +133,14 @@ static void exitCharacterSelect(GameModeState* state)
     g_rogue_run.difficulty = difficulty > 4 ? 4 : difficulty;
     g_rogue_run.continues = 1;
 
-    /* First route choice uses the same native VS progression scene. */
-    gm_SetNextGameModeStateId(ROGUE_STATE_PROGRESSION);
+    /*
+     * Start every run in the shop/rest room. Leaving this one-time opening
+     * camp returns to the native route chooser before Fight 1.
+     */
+    if (Rogue_BeginOpeningCamp())
+        gm_SetNextGameModeStateId(3);
+    else
+        gm_SetNextGameModeStateId(ROGUE_STATE_PROGRESSION);
 }
 
 static void enterStageIntro(GameModeState* state)
@@ -309,10 +315,18 @@ static void enterCamp(GameModeState* state)
 
 static void exitCamp(GameModeState* state)
 {
+    bool opening = g_rogue_run.opening_camp;
+
     (void)state;
     Rogue_LeaveCamp();
     RogueUI_Clear();
-    gm_SetNextGameModeStateId(Rogue_IntroState());
+
+    if (opening) {
+        g_rogue_run.opening_camp = false;
+        gm_SetNextGameModeStateId(ROGUE_STATE_PROGRESSION);
+    } else {
+        gm_SetNextGameModeStateId(Rogue_IntroState());
+    }
 }
 
 

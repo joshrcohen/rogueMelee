@@ -282,13 +282,13 @@ bool Rogue_SelectReward(int index)
     return true;
 }
 
-bool Rogue_BeginCamp(void)
+static bool prepareCampShop(void)
 {
     int first, second, pool[REWARD_POOL_COUNT], count;
-    if (!Rogue_IsActive() || g_rogue_run.phase != ROGUE_PHASE_ENCOUNTER ||
-        g_rogue_run.current_encounter.act_floor != ROGUE_FLOORS_PER_ACT ||
-        g_rogue_run.camp_floor == g_rogue_run.floor) return false;
+
     count = availableRewards(pool);
+    if (count < 2) return false;
+
     first = RogueRng_Bounded(&g_rogue_run.rng, count);
     second = (first + 1 + RogueRng_Bounded(&g_rogue_run.rng, count - 1)) % count;
     g_rogue_run.shop_rewards[0] = rewards[pool[first]];
@@ -299,6 +299,29 @@ bool Rogue_BeginCamp(void)
         g_rogue_run.shop_prices[i] = 45 + 10 * g_rogue_run.current_encounter.act +
             20 * g_rogue_run.shop_rewards[i].rarity;
     }
+    return true;
+}
+
+bool Rogue_BeginOpeningCamp(void)
+{
+    if (!Rogue_IsActive() || g_rogue_run.phase != ROGUE_PHASE_ROUTE ||
+        g_rogue_run.floor != 1 || g_rogue_run.wins != 0 ||
+        g_rogue_run.opening_camp)
+        return false;
+
+    if (!prepareCampShop()) return false;
+    g_rogue_run.opening_camp = true;
+    g_rogue_run.phase = ROGUE_PHASE_REST;
+    return true;
+}
+
+bool Rogue_BeginCamp(void)
+{
+    if (!Rogue_IsActive() || g_rogue_run.phase != ROGUE_PHASE_ENCOUNTER ||
+        g_rogue_run.current_encounter.act_floor != ROGUE_FLOORS_PER_ACT ||
+        g_rogue_run.camp_floor == g_rogue_run.floor) return false;
+
+    if (!prepareCampShop()) return false;
     g_rogue_run.camp_floor = g_rogue_run.floor;
     g_rogue_run.phase = ROGUE_PHASE_REST;
     return true;
@@ -329,7 +352,14 @@ bool Rogue_Rest(int choice)
 
 void Rogue_LeaveCamp(void)
 {
-    if (Rogue_IsActive() && (g_rogue_run.phase == ROGUE_PHASE_SHOP ||
-                            g_rogue_run.phase == ROGUE_PHASE_REST))
+    if (!Rogue_IsActive()) return;
+
+    if (g_rogue_run.opening_camp) {
+        g_rogue_run.phase = ROGUE_PHASE_ROUTE;
+        return;
+    }
+
+    if (g_rogue_run.phase == ROGUE_PHASE_SHOP ||
+        g_rogue_run.phase == ROGUE_PHASE_REST)
         g_rogue_run.phase = ROGUE_PHASE_ENCOUNTER;
 }
