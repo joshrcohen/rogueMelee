@@ -23,18 +23,15 @@
 RogueProgressionIntroData g_rogue_progression_intro;
 
 /*
- * PROGRESSION V11: NATIVE ROUTE SPACING + 15-FLOOR STATE
+ * PROGRESSION V12: COMPACT HUD + MINIMAL ENCOUNTER TEXT
  *
- * Keep the stable V6 SIS architecture and retail IntroEasy presentation.
- *
- * Route:
- *   - native IrRdMap supplies all route-node art and animation
- *   - native animation is driven by target_act_floor (1..5)
- *   - each Rogue act therefore uses exactly five logical route steps
- *   - ACT x/3 and FLOOR x/15 expose the full run state
- *   - the Rogue header starts below the native map so node art is not clipped
- *
- * Three acts x five floors = the full 15-floor Rogue run.
+ * Goals:
+ *   - keep the stable native IrRdMap + act-local five-step route behavior
+ *   - make reward text fit inside cards more cleanly
+ *   - remove the oversized enemy choice boxes; the VS art carries the matchup
+ *   - hide reward cards as soon as an upgrade is locked in
+ *   - compress the bottom build strip so key info stays visible without
+ *     covering as much of the VS composition
  */
 
 static HSD_Text* lines[24];
@@ -399,52 +396,33 @@ static const char* reward_icon_letter(const RogueReward* reward)
 
 static void draw_base_panels(void)
 {
-    bool left_selected;
-    bool right_selected;
-
     /*
-     * Reserve 0..95 entirely for IrRdMap. Do not place Rogue panels over the
-     * native node rings. The header begins below the route at y=96.
+     * Preserve the native route area. Rogue text/bands begin below it.
      */
-    ui_rect(0.0f, 96.0f, 640.0f, 48.0f, ui_black);
+    ui_rect(0.0f, 92.0f, 640.0f, 48.0f, ui_black);
 
     /*
      * Mask only the small native ALLY tag without covering the central VS.
      */
     ui_rect(250.0f, 229.0f, 58.0f, 24.0f, ui_glass);
 
-    left_selected =
-        upgrade_chosen &&
-        (fight_locked >= 0 ? fight_locked == 0 : fight_cursor == 0);
-    right_selected =
-        upgrade_chosen &&
-        (fight_locked >= 0 ? fight_locked == 1 : fight_cursor == 1);
-
-    if (target_act_floor < ROGUE_FLOORS_PER_ACT) {
-        ui_rect(22.0f, 286.0f, 282.0f, 50.0f, ui_glass);
-        ui_rect(336.0f, 286.0f, 282.0f, 50.0f, ui_glass);
-
-        ui_rect(22.0f, 286.0f, 282.0f, 3.0f,
-                left_selected ? ui_gold : ui_blue);
-        ui_rect(336.0f, 286.0f, 282.0f, 3.0f,
-                right_selected ? ui_gold : ui_purple);
-    } else {
-        ui_rect(78.0f, 286.0f, 484.0f, 50.0f, ui_glass);
-    }
-
-    ui_rect(0.0f, 350.0f, 640.0f, 130.0f, ui_black);
+    /* Compact build strip. */
+    ui_rect(0.0f, 382.0f, 640.0f, 98.0f, ui_black);
 }
 
 static void draw_reward_card_panels(void)
 {
-    static const float x[3] = {24.0f, 222.0f, 420.0f};
+    static const float x[3] = {18.0f, 220.0f, 422.0f};
     int i;
 
-    ui_rect(x[upgrade_cursor] - 3.0f, 143.0f,
-            202.0f, 116.0f, ui_gold);
+    if (!has_reward || upgrade_chosen)
+        return;
+
+    ui_rect(x[upgrade_cursor] - 3.0f, 138.0f,
+            206.0f, 118.0f, ui_gold);
 
     for (i = 0; i < 3; ++i) {
-        ui_rect(x[i], 146.0f, 196.0f, 110.0f,
+        ui_rect(x[i], 141.0f, 200.0f, 112.0f,
                 i == upgrade_cursor ? ui_dark : ui_panel);
     }
 }
@@ -469,11 +447,7 @@ static void draw_route_map(HSD_Text* text)
 {
     const RogueRoute* route = &g_rogue_run.route;
 
-    /*
-     * IrRdMap is driven separately by target_act_floor (1..5). This text
-     * exposes the full Rogue run state: 3 acts, 15 total floors.
-     */
-    ui_entryf(text, 221.0f, 101.0f, .29f, &ui_white,
+    ui_entryf(text, 226.0f, 100.0f, .30f, &ui_white,
               "ACT %d/%d     FLOOR %d/%d",
               route->act, ROGUE_ACTS,
               target_floor, ROGUE_RUN_ENCOUNTERS);
@@ -486,27 +460,21 @@ static void draw_phase_text(HSD_Text* text)
 
     if (has_reward && !upgrade_chosen) {
         phase = "CHOOSE UPGRADE";
-        x = 248.0f;
+        x = 247.0f;
     } else if (has_reward) {
         phase = "CHOOSE NEXT FIGHT";
-        x = 225.0f;
+        x = 224.0f;
     } else {
         phase = "CHOOSE FIRST FIGHT";
-        x = 223.0f;
+        x = 222.0f;
     }
 
-    ui_title(text, x, 122.0f, .38f, &ui_gold, phase);
-
-    if (has_reward && upgrade_chosen && upgrade_taken >= 0) {
-        ui_entryf(text, 247.0f, 139.0f, .22f, &ui_muted,
-                  "LOCKED: %s",
-                  g_rogue_run.current_rewards[upgrade_taken].name);
-    }
+    ui_title(text, x, 118.0f, .37f, &ui_gold, phase);
 }
 
 static void draw_reward_card_text(HSD_Text* text, int i)
 {
-    static const float x[3] = {34.0f, 232.0f, 430.0f};
+    static const float x[3] = {30.0f, 232.0f, 434.0f};
     RogueReward* reward;
     GXColor* accent;
     char meta[80];
@@ -516,7 +484,7 @@ static void draw_reward_card_text(HSD_Text* text, int i)
     char line3[64];
     float title_scale;
 
-    if (text == NULL || i < 0 || i >= 3)
+    if (text == NULL || i < 0 || i >= 3 || upgrade_chosen)
         return;
 
     reward = &g_rogue_run.current_rewards[i];
@@ -529,34 +497,34 @@ static void draw_reward_card_text(HSD_Text* text, int i)
                       line1, sizeof(line1),
                       line2, sizeof(line2),
                       line3, sizeof(line3),
-                      19);
+                      18);
 
     snprintf(meta, sizeof(meta), "%s / %s",
              reward_category(reward),
              Rogue_RarityName(reward->rarity));
 
-    title_scale = fit_text_scale(reward->name, .37f, .26f, 15);
+    title_scale = fit_text_scale(reward->name, .34f, .25f, 14);
 
-    ui_title(text, x[i], 158.0f, .32f,
+    ui_title(text, x[i], 156.0f, .31f,
              accent, reward_icon_letter(reward));
 
-    ui_title(text, x[i] + 30.0f, 156.0f,
+    ui_title(text, x[i] + 26.0f, 154.0f,
              title_scale, accent, reward->name);
 
-    ui_entry_raw(text, x[i] + 30.0f, 175.0f,
-                 .21f, &ui_muted, meta);
+    ui_entry_raw(text, x[i] + 26.0f, 173.0f,
+                 .20f, &ui_muted, meta);
 
-    ui_entry_raw(text, x[i], 197.0f,
-                 .21f, &ui_white, line1);
+    ui_entry_raw(text, x[i], 196.0f,
+                 .20f, &ui_white, line1);
 
     if (line2[0]) {
-        ui_entry_raw(text, x[i], 214.0f,
-                     .21f, &ui_white, line2);
+        ui_entry_raw(text, x[i], 213.0f,
+                     .20f, &ui_white, line2);
     }
 
     if (line3[0]) {
-        ui_entry_raw(text, x[i], 231.0f,
-                     .21f, &ui_white, line3);
+        ui_entry_raw(text, x[i], 230.0f,
+                     .20f, &ui_white, line3);
     }
 }
 
@@ -573,30 +541,22 @@ static void draw_fight_text(HSD_Text* text)
             RogueRoute_CharacterName(g_rogue_run.route.boss.enemy_kind) :
             "BOSS";
 
-        ui_title(text, 116.0f, 296.0f, .41f,
+        ui_title(text, 116.0f, 308.0f, .38f,
                  upgrade_chosen ? &ui_gold : &ui_white,
                  "SHOP / REST AREA");
 
-        ui_entryf(text, 322.0f, 297.0f, .31f,
-                  &ui_muted, "BOSS: %s", boss);
-
-        if (upgrade_chosen) {
-            ui_entry_raw(text, 226.0f, 320.0f, .23f,
-                         &ui_muted,
-                         "UPGRADE LOCKED IN - CONTINUING");
-        }
+        ui_entryf(text, 296.0f, 331.0f, .25f,
+                  &ui_muted, "NEXT: BOSS / %s", boss);
         return;
     }
 
     for (i = 0; i < 2; ++i) {
         const RogueEncounter* encounter = &round->choices[i];
-        float x = i == 0 ? 34.0f : 348.0f;
+        float x = i == 0 ? 32.0f : 354.0f;
         GXColor* side = i == 0 ? &ui_blue : &ui_purple;
         bool selected =
             upgrade_chosen &&
-            (fight_locked >= 0 ?
-                 fight_locked == i :
-                 fight_cursor == i);
+            (fight_locked >= 0 ? fight_locked == i : fight_cursor == i);
         GXColor* title_color =
             selected ? &ui_gold : side;
         char name[96];
@@ -611,67 +571,68 @@ static void draw_fight_text(HSD_Text* text)
                  RogueRoute_StageName(encounter->stage),
                  RogueRoute_TypeName(encounter->type));
 
-        if (encounter->modifier && *encounter->modifier) {
+        if (!upgrade_chosen) {
+            snprintf(detail, sizeof(detail), "PICK UPGRADE FIRST");
+        } else if (encounter->modifier && *encounter->modifier) {
             snprintf(detail, sizeof(detail), "%s", encounter->modifier);
-        } else if (encounter->enemy_count > 0) {
-            snprintf(detail, sizeof(detail), "%d STOCK%s",
-                     encounter->enemies[0].stocks,
-                     encounter->enemies[0].stocks == 1 ? "" : "S");
         } else {
-            snprintf(detail, sizeof(detail), "STANDARD");
+            detail[0] = 0;
         }
 
-        name_scale = fit_text_scale(name, .43f, .30f, 19);
-        meta_scale = fit_text_scale(meta, .26f, .20f, 31);
+        name_scale = fit_text_scale(name, .37f, .28f, 16);
+        meta_scale = fit_text_scale(meta, .24f, .18f, 24);
 
-        ui_title(text, x, 296.0f, name_scale, title_color, name);
-        ui_entry_raw(text, x, 315.0f, meta_scale, side, meta);
+        ui_title(text, x, 318.0f, name_scale, title_color, name);
+        ui_entry_raw(text, x, 339.0f, meta_scale, side, meta);
 
-        if (upgrade_chosen) {
-            ui_entry_raw(text, x, 329.0f,
-                         .22f, &ui_muted, detail);
+        if (detail[0]) {
+            ui_entry_raw(text, x, 356.0f, .19f, &ui_muted, detail);
         }
     }
 }
 
 static void draw_build_strip_text(HSD_Text* text)
 {
-    static const float x[4] = {
-        31.0f, 183.0f, 335.0f, 487.0f
+    static const float key_x[4] = {
+        36.0f, 182.0f, 328.0f, 474.0f
     };
     static const char* keys[4] = {"N", "S", "U", "D"};
+    const RogueStats* stats = &g_rogue_run.stats;
     const char* controls;
     int score =
         g_rogue_run.wins * 10000 +
         g_rogue_run.currency * 100;
     int i;
 
-    ui_title(text, 197.0f, 361.0f, .37f,
+    ui_title(text, 188.0f, 395.0f, .31f,
              &ui_white,
              "CURRENT CHARACTER BUILD / UPGRADES");
 
     for (i = 0; i < 4; ++i) {
         const char* name = ability_name(i);
-        float scale = fit_text_scale(name, .28f, .22f, 15);
+        float scale = fit_text_scale(name, .24f, .18f, 13);
 
-        ui_entry_raw(text, x[i], 393.0f,
-                     .31f, &ui_gold, keys[i]);
-
-        ui_entry_raw(text, x[i] + 23.0f, 393.0f,
+        ui_entry_raw(text, key_x[i], 420.0f,
+                     .28f, &ui_gold, keys[i]);
+        ui_entry_raw(text, key_x[i] + 24.0f, 420.0f,
                      scale, &ui_white, name);
     }
 
     if (has_reward) {
-        ui_entryf(text, 206.0f, 424.0f, .24f, &ui_muted,
-                  "GOLD +%d   TOTAL %d   SCORE %d",
+        ui_entryf(text, 110.0f, 444.0f, .22f, &ui_muted,
+                  "GOLD +%d   TOTAL %d   SCORE %d   DMG %.0f%%   DEF %.0f%%",
                   gold_gain,
                   g_rogue_run.currency,
-                  score);
+                  score,
+                  stats->damage_dealt * 100.0f,
+                  stats->damage_received * 100.0f);
     } else {
-        ui_entryf(text, 229.0f, 424.0f, .24f, &ui_muted,
-                  "GOLD %d   SCORE %d",
+        ui_entryf(text, 135.0f, 444.0f, .22f, &ui_muted,
+                  "GOLD %d   SCORE %d   DMG %.0f%%   DEF %.0f%%",
                   g_rogue_run.currency,
-                  score);
+                  score,
+                  stats->damage_dealt * 100.0f,
+                  stats->damage_received * 100.0f);
     }
 
     if (has_reward && !upgrade_chosen) {
@@ -688,7 +649,7 @@ static void draw_build_strip_text(HSD_Text* text)
             "LEFT / RIGHT: FIGHT     A: SELECT     B: BUILD";
     }
 
-    ui_entry_raw(text, 190.0f, 452.0f, .27f,
+    ui_entry_raw(text, 176.0f, 463.0f, .24f,
                  confirm_timer > 0 ? &ui_gold : &ui_white,
                  controls);
 }

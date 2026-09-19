@@ -12,7 +12,7 @@ class ProgressionVisualPolishTests(unittest.TestCase):
         )
 
     def test_v5_safe_sis_panels_are_installed(self):
-        self.assertIn("PROGRESSION V11: NATIVE ROUTE SPACING + 15-FLOOR STATE", self.src)
+        self.assertIn("PROGRESSION V12: COMPACT HUD + MINIMAL ENCOUNTER TEXT", self.src)
         self.assertIn("static HSD_Text* ui_rect(", self.src)
 
     def test_raw_gx_panel_rendering_is_gone(self):

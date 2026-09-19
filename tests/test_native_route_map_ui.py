@@ -16,7 +16,7 @@ class NativeRouteMapUiTests(unittest.TestCase):
 
     def test_v11_route_uses_native_assets_only(self):
         self.assertIn(
-            "PROGRESSION V11: NATIVE ROUTE SPACING + 15-FLOOR STATE",
+            "PROGRESSION V12: COMPACT HUD + MINIMAL ENCOUNTER TEXT",
             self.progress,
         )
         block = self.progress.split(
