@@ -23,7 +23,7 @@
 RogueProgressionIntroData g_rogue_progression_intro;
 
 /*
- * PROGRESSION V6: SPLIT SIS BUFFERS
+ * PROGRESSION V7: NATIVE ROAD MAP POLISH
  *
  * V4 proved that the layout direction was right, but its implementation was
  * not: calling DrawRectangle() from HSD_Text::render_callback can disturb the
@@ -78,6 +78,8 @@ static GXColor ui_border = {126, 145, 205, 255};
 static GXColor ui_blue = {83, 119, 242, 255};
 static GXColor ui_purple = {188, 73, 255, 255};
 static GXColor ui_glass = {8, 13, 34, 214};
+static GXColor ui_route_glass = {3, 6, 16, 150};
+static GXColor ui_icon_panel = {22, 30, 58, 242};
 static GXColor ui_shadow = {0, 0, 0, 255};
 
 static void ui_clear(void)
@@ -228,21 +230,26 @@ static void ui_title(HSD_Text* text, float x, float y, float scale,
     ui_entry_raw(text, x, y, scale, color, value);
 }
 
-static void split_description(const char* text,
-                              char* first, unsigned first_size,
-                              char* second, unsigned second_size,
-                              int width)
+static const char* copy_wrapped_line(const char* text,
+                                     char* out, unsigned out_size,
+                                     int width)
 {
     int len;
     int cut;
 
-    if (first_size)
-        first[0] = 0;
-    if (second_size)
-        second[0] = 0;
+    if (out_size == 0)
+        return text;
 
-    if (text == NULL || *text == 0)
-        return;
+    out[0] = 0;
+
+    if (text == NULL)
+        return "";
+
+    while (*text == ' ')
+        ++text;
+
+    if (*text == 0)
+        return text;
 
     len = strlen(text);
     cut = len > width ? width : len;
@@ -255,20 +262,47 @@ static void split_description(const char* text,
             cut = width;
     }
 
-    if ((unsigned) cut >= first_size)
-        cut = first_size - 1;
+    if ((unsigned) cut >= out_size)
+        cut = out_size - 1;
 
-    memcpy(first, text, cut);
-    first[cut] = 0;
+    memcpy(out, text, cut);
+    out[cut] = 0;
 
     text += cut;
     while (*text == ' ')
         ++text;
 
-    if (second_size) {
-        strncpy(second, text, second_size - 1);
-        second[second_size - 1] = 0;
-    }
+    return text;
+}
+
+static void wrap_description3(const char* text,
+                              char* line1, unsigned line1_size,
+                              char* line2, unsigned line2_size,
+                              char* line3, unsigned line3_size,
+                              int width)
+{
+    const char* next;
+
+    next = copy_wrapped_line(text, line1, line1_size, width);
+    next = copy_wrapped_line(next, line2, line2_size, width);
+    copy_wrapped_line(next, line3, line3_size, width);
+}
+
+static float fit_text_scale(const char* value, float base,
+                            float minimum, int max_chars)
+{
+    int len;
+    float scale;
+
+    if (value == NULL)
+        return base;
+
+    len = strlen(value);
+    if (len <= max_chars || len <= 0)
+        return base;
+
+    scale = base * ((float) max_chars / (float) len);
+    return scale < minimum ? minimum : scale;
 }
 
 static const char* reward_category(const RogueReward* reward)
@@ -365,22 +399,32 @@ static const char* reward_icon_letter(const RogueReward* reward)
 static void draw_base_panels(void)
 {
     /*
-     * One combined top panel replaces both the route and phase GX layers.
-     * It masks the unwanted native route/STAGE text cleanly.
+     * IrRdMap is the real Classic road-map model already owned by
+     * GS_INTRO_EASY. Keep this band translucent so the native route line,
+     * nodes and current-stage marker remain visible underneath Rogue labels.
      */
-    ui_rect(0.0f, 0.0f, 640.0f, 121.0f, ui_black);
+    ui_rect(0.0f, 0.0f, 640.0f, 79.0f, ui_route_glass);
 
     /*
-     * The fight lower-thirds sit over the bottom edge of fighter art only.
+     * Separate opaque phase strip. This masks the retail STAGE title while
+     * leaving the native road map above it visible.
+     */
+    ui_rect(0.0f, 79.0f, 640.0f, 45.0f, ui_black);
+
+    /*
+     * Raise the encounter lower-thirds so they no longer collide with the
+     * build strip. The fighter renders remain the dominant middle layer.
      */
     if (target_act_floor < ROGUE_FLOORS_PER_ACT) {
-        ui_rect(22.0f, 326.0f, 282.0f, 56.0f, ui_glass);
-        ui_rect(336.0f, 326.0f, 282.0f, 56.0f, ui_glass);
+        ui_rect(22.0f, 302.0f, 282.0f, 58.0f, ui_glass);
+        ui_rect(336.0f, 302.0f, 282.0f, 58.0f, ui_glass);
+        ui_rect(22.0f, 302.0f, 282.0f, 3.0f, ui_blue);
+        ui_rect(336.0f, 302.0f, 282.0f, 3.0f, ui_purple);
     } else {
-        ui_rect(78.0f, 326.0f, 484.0f, 56.0f, ui_glass);
+        ui_rect(78.0f, 302.0f, 484.0f, 58.0f, ui_glass);
     }
 
-    ui_rect(0.0f, 386.0f, 640.0f, 94.0f, ui_black);
+    ui_rect(0.0f, 382.0f, 640.0f, 98.0f, ui_black);
 }
 
 static void draw_reward_card_panels(void)
@@ -388,16 +432,16 @@ static void draw_reward_card_panels(void)
     static const float x[3] = {27.0f, 225.0f, 423.0f};
     int i;
 
-    for (i = 0; i < 3; ++i) {
-        ui_rect(x[i], 129.0f, 184.0f, 90.0f,
-                i == upgrade_cursor ? ui_dark : ui_panel);
-    }
+    ui_rect(x[upgrade_cursor] - 3.0f, 123.0f,
+            190.0f, 106.0f, ui_gold);
 
-    /*
-     * One narrow gold accent is enough to show focus without doubling all
-     * three card objects for decorative borders.
-     */
-    ui_rect(x[upgrade_cursor], 129.0f, 5.0f, 90.0f, ui_gold);
+    for (i = 0; i < 3; ++i) {
+        ui_rect(x[i], 126.0f, 184.0f, 100.0f,
+                i == upgrade_cursor ? ui_dark : ui_panel);
+
+        /* Compact icon/category tile. */
+        ui_rect(x[i] + 10.0f, 137.0f, 30.0f, 30.0f, ui_icon_panel);
+    }
 }
 
 static void draw_full_build_panels(void)
@@ -422,14 +466,14 @@ static void draw_route_text(HSD_Text* text)
         "CLEAR", "NEXT", "ELITE", "MATCH 4", "SHOP", "BOSS"
     };
     static const float x[6] = {
-        54.0f, 151.0f, 246.0f, 337.0f, 449.0f, 546.0f
+        64.0f, 164.0f, 257.0f, 346.0f, 456.0f, 552.0f
     };
     const RogueRoute* route = &g_rogue_run.route;
     int i;
 
     /*
-     * Route stays text-forward instead of using six giant rectangular tabs.
-     * The active step gets a gold marker and label.
+     * Do not redraw the path itself. IrRdMap supplies the actual Melee line,
+     * nodes and stage marker. Rogue contributes only semantic labels.
      */
     for (i = 0; i < 6; ++i) {
         bool complete = false;
@@ -449,35 +493,36 @@ static void draw_route_text(HSD_Text* text)
         else if (complete)
             color = &ui_white;
 
-        ui_entry_raw(text, x[i], 24.0f, .37f, color, names[i]);
-
-        if (i < 5)
-            ui_entry_raw(text, x[i] + 66.0f, 24.0f,
-                         .27f, &ui_muted, ">");
+        ui_entry_raw(text, x[i], 47.0f, .27f, color, names[i]);
     }
 
-    ui_title(text, 247.0f, 57.0f, .46f, &ui_white, "ACT");
-    ui_entryf(text, 286.0f, 57.0f, .46f, &ui_white, "%d", route->act);
-    ui_entry_raw(text, 309.0f, 57.0f, .46f, &ui_muted, "-");
-    ui_title(text, 332.0f, 57.0f, .46f, &ui_white, "FLOOR");
-    ui_entryf(text, 390.0f, 57.0f, .46f, &ui_white, "%d", target_floor);
+    ui_title(text, 255.0f, 65.0f, .34f, &ui_white, "ACT");
+    ui_entryf(text, 283.0f, 65.0f, .34f, &ui_white, "%d", route->act);
+    ui_entry_raw(text, 306.0f, 65.0f, .34f, &ui_muted, "-");
+    ui_title(text, 326.0f, 65.0f, .34f, &ui_white, "FLOOR");
+    ui_entryf(text, 371.0f, 65.0f, .34f, &ui_white, "%d", target_floor);
 }
 
 static void draw_phase_text(HSD_Text* text)
 {
     const char* phase;
+    float x;
 
-    if (has_reward && !upgrade_chosen)
+    if (has_reward && !upgrade_chosen) {
         phase = "CHOOSE UPGRADE";
-    else
-        phase = has_reward ? "CHOOSE NEXT FIGHT" : "CHOOSE FIRST FIGHT";
+        x = 246.0f;
+    } else if (has_reward) {
+        phase = "CHOOSE NEXT FIGHT";
+        x = 224.0f;
+    } else {
+        phase = "CHOOSE FIRST FIGHT";
+        x = 222.0f;
+    }
 
-    ui_title(text,
-             has_reward ? 244.0f : 228.0f,
-             91.0f, .57f, &ui_gold, phase);
+    ui_title(text, x, 91.0f, .45f, &ui_gold, phase);
 
     if (has_reward && upgrade_chosen && upgrade_taken >= 0) {
-        ui_entryf(text, 247.0f, 109.0f, .31f, &ui_muted,
+        ui_entryf(text, 246.0f, 110.0f, .27f, &ui_muted,
                   "LOCKED: %s",
                   g_rogue_run.current_rewards[upgrade_taken].name);
     }
@@ -492,6 +537,8 @@ static void draw_reward_card_text(HSD_Text* text, int i)
     char detail[180];
     char line1[64];
     char line2[64];
+    char line3[64];
+    float title_scale;
 
     if (text == NULL || i < 0 || i >= 3)
         return;
@@ -500,30 +547,38 @@ static void draw_reward_card_text(HSD_Text* text, int i)
     accent = upgrade_cursor == i ? &ui_gold : &ui_white;
 
     Rogue_DescribeReward(reward, detail, sizeof(detail));
-    split_description(detail,
+    wrap_description3(detail,
                       line1, sizeof(line1),
                       line2, sizeof(line2),
-                      25);
+                      line3, sizeof(line3),
+                      20);
 
     snprintf(meta, sizeof(meta), "%s / %s",
              reward_category(reward),
              Rogue_RarityName(reward->rarity));
 
-    ui_title(text, x[i], 143.0f, .44f,
+    title_scale = fit_text_scale(reward->name, .43f, .31f, 15);
+
+    ui_title(text, x[i] + 7.0f, 144.0f, .39f,
              accent, reward_icon_letter(reward));
 
-    ui_title(text, x[i] + 28.0f, 140.0f, .47f,
+    ui_title(text, x[i] + 40.0f, 140.0f, title_scale,
              accent, reward->name);
 
-    ui_entry_raw(text, x[i] + 28.0f, 159.0f,
-                 .31f, &ui_muted, meta);
+    ui_entry_raw(text, x[i] + 40.0f, 159.0f,
+                 .27f, &ui_muted, meta);
 
-    ui_entry_raw(text, x[i], 184.0f,
-                 .36f, &ui_white, line1);
+    ui_entry_raw(text, x[i], 181.0f,
+                 .31f, &ui_white, line1);
 
     if (line2[0]) {
-        ui_entry_raw(text, x[i], 199.0f,
-                     .36f, &ui_white, line2);
+        ui_entry_raw(text, x[i], 196.0f,
+                     .31f, &ui_white, line2);
+    }
+
+    if (line3[0]) {
+        ui_entry_raw(text, x[i], 211.0f,
+                     .31f, &ui_white, line3);
     }
 }
 
@@ -540,14 +595,14 @@ static void draw_fight_text(HSD_Text* text)
             RogueRoute_CharacterName(g_rogue_run.route.boss.enemy_kind) :
             "BOSS";
 
-        ui_title(text, 112.0f, 336.0f, .50f,
+        ui_title(text, 112.0f, 314.0f, .46f,
                  upgrade_chosen ? &ui_gold : &ui_white,
                  "SHOP / REST AREA");
 
-        ui_entryf(text, 319.0f, 337.0f, .40f,
+        ui_entryf(text, 319.0f, 315.0f, .36f,
                   &ui_muted, "BOSS: %s", boss);
 
-        ui_entry_raw(text, 214.0f, 360.0f, .34f,
+        ui_entry_raw(text, 214.0f, 340.0f, .29f,
                      &ui_muted,
                      upgrade_chosen ?
                      "UPGRADE LOCKED IN - CONTINUING" :
@@ -569,6 +624,8 @@ static void draw_fight_text(HSD_Text* text)
         char name[96];
         char meta[120];
         char detail[120];
+        float name_scale;
+        float meta_scale;
 
         encounter_name(name, sizeof(name), encounter);
 
@@ -588,9 +645,12 @@ static void draw_fight_text(HSD_Text* text)
             snprintf(detail, sizeof(detail), "STANDARD");
         }
 
-        ui_title(text, x, 337.0f, .51f, title_color, name);
-        ui_entry_raw(text, x, 356.0f, .32f, side, meta);
-        ui_entry_raw(text, x, 369.0f, .29f, &ui_muted, detail);
+        name_scale = fit_text_scale(name, .47f, .33f, 18);
+        meta_scale = fit_text_scale(meta, .29f, .22f, 29);
+
+        ui_title(text, x, 313.0f, name_scale, title_color, name);
+        ui_entry_raw(text, x, 333.0f, meta_scale, side, meta);
+        ui_entry_raw(text, x, 348.0f, .27f, &ui_muted, detail);
     }
 }
 
@@ -607,30 +667,32 @@ static void draw_build_strip_text(HSD_Text* text)
         g_rogue_run.currency * 100;
     int i;
 
-    ui_title(text, 187.0f, 394.0f, .47f,
+    ui_title(text, 194.0f, 389.0f, .42f,
              &ui_white,
              "CURRENT CHARACTER BUILD / UPGRADES");
 
     for (i = 0; i < 4; ++i) {
-        ui_entry_raw(text, x[i], 421.0f,
-                     .37f, &ui_gold, keys[i]);
+        const char* name = ability_name(i);
+        float scale = fit_text_scale(name, .31f, .24f, 14);
 
-        ui_entryf(text, x[i] + 24.0f, 421.0f,
-                  .34f, &ui_white, "%.15s",
-                  ability_name(i));
+        ui_entry_raw(text, x[i], 416.0f,
+                     .34f, &ui_gold, keys[i]);
+
+        ui_entry_raw(text, x[i] + 24.0f, 416.0f,
+                     scale, &ui_white, name);
     }
 
     if (has_reward) {
-        ui_entryf(text, 112.0f, 448.0f, .31f, &ui_muted,
-                  "GOLD +%d  |  TOTAL %d  |  SCORE %d  |  DMG %.0f%%  |  DEF %.0f%%",
+        ui_entryf(text, 120.0f, 444.0f, .27f, &ui_muted,
+                  "GOLD +%d   TOTAL %d   SCORE %d   DMG %.0f%%   DEF %.0f%%",
                   gold_gain,
                   g_rogue_run.currency,
                   score,
                   stats->damage_dealt * 100.0f,
                   stats->damage_received * 100.0f);
     } else {
-        ui_entryf(text, 143.0f, 448.0f, .31f, &ui_muted,
-                  "GOLD %d  |  SCORE %d  |  DMG %.0f%%  |  DEF %.0f%%",
+        ui_entryf(text, 150.0f, 444.0f, .27f, &ui_muted,
+                  "GOLD %d   SCORE %d   DMG %.0f%%   DEF %.0f%%",
                   g_rogue_run.currency,
                   score,
                   stats->damage_dealt * 100.0f,
@@ -651,7 +713,7 @@ static void draw_build_strip_text(HSD_Text* text)
             "LEFT / RIGHT: FIGHT     A: SELECT     B: BUILD";
     }
 
-    ui_entry_raw(text, 184.0f, 466.0f, .34f,
+    ui_entry_raw(text, 188.0f, 464.0f, .29f,
                  confirm_timer > 0 ? &ui_gold : &ui_white,
                  controls);
 }
@@ -931,7 +993,7 @@ void RogueProgression_Enter(GameModeState* state)
     g_rogue_progression_intro.game_type = 0;
     g_rogue_progression_intro.port = Rogue_ControllerPort();
     g_rogue_progression_intro.nametag = GM_NAMETAG_NONE;
-    g_rogue_progression_intro.stage_number = (u8) target_floor;
+    g_rogue_progression_intro.stage_number = (u8) target_act_floor;
 
     for (i = 0; i < 3; ++i) {
         g_rogue_progression_intro.allies[i] = ChKind_None;

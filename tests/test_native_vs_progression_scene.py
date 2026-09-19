@@ -35,6 +35,12 @@ class NativeVsProgressionSceneTests(unittest.TestCase):
         self.assertIn("gm_GetCurrentGameMode() == GM_ROGUE && state->id == 7", self.fix)
         self.assertIn("HSD_SisLib_803A6048(0xC000);", self.fix)
 
+    def test_progression_reuses_native_classic_road_map(self):
+        self.assertIn("style the retail IrRdMap", self.fix)
+        self.assertIn("rogue_map_scale.x *= 0.78f;", self.fix)
+        self.assertIn("rogue_map_pos.y += 6.5f;", self.fix)
+        self.assertIn("ROGUE_STATE_PROGRESSION", self.fix)
+
     def test_master_hand_is_never_passed_to_intro_easy(self):
         self.assertIn("CKind_MasterH", self.progress)
         self.assertIn("CKind_CrezyH", self.progress)

@@ -95,6 +95,47 @@ if new not in text:
         raise SystemExit("native Rogue flow: IntroEasy frame anchor changed")
     text = text.replace(old, new, 1)
 
+# ---------------------------------------------------------------------------
+# Rogue progression: style the retail IrRdMap instead of redrawing a route.
+#
+# GS_INTRO_EASY already loads IrRdMap and creates its JObj/camera. For state 7,
+# keep that native object, scale it down slightly, and lift it into the compact
+# top route band. No extra archive, camera, GObj or GX path is introduced.
+# ---------------------------------------------------------------------------
+old = """    HSD_JObjReqAnimAll(jobj, (f32) ((lbl_8047368C.xEE - 1) * 0x32));
+    HSD_JObjAnimAll(jobj);
+    lb_80011E24(jobj, &lbl_804735A8.x4[4], 0xE, -1);
+    lb_80011E24(jobj, &lbl_804735A8.x4[5], 1, -1);"""
+
+new = """    HSD_JObjReqAnimAll(jobj, (f32) ((lbl_8047368C.xEE - 1) * 0x32));
+    HSD_JObjAnimAll(jobj);
+
+    if (gm_GetCurrentGameMode() == GM_ROGUE &&
+        gm_GetCurrentSceneIndex() == ROGUE_STATE_PROGRESSION)
+    {
+        Vec3 rogue_map_pos;
+        Vec3 rogue_map_scale;
+
+        HSD_JObjGetTranslation(jobj, &rogue_map_pos);
+        HSD_JObjGetScale(jobj, &rogue_map_scale);
+
+        rogue_map_scale.x *= 0.78f;
+        rogue_map_scale.y *= 0.78f;
+        rogue_map_scale.z *= 0.78f;
+        rogue_map_pos.y += 6.5f;
+
+        HSD_JObjSetScale(jobj, &rogue_map_scale);
+        HSD_JObjSetTranslate(jobj, &rogue_map_pos);
+    }
+
+    lb_80011E24(jobj, &lbl_804735A8.x4[4], 0xE, -1);
+    lb_80011E24(jobj, &lbl_804735A8.x4[5], 1, -1);"""
+
+if new not in text:
+    if old not in text:
+        raise SystemExit("native Rogue flow: IrRdMap model anchor changed")
+    text = text.replace(old, new, 1)
+
 path.write_text(text, encoding="utf-8")
 
 # ---------------------------------------------------------------------------
@@ -170,4 +211,4 @@ for old, new in replacements.items():
 path.write_text(text, encoding="utf-8")
 
 print("postpatch: pre-combined Rogue flow compatibility applied")
-print("postpatch: no Tournament/Classic-intro progression hooks installed")
+print("postpatch: native Classic IrRdMap styled for Rogue progression")

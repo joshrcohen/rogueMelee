@@ -12,7 +12,7 @@ class ProgressionVisualPolishTests(unittest.TestCase):
         )
 
     def test_v5_safe_sis_panels_are_installed(self):
-        self.assertIn("PROGRESSION V6: SPLIT SIS BUFFERS", self.src)
+        self.assertIn("PROGRESSION V7: NATIVE ROAD MAP POLISH", self.src)
         self.assertIn("static HSD_Text* ui_rect(", self.src)
 
     def test_raw_gx_panel_rendering_is_gone(self):
