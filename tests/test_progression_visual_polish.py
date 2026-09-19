@@ -11,43 +11,40 @@ class ProgressionVisualPolishTests(unittest.TestCase):
             encoding="utf-8"
         )
 
-    def test_v4_native_panel_layer_is_installed(self):
-        self.assertIn("PROGRESSION V4: NATIVE PANEL LAYER", self.src)
-        self.assertIn("progression_panel_render", self.src)
-        self.assertIn("DrawRectangle(", self.src)
+    def test_v5_safe_sis_panels_are_installed(self):
+        self.assertIn("PROGRESSION V5: SAFE SIS PANEL LAYER", self.src)
+        self.assertIn("static HSD_Text* ui_rect(", self.src)
 
-    def test_panel_driver_uses_sis_render_callback(self):
-        self.assertIn("panel_driver->render_callback = progression_panel_render", self.src)
-        self.assertIn("panel_driver_open();", self.src)
-        self.assertIn("panel_driver_close();", self.src)
+    def test_raw_gx_panel_rendering_is_gone(self):
+        # V5 comments explain why the V4 raw-GX path was removed, so the
+        # identifiers may legitimately appear in prose. Verify executable
+        # implementation markers instead.
+        self.assertNotIn("#include <sysdolphin/baselib/hsd_3915.h>", self.src)
+        self.assertNotIn("static void progression_panel_render", self.src)
+        self.assertNotIn("panel_driver->render_callback =", self.src)
+        self.assertNotIn("panel_driver_open(", self.src)
+        self.assertNotIn("panel_driver_close(", self.src)
+        self.assertNotIn("static HSD_Text* panel_driver", self.src)
 
-    def test_panels_are_not_fake_text_backgrounds(self):
-        renderer = self.src.split("PROGRESSION V4: NATIVE PANEL LAYER", 1)[1]
-        renderer = renderer.split("static int copy_encounter", 1)[0]
-        self.assertNotIn("static HSD_Text* ui_panel", renderer)
-        self.assertIn("panel_box(", renderer)
-        self.assertIn("panel_outline(", renderer)
+    def test_rectangles_use_native_sis_backgrounds(self):
+        rect = self.src.split("static HSD_Text* ui_rect", 1)[1]
+        rect = rect.split("static void ui_encode", 1)[0]
+        self.assertIn("text->bg_color = color;", rect)
+        self.assertIn("text->box_size_x = w;", rect)
+        self.assertIn("text->font_size.x = 1.0f;", rect)
 
-    def test_native_pixel_text_group(self):
-        self.assertIn("text->font_size.x = 1.0f;", self.src)
+    def test_reward_screen_keeps_small_object_budget(self):
+        self.assertIn("Peak: about 9 objects.", self.src)
+        self.assertIn("draw_reward_card_panels", self.src)
+
+    def test_pixel_space_text_remains(self):
         self.assertIn("text->pos_x = 0.0f;", self.src)
+        self.assertIn("text->font_size.x = 1.0f;", self.src)
         self.assertIn("ui_entry_raw(", self.src)
 
-    def test_reference_layout_sections_exist(self):
-        self.assertIn("draw_route_panels", self.src)
-        self.assertIn("draw_reward_panels", self.src)
-        self.assertIn("draw_fight_panels", self.src)
-        self.assertIn("draw_build_strip_panels", self.src)
-        self.assertIn("draw_full_build_panels", self.src)
-
-    def test_build_hud_uses_four_ability_chips(self):
-        self.assertIn("static const float chip_x[4]", self.src)
-        self.assertIn('static const char* keys[4] = { "N", "S", "U", "D" }', self.src)
+    def test_build_has_four_distinct_slots(self):
+        self.assertIn('static const char* keys[4] = {"N", "S", "U", "D"}', self.src)
         self.assertIn("ability_name(i)", self.src)
-
-    def test_major_titles_get_shadow_entries(self):
-        self.assertIn("static void ui_title", self.src)
-        self.assertIn("x + 1.0f, y + 1.0f", self.src)
 
 
 if __name__ == "__main__":

@@ -17,9 +17,9 @@ class NativeOnePlayerUiTests(unittest.TestCase):
         self.assertIn('"GOLD +%d  |  TOTAL %d  |  SCORE %d', self.progress)
 
     def test_three_upgrade_cards_exist(self):
-        self.assertIn("static const float card_x[3]", self.progress)
+        self.assertIn("static const float x[3] = {27.0f, 225.0f, 423.0f}", self.progress)
         self.assertIn("draw_reward_text", self.progress)
-        self.assertIn("draw_reward_panels", self.progress)
+        self.assertIn("draw_reward_card_panels", self.progress)
 
     def test_cards_disappear_after_upgrade(self):
         self.assertIn("has_reward && !upgrade_chosen", self.progress)
@@ -38,10 +38,14 @@ class NativeOnePlayerUiTests(unittest.TestCase):
     def test_native_continue_screen_remains(self):
         self.assertIn("GS_GAMEOVER, &game_over_data, &game_over_data", self.rogue)
 
-    def test_v4_uses_native_640x480_coordinates(self):
-        self.assertIn("640.0f", self.progress)
-        self.assertIn("480.0f", self.progress)
-        self.assertIn("text->font_size.x = 1.0f", self.progress)
+    def test_v5_has_no_raw_gx_rendering(self):
+        # Comments intentionally document the removed V4 DrawRectangle /
+        # render_callback bug. Check actual implementation artifacts instead.
+        self.assertNotIn("#include <sysdolphin/baselib/hsd_3915.h>", self.progress)
+        self.assertNotIn("static void progression_panel_render", self.progress)
+        self.assertNotIn("panel_driver->render_callback =", self.progress)
+        self.assertNotIn("panel_driver_open(", self.progress)
+        self.assertNotIn("panel_driver_close(", self.progress)
 
 
 if __name__ == "__main__":

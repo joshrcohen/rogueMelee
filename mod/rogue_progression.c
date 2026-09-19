@@ -14,7 +14,6 @@
 #include <melee/lb/types.h>
 #include <melee/mn/inlines.h>
 #include <melee/mn/mnmain.h>
-#include <sysdolphin/baselib/hsd_3915.h>
 #include <sysdolphin/baselib/sislib.h>
 
 #include <stdarg.h>
@@ -24,29 +23,32 @@
 RogueProgressionIntroData g_rogue_progression_intro;
 
 /*
- * PROGRESSION V4: NATIVE PANEL LAYER
+ * PROGRESSION V5: SAFE SIS PANEL LAYER
  *
- * Architecture:
- *   - one HSD_Text object is used only as a render-callback host
- *   - that callback draws every custom panel/border with DrawRectangle()
- *   - one normal HSD_Text object owns all Rogue text entries
+ * V4 proved that the layout direction was right, but its implementation was
+ * not: calling DrawRectangle() from HSD_Text::render_callback can disturb the
+ * GX state owned by the SIS renderer. Dolphin reported GX FIFO Unknown Opcode
+ * errors, and re-entering progression after Stage Clear could hang.
  *
- * HSD_SisLib_803A84BC sets up the native SIS camera, projection and alpha
- * blending before invoking HSD_Text::render_callback. That gives us a safe
- * 640x480 UI drawing surface without creating another camera or another SIS
- * context.
+ * V5 never issues raw GX commands.
  *
- * The panel-driver object is created before the Rogue text object. Objects on
- * the same SIS GX link are appended in creation order, so native IntroEasy UI
- * renders first, then our panels mask unwanted native clutter, then our text
- * renders on top.
+ * Panels are background-only HSD_Text objects. That uses the same SIS renderer
+ * and camera as all other text and lets SIS own its own GX state from start to
+ * finish.
  *
- * This replaces the old "HSD_Text with a giant background box" panel hack.
+ * Normal reward-screen object budget:
+ *   top / phase backdrop      1
+ *   three reward cards        3
+ *   selected-card accent      1
+ *   two fight lower-thirds    2
+ *   bottom HUD                1
+ *   all Rogue text            1
+ *
+ * Peak: about 9 objects.
  */
 
-static HSD_Text* lines[8];
+static HSD_Text* lines[24];
 static unsigned line_count;
-static HSD_Text* panel_driver;
 
 static bool ui_open;
 static bool build_open;
@@ -67,16 +69,13 @@ static GXColor ui_muted = {178, 190, 220, 255};
 static GXColor ui_dark = {7, 12, 30, 244};
 static GXColor ui_black = {3, 6, 16, 252};
 static GXColor ui_red = {204, 31, 24, 255};
-static GXColor ui_panel_color = {12, 18, 40, 232};
+static GXColor ui_panel = {12, 18, 40, 230};
 static GXColor ui_panel_soft = {15, 22, 48, 224};
 static GXColor ui_border = {126, 145, 205, 255};
-static GXColor ui_border_dim = {67, 78, 112, 255};
 static GXColor ui_blue = {83, 119, 242, 255};
 static GXColor ui_purple = {188, 73, 255, 255};
 static GXColor ui_glass = {8, 13, 34, 214};
-static GXColor ui_glass_soft = {8, 13, 34, 172};
 static GXColor ui_shadow = {0, 0, 0, 255};
-static GXColor ui_node_future = {36, 43, 64, 255};
 
 static void ui_clear(void)
 {
@@ -88,6 +87,46 @@ static void ui_clear(void)
     }
 
     line_count = 0;
+}
+
+static HSD_Text* ui_track(HSD_Text* text)
+{
+    if (text == NULL)
+        return NULL;
+
+    if (line_count >= sizeof(lines) / sizeof(lines[0])) {
+        HSD_SisLib_803A5CC4(text);
+        return NULL;
+    }
+
+    lines[line_count++] = text;
+    return text;
+}
+
+static HSD_Text* ui_rect(float x, float y, float w, float h, GXColor color)
+{
+    HSD_Text* text = ui_track(HSD_SisLib_803A6754(0, 0));
+
+    if (text == NULL)
+        return NULL;
+
+    text->pos_x = x;
+    text->pos_y = y;
+    text->pos_z = 0.0f;
+
+    /*
+     * A 1.0 font scale makes box_size map directly to the native 640x480
+     * SIS coordinate system.
+     */
+    text->font_size.x = 1.0f;
+    text->font_size.y = 1.0f;
+    text->box_size_x = w;
+    text->box_size_y = h;
+
+    text->bg_color = color;
+    text->text_color.a = 0;
+
+    return text;
 }
 
 static void ui_encode(char* out, const char* in)
@@ -131,21 +170,11 @@ static void ui_encode(char* out, const char* in)
 
 static HSD_Text* ui_text_group(void)
 {
-    HSD_Text* text;
+    HSD_Text* text = ui_track(HSD_SisLib_803A6754(0, 0));
 
-    if (line_count >= sizeof(lines) / sizeof(lines[0]))
-        return NULL;
-
-    text = HSD_SisLib_803A6754(0, 0);
     if (text == NULL)
         return NULL;
 
-    lines[line_count++] = text;
-
-    /*
-     * Native IntroEasy uses a 640x480 SIS canvas. Keep the text object at
-     * screen origin and use per-entry pixel coordinates / scale.
-     */
     text->pos_x = 0.0f;
     text->pos_y = 0.0f;
     text->pos_z = 0.0f;
@@ -167,7 +196,6 @@ static int ui_entry_raw(HSD_Text* text, float x, float y, float scale,
         return -1;
 
     ui_encode(encoded, value);
-
     entry = HSD_SisLib_803A6B98(text, x, y, "%s", encoded);
     HSD_SisLib_803A7548(text, entry, scale, scale);
 
@@ -193,10 +221,6 @@ static int ui_entryf(HSD_Text* text, float x, float y, float scale,
 static void ui_title(HSD_Text* text, float x, float y, float scale,
                      GXColor* color, const char* value)
 {
-    /*
-     * A one-pixel black duplicate substantially improves readability against
-     * bright fighter renders without needing a new HSD_Text object.
-     */
     ui_entry_raw(text, x + 1.0f, y + 1.0f, scale, &ui_shadow, value);
     ui_entry_raw(text, x, y, scale, color, value);
 }
@@ -309,9 +333,8 @@ static const char* ability_name(int slot)
     RogueAbilityID id = g_rogue_run.ability[slot];
     const RogueAbilityDefinition* def;
 
-    if (id == ROGUE_ABILITY_NATIVE) {
+    if (id == ROGUE_ABILITY_NATIVE)
         id = Rogue_AbilityForOpponent(g_rogue_run.player_kind, slot);
-    }
 
     def = Rogue_GetAbility(id);
     return def ? def->name : "Native";
@@ -333,250 +356,57 @@ static const char* reward_icon_letter(const RogueReward* reward)
 }
 
 /* ------------------------------------------------------------------------- */
-/* Native panel layer                                                        */
+/* Safe SIS background panels                                                */
 /* ------------------------------------------------------------------------- */
 
-static void panel_fill(float x, float y, float w, float h, GXColor* color)
-{
-    DrawRectangle(x, y, w, h, color);
-}
-
-static void panel_box(float x, float y, float w, float h,
-                      float border, GXColor* border_color,
-                      GXColor* fill_color)
-{
-    panel_fill(x, y, w, h, border_color);
-
-    if (w > border * 2.0f && h > border * 2.0f) {
-        panel_fill(x + border, y + border,
-                   w - border * 2.0f, h - border * 2.0f,
-                   fill_color);
-    }
-}
-
-static void panel_outline(float x, float y, float w, float h,
-                          float thickness, GXColor* color)
-{
-    panel_fill(x, y, w, thickness, color);
-    panel_fill(x, y + h - thickness, w, thickness, color);
-    panel_fill(x, y, thickness, h, color);
-    panel_fill(x + w - thickness, y, thickness, h, color);
-}
-
-static void draw_route_panels(void)
-{
-    static const float node_x[6] = {
-        76.0f, 174.0f, 272.0f, 370.0f, 468.0f, 566.0f
-    };
-    const RogueRoute* route = &g_rogue_run.route;
-    int i;
-
-    panel_fill(0.0f, 0.0f, 640.0f, 84.0f, &ui_black);
-
-    panel_fill(76.0f, 25.0f, 490.0f, 2.0f, &ui_border_dim);
-
-    for (i = 0; i < 6; ++i) {
-        bool complete = false;
-        bool active = false;
-        GXColor* fill = &ui_node_future;
-        GXColor* border = &ui_border_dim;
-
-        if (i < ROGUE_ROUTE_ROUNDS)
-            complete = route->rounds[i].selected >= 0;
-
-        if (target_act_floor < ROGUE_FLOORS_PER_ACT)
-            active = i == target_act_floor - 1;
-        else
-            active = i == 4;
-
-        if (active) {
-            fill = &ui_gold;
-            border = &ui_gold;
-            panel_fill(node_x[i] - 10.0f, 17.0f,
-                       20.0f, 20.0f, &ui_glass_soft);
-        } else if (complete) {
-            fill = &ui_red;
-            border = &ui_red;
-        }
-
-        panel_box(node_x[i] - 7.0f, 20.0f,
-                  14.0f, 14.0f, 2.0f, border, fill);
-    }
-
-    panel_fill(0.0f, 82.0f, 640.0f, 2.0f, &ui_border_dim);
-}
-
-static void draw_phase_panel(void)
+static void draw_base_panels(void)
 {
     /*
-     * This opaque strip intentionally covers the retail giant STAGE title.
-     * It ends before the fighter presentation becomes the visual focus.
+     * One combined top panel replaces both the route and phase GX layers.
+     * It masks the unwanted native route/STAGE text cleanly.
      */
-    panel_fill(0.0f, 84.0f, 640.0f, 37.0f, &ui_black);
-    panel_fill(0.0f, 119.0f, 640.0f, 2.0f, &ui_border_dim);
-}
-
-static void draw_reward_panels(void)
-{
-    static const float card_x[3] = { 27.0f, 225.0f, 423.0f };
-    int i;
+    ui_rect(0.0f, 0.0f, 640.0f, 121.0f, ui_black);
 
     /*
-     * A light dimmer removes the remaining retail STAGE lettering from the
-     * card band while preserving fighter art below the cards.
+     * The fight lower-thirds sit over the bottom edge of fighter art only.
      */
-    panel_fill(0.0f, 121.0f, 640.0f, 104.0f, &ui_glass_soft);
+    if (target_act_floor < ROGUE_FLOORS_PER_ACT) {
+        ui_rect(22.0f, 326.0f, 282.0f, 56.0f, ui_glass);
+        ui_rect(336.0f, 326.0f, 282.0f, 56.0f, ui_glass);
+    } else {
+        ui_rect(78.0f, 326.0f, 484.0f, 56.0f, ui_glass);
+    }
+
+    ui_rect(0.0f, 386.0f, 640.0f, 94.0f, ui_black);
+}
+
+static void draw_reward_card_panels(void)
+{
+    static const float x[3] = {27.0f, 225.0f, 423.0f};
+    int i;
 
     for (i = 0; i < 3; ++i) {
-        bool selected = upgrade_cursor == i;
-        GXColor* border = selected ? &ui_gold : &ui_border;
-        GXColor* fill = selected ? &ui_dark : &ui_glass;
-
-        if (selected) {
-            GXColor glow = {255, 204, 0, 86};
-            panel_outline(card_x[i] - 3.0f, 126.0f,
-                          190.0f, 96.0f, 3.0f, &glow);
-        }
-
-        panel_box(card_x[i], 129.0f, 184.0f, 90.0f,
-                  selected ? 3.0f : 2.0f, border, fill);
-
-        panel_fill(card_x[i] + 2.0f, 131.0f,
-                   4.0f, 86.0f, border);
-
-        panel_box(card_x[i] + 12.0f, 140.0f,
-                  27.0f, 27.0f, 2.0f,
-                  border, &ui_panel_soft);
-
-        panel_fill(card_x[i] + 12.0f, 177.0f,
-                   160.0f, 1.0f, &ui_border_dim);
-    }
-}
-
-static void draw_fight_panels(void)
-{
-    const RogueRouteRound* round = RogueRoute_Current(&g_rogue_run.route);
-    int i;
-
-    if (target_act_floor >= ROGUE_FLOORS_PER_ACT ||
-        round == NULL || !round->generated)
-    {
-        panel_box(78.0f, 326.0f, 484.0f, 56.0f,
-                  2.0f,
-                  upgrade_chosen ? &ui_gold : &ui_border,
-                  &ui_glass);
-        return;
+        ui_rect(x[i], 129.0f, 184.0f, 90.0f,
+                i == upgrade_cursor ? ui_dark : ui_panel);
     }
 
-    for (i = 0; i < 2; ++i) {
-        float x = i == 0 ? 22.0f : 336.0f;
-        GXColor* side = i == 0 ? &ui_blue : &ui_purple;
-        bool selected =
-            upgrade_chosen &&
-            (fight_locked >= 0 ?
-                 fight_locked == i :
-                 fight_cursor == i);
-        GXColor* border = selected ? &ui_gold : side;
-
-        panel_box(x, 326.0f, 282.0f, 56.0f,
-                  selected ? 3.0f : 2.0f,
-                  border, &ui_glass);
-
-        panel_fill(x + 2.0f, 328.0f, 278.0f, 3.0f, side);
-
-        if (!upgrade_chosen) {
-            GXColor lock_tint = {5, 8, 20, 78};
-            panel_fill(x + 2.0f, 331.0f, 278.0f, 49.0f, &lock_tint);
-        }
-    }
-}
-
-static void draw_build_strip_panels(void)
-{
-    static const float chip_x[4] = {
-        38.0f, 184.0f, 330.0f, 476.0f
-    };
-    int i;
-
-    panel_fill(0.0f, 386.0f, 640.0f, 94.0f, &ui_black);
-    panel_fill(0.0f, 386.0f, 640.0f, 2.0f, &ui_border_dim);
-
-    for (i = 0; i < 4; ++i) {
-        panel_box(chip_x[i], 414.0f, 128.0f, 25.0f,
-                  1.0f, &ui_border_dim, &ui_panel_soft);
-        panel_box(chip_x[i] + 4.0f, 417.0f, 20.0f, 19.0f,
-                  1.0f, &ui_gold, &ui_dark);
-    }
+    /*
+     * One narrow gold accent is enough to show focus without doubling all
+     * three card objects for decorative borders.
+     */
+    ui_rect(x[upgrade_cursor], 129.0f, 5.0f, 90.0f, ui_gold);
 }
 
 static void draw_full_build_panels(void)
 {
-    panel_fill(0.0f, 0.0f, 640.0f, 480.0f, &ui_black);
+    ui_rect(0.0f, 0.0f, 640.0f, 480.0f, ui_black);
+    ui_rect(62.0f, 49.0f, 516.0f, 354.0f, ui_dark);
 
-    panel_box(62.0f, 49.0f, 516.0f, 354.0f,
-              2.0f, &ui_border, &ui_dark);
-    panel_fill(62.0f, 49.0f, 516.0f, 4.0f, &ui_gold);
-
-    panel_box(88.0f, 115.0f, 214.0f, 58.0f,
-              1.0f, &ui_border_dim, &ui_panel_soft);
-    panel_box(338.0f, 115.0f, 214.0f, 58.0f,
-              1.0f, &ui_border_dim, &ui_panel_soft);
-    panel_box(88.0f, 191.0f, 214.0f, 58.0f,
-              1.0f, &ui_border_dim, &ui_panel_soft);
-    panel_box(338.0f, 191.0f, 214.0f, 58.0f,
-              1.0f, &ui_border_dim, &ui_panel_soft);
-
-    panel_box(88.0f, 271.0f, 464.0f, 78.0f,
-              1.0f, &ui_border_dim, &ui_panel_soft);
-}
-
-static void progression_panel_render(void* unused)
-{
-    (void) unused;
-
-    if (!ui_open)
-        return;
-
-    if (build_open) {
-        draw_full_build_panels();
-        return;
-    }
-
-    draw_route_panels();
-    draw_phase_panel();
-
-    if (has_reward && !upgrade_chosen)
-        draw_reward_panels();
-
-    draw_fight_panels();
-    draw_build_strip_panels();
-}
-
-static void panel_driver_open(void)
-{
-    if (panel_driver != NULL)
-        return;
-
-    panel_driver = HSD_SisLib_803A6754(0, 0);
-    if (panel_driver == NULL)
-        return;
-
-    panel_driver->pos_x = 0.0f;
-    panel_driver->pos_y = 0.0f;
-    panel_driver->pos_z = 0.0f;
-    panel_driver->font_size.x = 1.0f;
-    panel_driver->font_size.y = 1.0f;
-    panel_driver->bg_color.a = 0;
-    panel_driver->text_color.a = 0;
-    panel_driver->render_callback = progression_panel_render;
-}
-
-static void panel_driver_close(void)
-{
-    if (panel_driver != NULL) {
-        HSD_SisLib_803A5CC4(panel_driver);
-        panel_driver = NULL;
-    }
+    ui_rect(88.0f, 115.0f, 214.0f, 58.0f, ui_panel_soft);
+    ui_rect(338.0f, 115.0f, 214.0f, 58.0f, ui_panel_soft);
+    ui_rect(88.0f, 191.0f, 214.0f, 58.0f, ui_panel_soft);
+    ui_rect(338.0f, 191.0f, 214.0f, 58.0f, ui_panel_soft);
+    ui_rect(88.0f, 271.0f, 464.0f, 78.0f, ui_panel_soft);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -589,11 +419,15 @@ static void draw_route_text(HSD_Text* text)
         "CLEAR", "NEXT", "ELITE", "MATCH 4", "SHOP", "BOSS"
     };
     static const float x[6] = {
-        58.0f, 158.0f, 254.0f, 344.0f, 454.0f, 550.0f
+        54.0f, 151.0f, 246.0f, 337.0f, 449.0f, 546.0f
     };
     const RogueRoute* route = &g_rogue_run.route;
     int i;
 
+    /*
+     * Route stays text-forward instead of using six giant rectangular tabs.
+     * The active step gets a gold marker and label.
+     */
     for (i = 0; i < 6; ++i) {
         bool complete = false;
         bool active = false;
@@ -612,16 +446,18 @@ static void draw_route_text(HSD_Text* text)
         else if (complete)
             color = &ui_white;
 
-        ui_entry_raw(text, x[i], 42.0f, .34f, color, names[i]);
+        ui_entry_raw(text, x[i], 24.0f, .37f, color, names[i]);
+
+        if (i < 5)
+            ui_entry_raw(text, x[i] + 66.0f, 24.0f,
+                         .27f, &ui_muted, ">");
     }
 
-    ui_title(text, 250.0f, 64.0f, .45f, &ui_white, "ACT");
-    ui_entryf(text, 287.0f, 64.0f, .45f, &ui_white,
-              "%d", route->act);
-    ui_entry_raw(text, 309.0f, 64.0f, .45f, &ui_muted, "-");
-    ui_title(text, 330.0f, 64.0f, .45f, &ui_white, "FLOOR");
-    ui_entryf(text, 387.0f, 64.0f, .45f, &ui_white,
-              "%d", target_floor);
+    ui_title(text, 247.0f, 57.0f, .46f, &ui_white, "ACT");
+    ui_entryf(text, 286.0f, 57.0f, .46f, &ui_white, "%d", route->act);
+    ui_entry_raw(text, 309.0f, 57.0f, .46f, &ui_muted, "-");
+    ui_title(text, 332.0f, 57.0f, .46f, &ui_white, "FLOOR");
+    ui_entryf(text, 390.0f, 57.0f, .46f, &ui_white, "%d", target_floor);
 }
 
 static void draw_phase_text(HSD_Text* text)
@@ -633,11 +469,12 @@ static void draw_phase_text(HSD_Text* text)
     else
         phase = has_reward ? "CHOOSE NEXT FIGHT" : "CHOOSE FIRST FIGHT";
 
-    ui_title(text, has_reward ? 246.0f : 232.0f,
-             92.0f, .56f, &ui_gold, phase);
+    ui_title(text,
+             has_reward ? 244.0f : 228.0f,
+             91.0f, .57f, &ui_gold, phase);
 
     if (has_reward && upgrade_chosen && upgrade_taken >= 0) {
-        ui_entryf(text, 248.0f, 110.0f, .31f, &ui_muted,
+        ui_entryf(text, 247.0f, 109.0f, .31f, &ui_muted,
                   "LOCKED: %s",
                   g_rogue_run.current_rewards[upgrade_taken].name);
     }
@@ -645,12 +482,13 @@ static void draw_phase_text(HSD_Text* text)
 
 static void draw_reward_text(HSD_Text* text)
 {
-    static const float x[3] = { 39.0f, 237.0f, 435.0f };
+    static const float x[3] = {39.0f, 237.0f, 435.0f};
     int i;
 
     for (i = 0; i < 3; ++i) {
         RogueReward* reward = &g_rogue_run.current_rewards[i];
-        GXColor* accent = upgrade_cursor == i ? &ui_gold : &ui_white;
+        GXColor* accent =
+            upgrade_cursor == i ? &ui_gold : &ui_white;
         char meta[80];
         char detail[180];
         char line1[64];
@@ -660,20 +498,20 @@ static void draw_reward_text(HSD_Text* text)
         split_description(detail,
                           line1, sizeof(line1),
                           line2, sizeof(line2),
-                          26);
+                          25);
 
         snprintf(meta, sizeof(meta), "%s / %s",
                  reward_category(reward),
                  Rogue_RarityName(reward->rarity));
 
-        ui_title(text, x[i] + 7.0f, 144.0f,
-                 .47f, accent, reward_icon_letter(reward));
+        ui_title(text, x[i], 143.0f, .44f,
+                 accent, reward_icon_letter(reward));
 
-        ui_title(text, x[i] + 37.0f, 142.0f,
-                 .49f, accent, reward->name);
+        ui_title(text, x[i] + 28.0f, 140.0f, .47f,
+                 accent, reward->name);
 
-        ui_entry_raw(text, x[i] + 37.0f, 160.0f,
-                     .30f, &ui_muted, meta);
+        ui_entry_raw(text, x[i] + 28.0f, 159.0f,
+                     .31f, &ui_muted, meta);
 
         ui_entry_raw(text, x[i], 184.0f,
                      .36f, &ui_white, line1);
@@ -698,12 +536,15 @@ static void draw_fight_text(HSD_Text* text)
             RogueRoute_CharacterName(g_rogue_run.route.boss.enemy_kind) :
             "BOSS";
 
-        ui_title(text, 116.0f, 337.0f, .50f,
+        ui_title(text, 112.0f, 336.0f, .50f,
                  upgrade_chosen ? &ui_gold : &ui_white,
                  "SHOP / REST AREA");
-        ui_entryf(text, 320.0f, 338.0f, .42f, &ui_muted,
-                  "BOSS: %s", boss);
-        ui_entry_raw(text, 220.0f, 360.0f, .34f, &ui_muted,
+
+        ui_entryf(text, 319.0f, 337.0f, .40f,
+                  &ui_muted, "BOSS: %s", boss);
+
+        ui_entry_raw(text, 214.0f, 360.0f, .34f,
+                     &ui_muted,
                      upgrade_chosen ?
                      "UPGRADE LOCKED IN - CONTINUING" :
                      "PICK AN UPGRADE FIRST");
@@ -719,7 +560,8 @@ static void draw_fight_text(HSD_Text* text)
             (fight_locked >= 0 ?
                  fight_locked == i :
                  fight_cursor == i);
-        GXColor* title_color = selected ? &ui_gold : side;
+        GXColor* title_color =
+            selected ? &ui_gold : side;
         char name[96];
         char meta[120];
         char detail[120];
@@ -742,7 +584,7 @@ static void draw_fight_text(HSD_Text* text)
             snprintf(detail, sizeof(detail), "STANDARD");
         }
 
-        ui_title(text, x, 337.0f, .52f, title_color, name);
+        ui_title(text, x, 337.0f, .51f, title_color, name);
         ui_entry_raw(text, x, 356.0f, .32f, side, meta);
         ui_entry_raw(text, x, 369.0f, .29f, &ui_muted, detail);
     }
@@ -750,13 +592,10 @@ static void draw_fight_text(HSD_Text* text)
 
 static void draw_build_strip_text(HSD_Text* text)
 {
-    static const float key_x[4] = {
-        44.0f, 190.0f, 336.0f, 482.0f
+    static const float x[4] = {
+        34.0f, 185.0f, 336.0f, 487.0f
     };
-    static const float name_x[4] = {
-        70.0f, 216.0f, 362.0f, 508.0f
-    };
-    static const char* keys[4] = { "N", "S", "U", "D" };
+    static const char* keys[4] = {"N", "S", "U", "D"};
     const RogueStats* stats = &g_rogue_run.stats;
     const char* controls;
     int score =
@@ -764,20 +603,21 @@ static void draw_build_strip_text(HSD_Text* text)
         g_rogue_run.currency * 100;
     int i;
 
-    ui_title(text, 188.0f, 394.0f, .47f,
+    ui_title(text, 187.0f, 394.0f, .47f,
              &ui_white,
              "CURRENT CHARACTER BUILD / UPGRADES");
 
     for (i = 0; i < 4; ++i) {
-        ui_entry_raw(text, key_x[i], 419.0f,
+        ui_entry_raw(text, x[i], 421.0f,
                      .37f, &ui_gold, keys[i]);
-        ui_entryf(text, name_x[i], 419.0f,
-                  .34f, &ui_white, "%.14s",
+
+        ui_entryf(text, x[i] + 24.0f, 421.0f,
+                  .34f, &ui_white, "%.15s",
                   ability_name(i));
     }
 
     if (has_reward) {
-        ui_entryf(text, 116.0f, 448.0f, .31f, &ui_muted,
+        ui_entryf(text, 112.0f, 448.0f, .31f, &ui_muted,
                   "GOLD +%d  |  TOTAL %d  |  SCORE %d  |  DMG %.0f%%  |  DEF %.0f%%",
                   gold_gain,
                   g_rogue_run.currency,
@@ -785,7 +625,7 @@ static void draw_build_strip_text(HSD_Text* text)
                   stats->damage_dealt * 100.0f,
                   stats->damage_received * 100.0f);
     } else {
-        ui_entryf(text, 145.0f, 448.0f, .31f, &ui_muted,
+        ui_entryf(text, 143.0f, 448.0f, .31f, &ui_muted,
                   "GOLD %d  |  SCORE %d  |  DMG %.0f%%  |  DEF %.0f%%",
                   g_rogue_run.currency,
                   score,
@@ -807,7 +647,7 @@ static void draw_build_strip_text(HSD_Text* text)
             "LEFT / RIGHT: FIGHT     A: SELECT     B: BUILD";
     }
 
-    ui_entry_raw(text, 186.0f, 466.0f, .34f,
+    ui_entry_raw(text, 184.0f, 466.0f, .34f,
                  confirm_timer > 0 ? &ui_gold : &ui_white,
                  controls);
 }
@@ -816,25 +656,25 @@ static void draw_full_build_text(HSD_Text* text)
 {
     const RogueStats* stats = &g_rogue_run.stats;
 
-    ui_title(text, 190.0f, 69.0f, .62f,
+    ui_title(text, 188.0f, 69.0f, .62f,
              &ui_gold, "CURRENT CHARACTER BUILD");
 
-    ui_entry_raw(text, 108.0f, 130.0f, .32f,
+    ui_entry_raw(text, 108.0f, 129.0f, .32f,
                  &ui_muted, "NEUTRAL");
     ui_title(text, 108.0f, 148.0f, .47f,
              &ui_white, ability_name(ROGUE_ABILITY_NEUTRAL));
 
-    ui_entry_raw(text, 358.0f, 130.0f, .32f,
+    ui_entry_raw(text, 358.0f, 129.0f, .32f,
                  &ui_muted, "SIDE");
     ui_title(text, 358.0f, 148.0f, .47f,
              &ui_white, ability_name(ROGUE_ABILITY_SIDE));
 
-    ui_entry_raw(text, 108.0f, 206.0f, .32f,
+    ui_entry_raw(text, 108.0f, 205.0f, .32f,
                  &ui_muted, "UP");
     ui_title(text, 108.0f, 224.0f, .47f,
              &ui_white, ability_name(ROGUE_ABILITY_UP));
 
-    ui_entry_raw(text, 358.0f, 206.0f, .32f,
+    ui_entry_raw(text, 358.0f, 205.0f, .32f,
                  &ui_muted, "DOWN");
     ui_title(text, 358.0f, 224.0f, .47f,
              &ui_white, ability_name(ROGUE_ABILITY_DOWN));
@@ -870,14 +710,28 @@ static void draw_progression(void)
 
     ui_clear();
 
+    if (build_open) {
+        draw_full_build_panels();
+
+        text = ui_text_group();
+        if (text != NULL)
+            draw_full_build_text(text);
+
+        return;
+    }
+
+    /*
+     * Create all background-only SIS objects first. The text object is created
+     * last, so it renders above our panels in the same SIS context.
+     */
+    draw_base_panels();
+
+    if (has_reward && !upgrade_chosen)
+        draw_reward_card_panels();
+
     text = ui_text_group();
     if (text == NULL)
         return;
-
-    if (build_open) {
-        draw_full_build_text(text);
-        return;
-    }
 
     draw_route_text(text);
     draw_phase_text(text);
@@ -1007,7 +861,6 @@ void RogueProgression_Enter(GameModeState* state)
     (void) state;
 
     ui_clear();
-    panel_driver = NULL;
     ui_open = false;
     build_open = false;
     confirm_timer = 0;
@@ -1116,7 +969,6 @@ void RogueProgression_Exit(GameModeState* state)
     (void) state;
 
     ui_clear();
-    panel_driver_close();
     ui_open = false;
 
     if (g_rogue_run.phase != ROGUE_PHASE_ENCOUNTER) {
@@ -1135,12 +987,6 @@ void RogueProgression_Exit(GameModeState* state)
 static void open_ui(void)
 {
     ui_open = true;
-
-    /*
-     * Create the custom-panel host first so its callback renders beneath all
-     * Rogue text objects created by draw_progression().
-     */
-    panel_driver_open();
     draw_progression();
 }
 
